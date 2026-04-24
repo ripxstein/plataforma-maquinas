@@ -13,6 +13,19 @@
 
         <!-- Scripts -->
         
+
+<script>
+    // -----------------------------
+    // UI: acordeones
+    // -----------------------------
+document.addEventListener('livewire:navigated', () => {
+    document.querySelectorAll('.accordion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.parentElement.classList.toggle('open');
+        });
+    });
+});
+</script>
          @vite(['resources/css/app.css', 'resources/css/plataforma.css', 'resources/js/app.js'])
     </head>
     <body class="body-app">

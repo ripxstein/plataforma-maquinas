@@ -6,7 +6,10 @@
 
     <div class="nav-group">
         <div class="nav-title">Administración</div>
-        <a class="nav-link" href="#">Inicio</a>
+        <a class="nav-link {{ request()->routeIs('admin.inicio') ? 'active' : '' }}"
+           href="{{ route('admin.inicio') }}" wire:navigate>
+            Inicio
+        </a>
         <a class="nav-link" href="#">Usuarios</a>
         <a class="nav-link" href="#">Cursos</a>
         <a class="nav-link" href="#">Contenido</a>
