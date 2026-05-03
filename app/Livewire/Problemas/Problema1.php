@@ -11,6 +11,9 @@ class Problema1 extends Component
     public $snom;
     public $kt;
     public $smax;
+    public $showImageStep4 = false;
+    public $itemId;
+
 
     public int $currentStep = 1;
 
@@ -69,22 +72,31 @@ class Problema1 extends Component
     }
 
     public function checkStep4()
-    {
-        if ($this->approxEqual($this->kt, $this->expected['kt'], 0.05, 0.03)) {
-            $this->messages[4] = ['ok' => true, 'text' => 'Correcto'];
-            $this->currentStep = 5;
-        } else {
-            $this->messages[4] = ['ok' => false, 'text' => 'Revisa el valor de Kt'];
-        }
+{
+    if ($this->approxEqual($this->kt, $this->expected['kt'], 0.05, 0.03)) {
+        $this->messages[4] = ['ok' => true, 'text' => 'Correcto'];
+        $this->currentStep = 5;
+
+        $this->showImageStep4 = false; // ocultar si ya acertó
+    } else {
+        $this->messages[4] = [
+            'ok' => false,
+            'text' => 'Revisa cómo obtener Kt de la gráfica'
+        ];
+
+        $this->showImageStep4 = true; // mostrar imagen de ayuda
     }
+}
 
     public function checkStep5()
     {
         if ($this->approxEqual($this->smax, $this->expected['smax'], 200, 0.02)) {
             $this->messages[5] = ['ok' => true, 'text' => 'Correcto. ¡Completado!'];
             $this->currentStep = 6;
+             $this->dispatch('problema-completado', itemId: $this->itemId);
         } else {
             $this->messages[5] = ['ok' => false, 'text' => 'Revisa σmax = Kt · σnom'];
+            
         }
     }
 

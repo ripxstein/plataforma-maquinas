@@ -10,10 +10,8 @@
            href="{{ route('admin.inicio') }}" wire:navigate>
             Inicio
         </a>
-        <a class="nav-link" href="#">Usuarios</a>
-        <a class="nav-link" href="#">Cursos</a>
-        <a class="nav-link" href="#">Contenido</a>
-        <a class="nav-link" href="#">Avances</a>
+        <a class="nav-link" href="#">Alumnos</a>
+        <a class="nav-link" href="#">Progresos</a>
     </div>
 
    

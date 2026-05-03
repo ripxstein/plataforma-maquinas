@@ -1,5 +1,6 @@
 <div class="steps" id="p1-steps">
-    <h5>Progreso del problema</h5>
+    <h5>Problema 1</h5>
+
 
     {{-- Paso 1 --}}
     <div class="pstep">
@@ -65,8 +66,18 @@
         <button type="button" class="badge" wire:click="checkStep4">
             Revisar
         </button>
-
+        {{-- Imagen de ayuda paso 4 --}}
+@if ($showImageStep4)
+    <div style="margin-top:12px;">
+        <img 
+            src="{{ asset('images/graficas/figura-a-15-3.png') }}" 
+            alt="Cómo obtener Kt"
+            style="width:100%; max-width:400px; border:1px solid #ccc; border-radius:10px;"
+        >
+    </div>
+@endif
         @include('livewire.partials.step-message', ['step' => 4])
+        
     </div>
 
     {{-- Paso 5 --}}
@@ -87,6 +98,11 @@
     </div>
 
     @if ($currentStep >= 6)
+         <img
+        src="{{ asset('images/ilustraciones/A-2.png') }}"
+        alt="Simulacion de barra con muesca"
+        class="ilustracion-img"
+    >   
         <div class="footer-note" style="margin-top:16px;">
             ✅ <strong>¡Listo!</strong> Completaste el procedimiento del problema 1.
         </div>

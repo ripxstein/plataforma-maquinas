@@ -23,19 +23,17 @@
             Criterios
         </a>
 
-        <a class="nav-link nav-toggle {{ request()->routeIs('student.concentracion') ? 'active' : '' }}"
-           href="{{ route('student.concentracion') }}" wire:navigate>
-            1. Concentración de esfuerzos
-        </a>
-        <div class="submenu" >
-        <a href="concentracion#problema1" class="submenu-link">Problema 1</a>
-        <a href="concentracion#problema2" class="submenu-link">Problema 2</a>
-        </div>
+        <a class="nav-link {{ request()->is('alumno/modulo/concentracion') ? 'active' : '' }}"
+   href="{{ route('student.modulo', 'concentracion') }}"
+   wire:navigate>
+    1. Concentración de esfuerzos
+</a>
 
-        <a class="nav-link {{ request()->routeIs('student.fallas') ? 'active' : '' }}"
-           href="{{ route('student.fallas') }}" wire:navigate>
-            2. Fallas por carga estática
-        </a>
+<a class="nav-link {{ request()->is('alumno/modulo/fallas') ? 'active' : '' }}"
+   href="{{ route('student.modulo', 'fallas') }}"
+   wire:navigate>
+    2. Fallas por carga estática
+</a>
         
 
         <a class="nav-link {{ request()->routeIs('student.aplicacion') ? 'active' : '' }}"

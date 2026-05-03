@@ -14,6 +14,10 @@ Route::get('/dashboard', function () {
     return redirect()->route('student.inicio');
 })->middleware(['auth'])->name('dashboard');
 
+Route::get('/alumno/modulo/{slug}', function ($slug) {
+    return view('student.modulo', compact('slug'));
+})->middleware(['auth'])->name('student.modulo');
+
 Route::prefix('admin')
     ->middleware(['auth', 'admin'])
     ->name('admin.')
