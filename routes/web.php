@@ -25,6 +25,7 @@ Route::prefix('admin')
 
         Route::view('/inicio', 'admin.inicio')->name('inicio');
         Route::view('/alumnos', 'admin.alumnos')->name('alumnos');
+        Route::view('/progresos', 'admin.progresos')->name('progresos');
 
 
         Route::get('/', function () {

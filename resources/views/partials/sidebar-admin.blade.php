@@ -14,7 +14,10 @@
            href="{{ route('admin.alumnos') }}" wire:navigate>
             Alumnos
         </a>
-        <a class="nav-link" href="#">Progresos</a>
+        <a class="nav-link {{ request()->routeIs('admin.progresos') ? 'active' : '' }}"
+           href="{{ route('admin.progresos') }}" wire:navigate>
+            Progresos
+        </a>
     </div>
 
    

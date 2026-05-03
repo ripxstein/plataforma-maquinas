@@ -46,13 +46,13 @@
                                 <td>{{ $alumno->problemas_completados }}</td>
                                 <td>
                                     <button
-                                        type="button"
-                                        class="badge"
-                                        onclick="confirm('¿Seguro que deseas eliminar este alumno?') || event.stopImmediatePropagation()"
-                                        wire:click="deleteAlumno({{ $alumno->id }})"
-                                    >
-                                        Eliminar
-                                    </button>
+    type="button"
+    class="badge btn-danger"
+    onclick="confirm('¿Seguro que deseas eliminar este alumno?') || event.stopImmediatePropagation()"
+    wire:click="deleteAlumno({{ $alumno->id }})"
+>
+    Eliminar
+</button>
                                 </td>
                             </tr>
                         @empty

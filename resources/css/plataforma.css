@@ -442,3 +442,46 @@
   background: var(--azul-secundario);
   transition: width 0.3s ease;
 }
+
+
+.body-app .btn-danger {
+  background: #b42318;
+  color: #fff;
+  border-color: #b42318;
+}
+
+.body-app .btn-danger:hover {
+  background: #8f1c13;
+}
+
+
+.body-app .big-number {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--azul-oscuro);
+  margin: 10px 0;
+}
+
+.body-app .progress-bar.small {
+  height: 9px;
+  margin-top: 8px;
+}
+
+.body-app .mini-chart {
+  display: grid;
+  gap: 16px;
+}
+
+.body-app .chart-bar {
+  height: 14px;
+  background: #dcecff;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 6px 0;
+  border: 1px solid var(--borde);
+}
+
+.body-app .chart-bar div {
+  height: 100%;
+  background: var(--azul-secundario);
+}
