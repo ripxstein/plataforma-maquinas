@@ -15,62 +15,69 @@
     </section>
 
     @foreach ($visibleItems as $item)
+        <section class="content-section" id="lectura-{{ $item->id }}">
+            <div class="section-header">
+                <h3>
+                    {{ $item->title }}
 
-    @if ($item->type === 'lectura')
-
-    <section class="content-section" id="item-{{ $item->id }}">
-        <div class="section-header">
-            <h3>
-                {{ $item->title }}
-
-                @if ($this->isCompleted($item->id))
-                <span class="tag">Completado</span>
-                @endif
-            </h3>
-        </div>
-
-        <div class="section-body">
-            @if ($item->type === 'lectura')
-            {!! $item->content !!}
-
-            @if (!$this->isCompleted($item->id))
-            <div style="margin-top:18px;">
-                <button type="button" class="badge" wire:click="completeItem({{ $item->id }})">
-                    Siguiente
-                </button>
+                    @if ($this->isReadingCompleted($item->id))
+                        <span class="tag">Lectura completada</span>
+                    @endif
+                </h3>
             </div>
-            @endif
-            @endif
 
+            <div class="section-body">
+                {!! $item->content !!}
 
-            <div class="accordion">
-                @foreach ($visibleItems as $item)
-                @if ($item->type === 'problema')
-                <div class="accordion-item @if (!$this->isCompleted($item->id)) open @endif" >
-                    <button class="accordion-btn">{{ $item->title }} <span>@if ($this->isCompleted($item->id))
-                <span class="tag">Completado</span>
-                @endif▾</span></button>
-                    <div class="accordion-content">
-                        {!! $item->content !!}
-
-                        <div class="card" style="margin-top:12px;">
-                            <h4>Resuelve paso a paso</h4>
-                            <p style="margin-top:0;color:var(--gris);">Ingresa tus resultados. Usa unidades
-                                consistentes. La plataforma validará tus respuestas.</p>
-
-                            @livewire($item->component, ['itemId' => $item->id], key('item-'.$item->id))
-                        </div>
+                @if (!$this->isReadingCompleted($item->id))
+                    <div style="margin-top:18px;">
+                        <button type="button" class="badge" wire:click="completeReading({{ $item->id }})">
+                            Siguiente
+                        </button>
                     </div>
-                </div>
-
                 @endif
-                @endforeach
+
+                @if ($this->isReadingCompleted($item->id) && $item->problems->count())
+                    <div class="accordion" style="margin-top:22px;">
+                        @foreach ($item->problems->where('order', '<=', $this->getUnlockedProblemOrder($item->id)) as $problem)
+                            <div class="accordion-item {{ !$this->isProblemCompleted($problem->id) ? 'open' : '' }}">
+                                <button class="accordion-btn" type="button">
+                                    {{ $problem->title }}
+
+                                    <span>
+                                        @if ($this->isProblemCompleted($problem->id))
+                                            <span class="tag">Completado</span>
+                                        @endif
+                                        ▾
+                                    </span>
+                                </button>
+
+                                <div class="accordion-content">
+                                    @if ($problem->content)
+                                        <div class="problema-enunciado">
+                                            {!! $problem->content !!}
+                                        </div>
+                                    @endif
+
+                                    <div class="card" style="margin-top:12px;">
+                                        <h4>Resuelve paso a paso</h4>
+                                        <p style="margin-top:0;color:var(--gris);">
+                                            Ingresa tus resultados. Usa unidades consistentes.
+                                            La plataforma validará tus respuestas.
+                                        </p>
+
+                                        @livewire(
+                                            $problem->component,
+                                            ['problemId' => $problem->id],
+                                            key('problem-'.$problem->id)
+                                        )
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
-        </div>
-    </section>
-
-    @endif
-
-
+        </section>
     @endforeach
 </div>

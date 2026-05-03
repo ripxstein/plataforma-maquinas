@@ -12,7 +12,7 @@ class Problema1 extends Component
     public $kt;
     public $smax;
     public $showImageStep4 = false;
-    public $itemId;
+    public $problemId;
 
 
     public int $currentStep = 1;
@@ -93,7 +93,7 @@ class Problema1 extends Component
         if ($this->approxEqual($this->smax, $this->expected['smax'], 200, 0.02)) {
             $this->messages[5] = ['ok' => true, 'text' => 'Correcto. ¡Completado!'];
             $this->currentStep = 6;
-             $this->dispatch('problema-completado', itemId: $this->itemId);
+             $this->dispatch('problema-completado', problemId: $this->problemId);
         } else {
             $this->messages[5] = ['ok' => false, 'text' => 'Revisa σmax = Kt · σnom'];
             

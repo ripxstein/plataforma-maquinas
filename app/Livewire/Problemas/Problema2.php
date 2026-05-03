@@ -22,7 +22,7 @@ class Problema2 extends Component
     public $seleccion;
     public $showImageStep4 = false;
     public $showImageStep9 = false;
-    public $itemId;
+    public $problemId;
 
     public int $currentStep = 1;
 
@@ -195,7 +195,7 @@ class Problema2 extends Component
         if ($this->seleccion === 'B') {
             $this->setMessage(11, true, 'Correcto. La opción B es preferible porque genera menor esfuerzo máximo.');
             $this->currentStep = 12;
-            $this->dispatch('problema-completado', itemId: $this->itemId);
+            $this->dispatch('problema-completado', problemId: $this->problemId);
         } else {
             $this->setMessage(11, false, 'Revisa la comparación: 109.375 MPa es menor que 156.25 MPa.');
         }

@@ -2,32 +2,36 @@
 
 namespace App\Livewire\Modulos;
 
-use Livewire\Component;
 use App\Models\Module;
 use App\Models\UserItemProgress;
 use App\Models\UserModuleProgress;
+use App\Models\UserProblemProgress;
+use Livewire\Component;
 
 class ModuloViewer extends Component
 {
     public Module $module;
 
     public $items;
+
     public $visibleItems;
 
     public UserModuleProgress $moduleProgress;
 
     public int $totalProgress = 0;
+
     public int $readingProgress = 0;
+
     public int $problemProgress = 0;
 
     protected $listeners = [
-        'problema-completado' => 'completeCurrentProblem',
+        'problema-completado' => 'completeProblem',
     ];
 
     public function mount(string $slug)
     {
         $this->module = Module::where('slug', $slug)
-            ->with('items')
+            ->with('items.problems')
             ->firstOrFail();
 
         $this->moduleProgress = UserModuleProgress::firstOrCreate(
@@ -53,7 +57,7 @@ class ModuloViewer extends Component
         $this->calculateProgress();
     }
 
-    public function isCompleted($itemId): bool
+    public function isReadingCompleted($itemId): bool
     {
         return UserItemProgress::where('user_id', auth()->id())
             ->where('module_item_id', $itemId)
@@ -61,11 +65,19 @@ class ModuloViewer extends Component
             ->exists();
     }
 
-    public function completeItem($itemId)
+    public function isProblemCompleted($problemId): bool
+    {
+        return UserProblemProgress::where('user_id', auth()->id())
+            ->where('problem_id', $problemId)
+            ->where('completed', true)
+            ->exists();
+    }
+
+    public function completeReading($itemId)
     {
         $item = $this->items->firstWhere('id', $itemId);
 
-        if (!$item) {
+        if (! $item) {
             return;
         }
 
@@ -93,49 +105,47 @@ class ModuloViewer extends Component
         $this->loadProgress();
     }
 
-    public function completeCurrentProblem($itemId = null)
+    public function completeProblem($problemId)
     {
-        if (!$itemId) {
-            return;
-        }
+        UserProblemProgress::updateOrCreate(
+            [
+                'user_id' => auth()->id(),
+                'problem_id' => $problemId,
+            ],
+            [
+                'completed' => true,
+                'score' => 100,
+                'completed_at' => now(),
+            ]
+        );
 
-        $this->completeItem($itemId);
-    }
-
-    public function goBack()
-    {
-        if ($this->moduleProgress->unlocked_order > 1) {
-            $this->moduleProgress->update([
-                'unlocked_order' => $this->moduleProgress->unlocked_order - 1,
-            ]);
-
-            $this->moduleProgress->refresh();
-            $this->loadProgress();
-        }
+        $this->loadProgress();
     }
 
     private function calculateProgress()
     {
         $this->totalProgress = 0;
-        $this->readingProgress = 0;
-        $this->problemProgress = 0;
-
-        $readingTotal = $this->items->where('type', 'lectura')->sum('percentage');
-        $problemTotal = $this->items->where('type', 'problema')->sum('percentage');
-
         $readingCompleted = 0;
         $problemCompleted = 0;
 
+        $readingTotal = $this->items->sum('percentage');
+
+        $allProblems = $this->items->flatMap(function ($item) {
+            return $item->problems;
+        });
+
+        $problemTotal = $allProblems->sum('percentage');
+
         foreach ($this->items as $item) {
-            if ($this->isCompleted($item->id)) {
+            if ($this->isReadingCompleted($item->id)) {
                 $this->totalProgress += $item->percentage;
+                $readingCompleted += $item->percentage;
+            }
 
-                if ($item->type === 'lectura') {
-                    $readingCompleted += $item->percentage;
-                }
-
-                if ($item->type === 'problema') {
-                    $problemCompleted += $item->percentage;
+            foreach ($item->problems as $problem) {
+                if ($this->isProblemCompleted($problem->id)) {
+                    $this->totalProgress += $problem->percentage;
+                    $problemCompleted += $problem->percentage;
                 }
             }
         }
@@ -147,6 +157,25 @@ class ModuloViewer extends Component
         $this->problemProgress = $problemTotal > 0
             ? round(($problemCompleted / $problemTotal) * 100)
             : 100;
+    }
+
+    public function getUnlockedProblemOrder($moduleItemId): int
+    {
+        $problems = $this->items
+            ->firstWhere('id', $moduleItemId)
+            ?->problems;
+
+        if (! $problems || $problems->isEmpty()) {
+            return 0;
+        }
+
+        foreach ($problems as $problem) {
+            if (! $this->isProblemCompleted($problem->id)) {
+                return $problem->order;
+            }
+        }
+
+        return $problems->max('order');
     }
 
     public function render()

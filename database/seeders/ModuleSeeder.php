@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Module;
 use App\Models\ModuleItem;
+use App\Models\Problem;
+use Illuminate\Database\Seeder;
 
 class ModuleSeeder extends Seeder
 {
@@ -24,7 +25,7 @@ class ModuleSeeder extends Seeder
             ]
         );
 
-        ModuleItem::updateOrCreate(
+        $lecturaConcentracion = ModuleItem::updateOrCreate(
             [
                 'module_id' => $concentracion->id,
                 'order' => 1,
@@ -99,77 +100,6 @@ class ModuleSeeder extends Seeder
             ]
         );
 
-        ModuleItem::updateOrCreate(
-            [
-                'module_id' => $concentracion->id,
-                'order' => 2,
-            ],
-            [
-                'title' => 'Problema 1: Placa con muescas',
-                'type' => 'problema',
-                'component' => 'problemas.problema1',
-                'percentage' => 35,
-                'content' => '<p>
-                  Una placa rectangular de acero tiene espesor <strong>t = 0.5 in</strong>, ancho <strong>w = 1.5 in</strong> y muescas semicirculares con radio <strong>r = 0.25 in</strong>. Está sometida a una carga axial estática de <strong>F = 6000 lbf</strong>. Se pide determinar el esfuerzo máximo en la zona de la muesca.
-                </p><div class="card ilustracion-card">
-
-    <div class="ilustracion-header">
-        <h4>Ilustración del problema</h4>
-        <p>
-            Barra rectangular con muesca sometida a carga axial.
-            Se muestran las dimensiones geométricas y las fuerzas aplicadas.
-        </p>
-    </div><img
-        src="/images/ilustraciones/A-1.png"
-        alt="Ilustración de barra con muesca y carga axial"
-        class="ilustracion-img"
-    ><div class="ilustracion-footer">
-        Fuente: Ilustración generada mediante IA
-    </div>
-
-</div>
-',
-            ]
-        );
-
-        ModuleItem::updateOrCreate(
-            [
-                'module_id' => $concentracion->id,
-                'order' => 3,
-            ],
-            [
-                'title' => 'Problema 2: Selección de diseño',
-                'type' => 'problema',
-                'component' => 'problemas.problema2',
-                'percentage' => 35,
-                'content' => '<p>
-                  Se compara una barra plana de <strong>W = 40 mm</strong>, <strong>t = 10 mm</strong>, reducida a <strong>d = 32 mm</strong> y sometida a <strong>P = 20 kN</strong> en dos opciones: un taladro central de 8 mm y un filete con radio de 4 mm.
-                </p>
-
-                <div class="card ilustracion-card">
-
-    <div class="ilustracion-header">
-        <h4>Ilustración del problema</h4>
-        <p>
-            Barra plana con reducción de sección por taladro o filete, sometida a carga axial.
-            Se muestran las dimensiones geométricas y las fuerzas aplicadas.
-        </p>
-    </div>
-
-    <img
-        src="/images/ilustraciones/B-1.png"
-        alt="Ilustración de barra con muesca y carga axial"
-        class="ilustracion-img"
-    >
-
-    <div class="ilustracion-footer">
-        Fuente: Ilustración generada mediante IA
-    </div>
-
-</div>',
-            ]
-        );
-
         /*
         |--------------------------------------------------------------------------
         | Módulo 2: Fallas por carga estática
@@ -180,7 +110,7 @@ class ModuleSeeder extends Seeder
             ['slug' => 'fallas'],
             [
                 'title' => 'Fallas por carga estática',
-                'order' => 2,
+                'order' => 1,
             ]
         );
 
@@ -239,5 +169,73 @@ class ModuleSeeder extends Seeder
                 ',
             ]
         );
+
+        Problem::updateOrCreate(
+            ['slug' => 'problema-1-placa-muescas'],
+            [
+                'module_item_id' => $lecturaConcentracion->id,
+                'title' => 'Problema 1: Placa con muescas',
+                'component' => 'problemas.problema1',
+                'order' => 2,
+                'content' => '<p>
+                  Una placa rectangular de acero tiene espesor <strong>t = 0.5 in</strong>, ancho <strong>w = 1.5 in</strong> y muescas semicirculares con radio <strong>r = 0.25 in</strong>. Está sometida a una carga axial estática de <strong>F = 6000 lbf</strong>. Se pide determinar el esfuerzo máximo en la zona de la muesca.
+                </p><div class="card ilustracion-card">
+
+    <div class="ilustracion-header">
+        <h4>Ilustración del problema</h4>
+        <p>
+            Barra rectangular con muesca sometida a carga axial.
+            Se muestran las dimensiones geométricas y las fuerzas aplicadas.
+        </p>
+    </div><img
+        src="/images/ilustraciones/A-1.png"
+        alt="Ilustración de barra con muesca y carga axial"
+        class="ilustracion-img"
+    ><div class="ilustracion-footer">
+        Fuente: Ilustración generada mediante IA
+    </div>
+
+</div>
+',
+                'percentage' => 35,
+            ]
+        );
+
+        Problem::updateOrCreate(
+            ['slug' => 'problema-2-taladro-filete'],
+            [
+                'module_item_id' => $lecturaConcentracion->id,
+                'title' => 'Problema 2: Taladro vs Filete',
+                'component' => 'problemas.problema2',
+                'order' => 3,
+                'content' => '<p>
+                  Se compara una barra plana de <strong>W = 40 mm</strong>, <strong>t = 10 mm</strong>, reducida a <strong>d = 32 mm</strong> y sometida a <strong>P = 20 kN</strong> en dos opciones: un taladro central de 8 mm y un filete con radio de 4 mm.
+                </p>
+
+                <div class="card ilustracion-card">
+
+    <div class="ilustracion-header">
+        <h4>Ilustración del problema</h4>
+        <p>
+            Barra plana con reducción de sección por taladro o filete, sometida a carga axial.
+            Se muestran las dimensiones geométricas y las fuerzas aplicadas.
+        </p>
+    </div>
+
+    <img
+        src="/images/ilustraciones/B-1.png"
+        alt="Ilustración de barra con muesca y carga axial"
+        class="ilustracion-img"
+    >
+
+    <div class="ilustracion-footer">
+        Fuente: Ilustración generada mediante IA
+    </div>
+
+</div>',
+                'percentage' => 35,
+            ]
+        );
+
     }
 }
