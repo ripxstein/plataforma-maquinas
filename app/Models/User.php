@@ -39,4 +39,14 @@ class User extends Authenticatable
     {
         return $this->role === 'user';
     }
+
+    public function readingProgress()
+    {
+        return $this->hasMany(UserItemProgress::class);
+    }
+
+    public function problemProgress()
+    {
+        return $this->hasMany(UserProblemProgress::class);
+    }
 }

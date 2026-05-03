@@ -24,6 +24,8 @@ Route::prefix('admin')
     ->group(function () {
 
         Route::view('/inicio', 'admin.inicio')->name('inicio');
+        Route::view('/alumnos', 'admin.alumnos')->name('alumnos');
+
 
         Route::get('/', function () {
             return redirect()->route('admin.inicio');
