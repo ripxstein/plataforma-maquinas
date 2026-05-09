@@ -485,3 +485,32 @@
   height: 100%;
   background: var(--azul-secundario);
 }
+
+
+.body-app .admin-input,
+.body-app .admin-textarea {
+  width: 100%;
+  display: block;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--texto);
+}
+
+.body-app .admin-textarea {
+  min-height: 180px;
+  resize: vertical;
+  font-family: Consolas, monospace;
+}
+
+.body-app .btn-danger {
+  background: #b42318;
+  color: #fff;
+  border-color: #b42318;
+}
+
+.body-app .btn-danger:hover {
+  background: #8f1c13;
+}
