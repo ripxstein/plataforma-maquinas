@@ -6,23 +6,27 @@
 
     <div class="nav-group">
         <div class="nav-title">Administración</div>
-        <a class="nav-link {{ request()->routeIs('admin.inicio') ? 'active' : '' }}"
-           href="{{ route('admin.inicio') }}" wire:navigate>
+        <a class="nav-link {{ request()->routeIs('admin.inicio') ? 'active' : '' }}" href="{{ route('admin.inicio') }}"
+            wire:navigate>
             Inicio
         </a>
         <a class="nav-link {{ request()->routeIs('admin.alumnos') ? 'active' : '' }}"
-           href="{{ route('admin.alumnos') }}" wire:navigate>
+            href="{{ route('admin.alumnos') }}" wire:navigate>
             Alumnos
         </a>
         <a class="nav-link {{ request()->routeIs('admin.progresos') ? 'active' : '' }}"
-           href="{{ route('admin.progresos') }}" wire:navigate>
+            href="{{ route('admin.progresos') }}" wire:navigate>
             Progresos
         </a>
         <a class="nav-link {{ request()->routeIs('admin.contenido') ? 'active' : '' }}"
-           href="{{ route('admin.contenido') }}" wire:navigate>
+            href="{{ route('admin.contenido') }}" wire:navigate>
             Contenido
+        </a>
+        <a class="nav-link {{ request()->routeIs('admin.codigos') ? 'active' : '' }}"
+            href="{{ route('admin.codigos') }}" wire:navigate>
+            Códigos de acceso
         </a>
     </div>
 
-   
+
 </aside>

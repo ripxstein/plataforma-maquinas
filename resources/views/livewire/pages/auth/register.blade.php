@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\AccessCode;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -12,6 +13,7 @@ new #[Layout('layouts.guest')] class extends Component
 {
     public string $name = '';
     public string $email = '';
+    public string $access_code = '';
     public string $password = '';
     public string $password_confirmation = '';
 
@@ -23,12 +25,28 @@ new #[Layout('layouts.guest')] class extends Component
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'access_code' => ['required', 'string', 'max:50'],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        $accessCode = AccessCode::where('code', strtoupper($validated['access_code']))
+            ->where('active', true)
+            ->first();
 
-        event(new Registered($user = User::create($validated)));
+        if (! $accessCode) {
+            $this->addError('access_code', 'El código de acceso no es válido o no está activo.');
+            return;
+        }
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => 'user',
+            'group_name' => $accessCode->group_name,
+        ]);
+
+        event(new Registered($user));
 
         Auth::login($user);
 
@@ -50,6 +68,22 @@ new #[Layout('layouts.guest')] class extends Component
             <x-input-label for="email" :value="__('Correo electrónico')" />
             <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        </div>
+
+        <!-- Access Code -->
+        <div class="mt-4">
+            <x-input-label for="access_code" :value="__('Código de acceso')" />
+            <x-text-input
+                wire:model="access_code"
+                id="access_code"
+                class="block mt-1 w-full"
+                type="text"
+                name="access_code"
+                required
+                autocomplete="off"
+                placeholder="Ejemplo: ABC123"
+            />
+            <x-input-error :messages="$errors->get('access_code')" class="mt-2" />
         </div>
 
         <!-- Password -->
