@@ -39,42 +39,58 @@
 
                 @if ($this->isReadingCompleted($item->id) && $item->problems->count())
                     <div class="accordion" style="margin-top:22px;">
-                        @foreach ($item->problems->where('order', '<=', $this->getUnlockedProblemOrder($item->id)) as $problem)
-                            <div class="accordion-item {{ !$this->isProblemCompleted($problem->id) ? 'open' : '' }}">
-                                <button class="accordion-btn" type="button">
-                                    {{ $problem->title }}
+                        @foreach ($item->problems as $problem)
+        @php
+            $unlockedProblemOrder = $this->getUnlockedProblemOrder($item->id);
+            $isUnlocked = $problem->order <= $unlockedProblemOrder;
+            $isCompleted = $this->isProblemCompleted($problem->id);
+        @endphp
 
-                                    <span>
-                                        @if ($this->isProblemCompleted($problem->id))
-                                            <span class="tag">Completado</span>
-                                        @endif
-                                        ▾
-                                    </span>
-                                </button>
+        <div class="accordion-item {{ !$isUnlocked ? 'disabled-problem' : '' }} {{ $isUnlocked && !$isCompleted ? 'open' : '' }}">
+            <button
+                class="accordion-btn"
+                type="button"
+                @disabled(!$isUnlocked)
+            >
+                {{ $problem->title }}
 
-                                <div class="accordion-content">
-                                    @if ($problem->content)
-                                        <div class="problema-enunciado">
-                                            {!! $problem->content !!}
-                                        </div>
-                                    @endif
+                <span>
+                    @if ($isCompleted)
+                        <span class="tag">Completado</span>
+                    @elseif (!$isUnlocked)
+                        <span class="tag">Bloqueado</span>
+                    @else
+                        <span class="tag">Pendiente</span>
+                    @endif
+                    ▾
+                </span>
+            </button>
 
-                                    <div class="card" style="margin-top:12px;">
-                                        <h4>Resuelve paso a paso</h4>
-                                        <p style="margin-top:0;color:var(--gris);">
-                                            Ingresa tus resultados. Usa unidades consistentes.
-                                            La plataforma validará tus respuestas.
-                                        </p>
+            @if ($isUnlocked)
+                <div class="accordion-content">
+                    @if ($problem->content)
+                        <div class="problema-enunciado">
+                            {!! $problem->content !!}
+                        </div>
+                    @endif
 
-                                        @livewire(
-                                            $problem->component,
-                                            ['problemId' => $problem->id],
-                                            key('problem-'.$problem->id)
-                                        )
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
+                    <div class="card" style="margin-top:12px;">
+                        <h4>Resuelve paso a paso</h4>
+                        <p style="margin-top:0;color:var(--gris);">
+                            Ingresa tus resultados. Usa unidades consistentes.
+                            La plataforma validará tus respuestas.
+                        </p>
+
+                        @livewire(
+                            $problem->component,
+                            ['problemId' => $problem->id],
+                            key('problem-'.$problem->id)
+                        )
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endforeach
                     </div>
                 @endif
             </div>
