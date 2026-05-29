@@ -25,6 +25,9 @@ class Problema2 extends Component
     public $problemId;
 
     public int $currentStep = 1;
+    public bool $askNextStep = false;
+    public $nextStepAnswer = null;
+    public $nextStepFor = null;
 
     public array $messages = [];
 
@@ -42,6 +45,32 @@ class Problema2 extends Component
         'ktB' => 1.75,
         'sigmaMaxB' => 109.375,
     ];
+
+    private array $nextStepExpected = [
+    1 => 'sigma_nom_a',
+    2 => 'relacion_a',
+    3 => 'kt_a',
+    4 => 'sigma_max_a',
+    5 => 'area_b',
+    6 => 'sigma_nom_b',
+    7 => 'relaciones_b',
+    8 => 'kt_b',
+    9 => 'sigma_max_b',
+    10 => 'comparacion',
+];
+
+private array $nextStepReminders = [
+    1 => 'Después del área de la opción A, debes calcular el esfuerzo nominal: σnom,A = P / A.',
+    2 => 'Después del esfuerzo nominal de A, debes calcular la relación geométrica D/W.',
+    3 => 'Después de D/W, debes obtener Kt,A de la gráfica.',
+    4 => 'Después de Kt,A, debes calcular σmax,A = Kt,A · σnom,A.',
+    5 => 'Después de terminar la opción A, debes analizar la opción B calculando su área mínima.',
+    6 => 'Después del área de B, debes calcular σnom,B = P / A.',
+    7 => 'Después del esfuerzo nominal de B, debes calcular r/d y D/d.',
+    8 => 'Después de las relaciones geométricas, debes obtener Kt,B de la gráfica.',
+    9 => 'Después de Kt,B, debes calcular σmax,B = Kt,B · σnom,B.',
+    10 => 'Después de calcular ambos esfuerzos máximos, debes comparar las opciones y elegir la de menor esfuerzo máximo.',
+];
 
     private function approxEqual($userValue, $expected, $tolAbs, $tolPct): bool
     {
@@ -63,13 +92,47 @@ class Problema2 extends Component
         ];
     }
 
+    private function askWhatIsNext(int $step): void
+{
+    $this->askNextStep = true;
+    $this->nextStepFor = $step;
+    $this->nextStepAnswer = null;
+    unset($this->messages['next']);
+}
+
+public function checkNextStep()
+{
+    if (!$this->nextStepFor) {
+        return;
+    }
+
+    $expected = $this->nextStepExpected[$this->nextStepFor] ?? null;
+
+    if ($this->nextStepAnswer === $expected) {
+        $this->messages['next'] = [
+            'ok' => true,
+            'text' => 'Correcto. Puedes continuar con el siguiente paso.',
+        ];
+
+        $this->currentStep = $this->nextStepFor + 1;
+        $this->askNextStep = false;
+        $this->nextStepFor = null;
+        $this->nextStepAnswer = null;
+    } else {
+        $this->messages['next'] = [
+            'ok' => false,
+            'text' => $this->nextStepReminders[$this->nextStepFor],
+        ];
+    }
+}
+
     public function checkStep1()
     {
         $ok = $this->approxEqual($this->areaA, $this->expected['areaA'], 2, 0.02);
 
         if ($ok) {
             $this->setMessage(1, true, 'Correcto. A = (40 − 8) · 10 = 320 mm².');
-            $this->currentStep = max($this->currentStep, 2);
+            $this->askWhatIsNext(1);
         } else {
             $this->setMessage(1, false, 'Revisa el área neta: A = (W − Dtaladro) · t.');
         }
@@ -81,7 +144,7 @@ class Problema2 extends Component
 
         if ($ok) {
             $this->setMessage(2, true, 'Correcto. σnom = 20000 N / 320 mm² = 62.5 MPa.');
-            $this->currentStep = max($this->currentStep, 3);
+            $this->askWhatIsNext(2);
         } else {
             $this->setMessage(2, false, 'Revisa: σnom = P / Anom. Recuerda que 1 N/mm² = 1 MPa.');
         }
@@ -93,7 +156,7 @@ class Problema2 extends Component
 
         if ($ok) {
             $this->setMessage(3, true, 'Correcto. Dtaladro / W = 8 / 40 = 0.2.');
-            $this->currentStep = max($this->currentStep, 4);
+            $this->askWhatIsNext(3);
         } else {
             $this->setMessage(3, false, 'Revisa la relación geométrica: Dtaladro / W.');
         }
@@ -105,7 +168,7 @@ class Problema2 extends Component
 
         if ($ok) {
             $this->setMessage(4, true, 'Correcto. De la gráfica, Kt ≈ 2.5.');
-            $this->currentStep = max($this->currentStep, 5);
+            $this->askWhatIsNext(4);
             $this->showImageStep4 = false; // ocultar si ya acertó
             
         } else {
@@ -121,7 +184,7 @@ class Problema2 extends Component
 
         if ($ok) {
             $this->setMessage(5, true, 'Correcto. σmax,A = 2.5 · 62.5 = 156.25 MPa.');
-            $this->currentStep = max($this->currentStep, 6);
+            $this->askWhatIsNext(5);
         } else {
             $this->setMessage(5, false, 'Revisa: σmax,A = Kt · σnom.');
         }
@@ -133,7 +196,7 @@ class Problema2 extends Component
 
         if ($ok) {
             $this->setMessage(6, true, 'Correcto. A = d · t = 32 · 10 = 320 mm².');
-            $this->currentStep = max($this->currentStep, 7);
+            $this->askWhatIsNext(6);
         } else {
             $this->setMessage(6, false, 'Revisa el área mínima de la opción B: A = d · t.');
         }
@@ -145,7 +208,7 @@ class Problema2 extends Component
 
         if ($ok) {
             $this->setMessage(7, true, 'Correcto. El esfuerzo nominal es el mismo: 62.5 MPa.');
-            $this->currentStep = max($this->currentStep, 8);
+            $this->askWhatIsNext(7);
         } else {
             $this->setMessage(7, false, 'Revisa: σnom = P / Anom.');
         }
@@ -158,7 +221,7 @@ class Problema2 extends Component
 
         if ($ok1 && $ok2) {
             $this->setMessage(8, true, 'Correcto. r/d = 0.125 y D/d = 1.25.');
-            $this->currentStep = max($this->currentStep, 9);
+            $this->askWhatIsNext(8);
         } else {
             $this->setMessage(8, false, 'Revisa: r/d = 4/32 y D/d = 40/32.');
         }
@@ -170,7 +233,7 @@ class Problema2 extends Component
 
         if ($ok) {
             $this->setMessage(9, true, 'Correcto. De la gráfica, Kt ≈ 1.75.');
-            $this->currentStep = max($this->currentStep, 10);
+            $this->askWhatIsNext(9);
             $this->showImageStep9 = false; // ocultar si ya acertó
         } else {
             $this->setMessage(9, false, 'Revisa la gráfica A-15-5 usando r/d = 0.125 y D/d = 1.25.');
@@ -184,7 +247,7 @@ class Problema2 extends Component
 
         if ($ok) {
             $this->setMessage(10, true, 'Correcto. σmax,B = 1.75 · 62.5 = 109.375 MPa.');
-            $this->currentStep = max($this->currentStep, 11);
+            $this->askWhatIsNext(10);
         } else {
             $this->setMessage(10, false, 'Revisa: σmax,B = Kt · σnom.');
         }
