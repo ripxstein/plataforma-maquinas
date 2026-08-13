@@ -7,10 +7,14 @@ use App\Models\ModuleItem;
 use App\Models\Problem;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class ContenidoPanel extends Component
 {
+    use WithFileUploads;
+
     public $modules;
+    public $editorImage = null;
 
     // Modal Control Flags
     public bool $showModuleModal = false;
@@ -219,7 +223,7 @@ class ContenidoPanel extends Component
         ]);
 
         // Auto format plain paragraphs if teacher wrote line breaks without tags
-        $formattedContent = $this->formatContentIfNeeded($this->readingContent);
+        $formattedContent = $this->sanitizeHtml($this->readingContent);
 
         ModuleItem::updateOrCreate(
             ['id' => $this->readingId],
@@ -267,7 +271,7 @@ class ContenidoPanel extends Component
             ? trim($this->customComponent)
             : $this->problemComponent;
 
-        $formattedContent = $this->formatContentIfNeeded($this->problemContent);
+        $formattedContent = $this->sanitizeHtml($this->problemContent);
 
         Problem::updateOrCreate(
             ['id' => $this->problemId],
@@ -302,7 +306,7 @@ class ContenidoPanel extends Component
             'bold' => '<strong>Texto en negrita</strong>',
             'p' => '<p>Escribe tu párrafo explicativo aquí.</p>',
             'list' => "<ul>\n  <li>Primer punto</li>\n  <li>Segundo punto</li>\n</ul>",
-            'formula' => '<div class="formula">A = d &times; t</div>',
+            'formula' => '<div class="formula">\\[\\sigma_{max} = K_t \\cdot \\sigma_{nom}\\]</div>',
             default => '',
         };
 
@@ -313,20 +317,26 @@ class ContenidoPanel extends Component
         }
     }
 
-    private function formatContentIfNeeded(?string $content): ?string
+    private function sanitizeHtml(?string $content): ?string
     {
         if (empty($content)) {
             return $content;
         }
 
-        // If content already contains HTML tags, return as is
-        if (preg_match('/<[a-z][\s\S]*>/i', $content)) {
-            return $content;
+        // Remove script tags and inline javascript handlers to prevent XSS
+        $clean = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', "", $content);
+        $clean = preg_replace('/on[a-z]+\s*=\s*"[^"]*"/i', "", $clean);
+        $clean = preg_replace('/on[a-z]+\s*=\s*\'[^\']*\'/i', "", $clean);
+        $clean = preg_replace('/on[a-z]+\s*=\s*[^ >]+/i', "", $clean);
+        $clean = preg_replace('/javascript\s*:/i', "", $clean);
+
+        // If content is plain text without HTML tags, wrap double line breaks in paragraphs
+        if (!preg_match('/<[a-z][\s\S]*>/i', $clean)) {
+            $paragraphs = array_filter(array_map('trim', explode("\n\n", $clean)));
+            return implode("\n", array_map(fn($p) => '<p>' . nl2br(e($p)) . '</p>', $paragraphs));
         }
 
-        // Convert double line breaks into paragraphs
-        $paragraphs = array_filter(array_map('trim', explode("\n\n", $content)));
-        return implode("\n", array_map(fn($p) => '<p>' . nl2br(e($p)) . '</p>', $paragraphs));
+        return $clean;
     }
 
     public function resetModuleForm()

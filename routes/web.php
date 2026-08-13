@@ -18,6 +18,9 @@ Route::get('/alumno/modulo/{slug}', function ($slug) {
     return view('student.modulo', compact('slug'));
 })->middleware(['auth'])->name('student.modulo');
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
 Route::prefix('admin')
     ->middleware(['auth', 'admin'])
     ->name('admin.')
@@ -29,6 +32,29 @@ Route::prefix('admin')
         Route::view('/contenido', 'admin.contenido')->name('contenido');
         Route::view('/codigos', 'admin.codigos')->name('codigos');
 
+        Route::post('/upload-image', function (Request $request) {
+            $request->validate([
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240',
+            ]);
+
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                
+                $destinationPath = public_path('images/uploads');
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+
+                $file->move($destinationPath, $filename);
+
+                return response()->json([
+                    'url' => asset('images/uploads/' . $filename)
+                ]);
+            }
+
+            return response()->json(['error' => 'No se pudo subir la imagen.'], 400);
+        })->name('upload-image');
 
         Route::get('/', function () {
             return redirect()->route('admin.inicio');

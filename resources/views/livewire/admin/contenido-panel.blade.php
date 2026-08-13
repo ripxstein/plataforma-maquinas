@@ -209,18 +209,10 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Contenido Teórico</label>
-                        <div class="form-hint">Escribe el texto de la lección. Puedes usar el asistente para insertar encabezados, negritas o fórmulas:</div>
+                        <label class="form-label">Contenido Teórico de la Lectura</label>
+                        <div class="form-hint">Construye la lección visualmente usando encabezados, negritas, listas, fórmulas matemáticas, imágenes y bloques educativos:</div>
 
-                        <div class="editor-toolbar">
-                            <button type="button" class="editor-btn" wire:click="insertTag('h3', 'reading')">📌 Subtítulo</button>
-                            <button type="button" class="editor-btn" wire:click="insertTag('p', 'reading')">📝 Párrafo</button>
-                            <button type="button" class="editor-btn" wire:click="insertTag('bold', 'reading')"><strong>B</strong> Negrita</button>
-                            <button type="button" class="editor-btn" wire:click="insertTag('list', 'reading')">📋 Lista</button>
-                            <button type="button" class="editor-btn" wire:click="insertTag('formula', 'reading')">🧮 Fórmula</button>
-                        </div>
-
-                        <textarea class="admin-textarea editor-textarea-with-toolbar" wire:model="readingContent" placeholder="Escribe aquí el contenido teórico de la lectura..."></textarea>
+                        <x-edu-wysiwyg wire:model="readingContent" id="reading-editor" />
                         @error('readingContent') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
                 </div>
@@ -291,13 +283,7 @@
 
                     <div class="form-group">
                         <label class="form-label">Enunciado / Descripción del Problema</label>
-                        <div class="editor-toolbar">
-                            <button type="button" class="editor-btn" wire:click="insertTag('h3', 'problem')">📌 Subtítulo</button>
-                            <button type="button" class="editor-btn" wire:click="insertTag('p', 'problem')">📝 Párrafo</button>
-                            <button type="button" class="editor-btn" wire:click="insertTag('bold', 'problem')"><strong>B</strong> Negrita</button>
-                            <button type="button" class="editor-btn" wire:click="insertTag('formula', 'problem')">🧮 Fórmula</button>
-                        </div>
-                        <textarea class="admin-textarea editor-textarea-with-toolbar" wire:model="problemContent" placeholder="Describe aquí las instrucciones o enunciado del problema..."></textarea>
+                        <x-edu-wysiwyg wire:model="problemContent" id="problem-editor" />
                         @error('problemContent') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
                 </div>
