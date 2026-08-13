@@ -1105,4 +1105,15 @@
   overflow: hidden;
   animation: modalFadeIn 0.2s ease-out;
 }
-
+.edu-modal-dialog-image {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--borde);
+  animation: modalFadeIn 0.2s ease-out;
+}
+

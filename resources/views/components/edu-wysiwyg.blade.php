@@ -176,7 +176,7 @@
 
     <!-- MODAL: Image Assistant -->
     <div class="edu-modal-backdrop" x-show="showImageModal" style="display: none;">
-        <div class="edu-modal-dialog">
+        <div class="edu-modal-dialog-image">
             <div class="admin-modal-header">
                 <h3>🖼️ Insertar Imagen Educativa</h3>
                 <button type="button" class="modal-close-btn" @click="showImageModal = false">&times;</button>
