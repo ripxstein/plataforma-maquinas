@@ -488,7 +488,8 @@
 
 
 .body-app .admin-input,
-.body-app .admin-textarea {
+.body-app .admin-textarea,
+.body-app .admin-select {
   width: 100%;
   display: block;
   margin-bottom: 12px;
@@ -497,12 +498,13 @@
   border-radius: 12px;
   background: #fff;
   color: var(--texto);
+  font-size: 0.98rem;
 }
 
 .body-app .admin-textarea {
-  min-height: 180px;
+  min-height: 160px;
   resize: vertical;
-  font-family: Consolas, monospace;
+  font-family: inherit;
 }
 
 .body-app .btn-danger {
@@ -514,3 +516,240 @@
 .body-app .btn-danger:hover {
   background: #8f1c13;
 }
+
+/* Modal styles */
+.body-app .admin-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(16, 59, 115, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.body-app .admin-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--borde);
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.body-app .admin-modal-header {
+  background: linear-gradient(90deg, #edf6ff, #ffffff);
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--borde);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.body-app .admin-modal-header h3 {
+  margin: 0;
+  color: var(--azul-oscuro);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.body-app .modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--gris);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.body-app .modal-close-btn:hover {
+  background: #e4edf8;
+  color: var(--azul-oscuro);
+}
+
+.body-app .admin-modal-body {
+  padding: 24px;
+}
+
+.body-app .admin-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--borde);
+  background: #f8fbff;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.body-app .form-group {
+  margin-bottom: 16px;
+}
+
+.body-app .form-label {
+  display: block;
+  font-weight: 700;
+  color: var(--azul-oscuro);
+  font-size: 0.94rem;
+  margin-bottom: 6px;
+}
+
+.body-app .form-hint {
+  font-size: 0.84rem;
+  color: #5b6f84;
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+/* Custom Buttons */
+.body-app .btn-primary {
+  background: linear-gradient(135deg, var(--azul-secundario), var(--azul-oscuro));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.body-app .btn-primary:hover {
+  opacity: 0.9;
+}
+
+.body-app .btn-secondary {
+  background: #eef5fb;
+  color: var(--azul-oscuro);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.body-app .btn-secondary:hover {
+  background: #e2effd;
+}
+
+.body-app .btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
+/* Tree Structure */
+.body-app .tree-module-card {
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: 18px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(30, 90, 168, 0.05);
+}
+
+.body-app .tree-module-header {
+  background: linear-gradient(90deg, #f0f7ff 0%, #ffffff 100%);
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--borde);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.body-app .tree-module-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.body-app .tree-module-title h4 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--azul-oscuro);
+  font-weight: 700;
+}
+
+.body-app .tree-readings-list {
+  padding: 18px 22px;
+  display: grid;
+  gap: 14px;
+  background: #fbfdff;
+}
+
+.body-app .tree-reading-card {
+  background: #ffffff;
+  border: 1px solid #d5e5f7;
+  border-left: 5px solid var(--azul-secundario);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.body-app .tree-reading-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.body-app .tree-problems-list {
+  margin-top: 14px;
+  padding-left: 16px;
+  border-left: 2px dashed #bcdcff;
+  display: grid;
+  gap: 10px;
+}
+
+.body-app .tree-problem-card {
+  background: #f4f9ff;
+  border: 1px solid #cce2fd;
+  border-left: 4px solid #4a90e2;
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Editor Helper Toolbar */
+.body-app .editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #f2f7fd;
+  border: 1px solid var(--borde);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 8px 10px;
+}
+
+.body-app .editor-btn {
+  background: white;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--azul-oscuro);
+  cursor: pointer;
+}
+
+.body-app .editor-btn:hover {
+  background: #e3effd;
+}
+
+.body-app .editor-textarea-with-toolbar {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}

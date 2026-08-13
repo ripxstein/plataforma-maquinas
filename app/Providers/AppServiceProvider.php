@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Module;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        View::composer('partials.sidebar-user', function ($view) {
+            $modules = Module::with(['items' => function ($q) {
+                $q->orderBy('order');
+            }, 'items.problems' => function ($q) {
+                $q->orderBy('order');
+            }])->orderBy('order')->get();
+
+            $view->with('modules', $modules);
+        });
     }
 }
+
