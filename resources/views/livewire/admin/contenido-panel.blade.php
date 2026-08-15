@@ -298,6 +298,13 @@
                     </div>
 
                     <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--azul-oscuro); cursor: pointer;">
+                            <input type="checkbox" wire:model="problemIsActive" style="width: 18px; height: 18px;">
+                            <span>Problema Activo (visible para alumnos)</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">Enunciado / Descripción del Problema</label>
                         <x-edu-wysiwyg wire:model="problemContent" id="problem-editor" />
                         @error('problemContent') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror

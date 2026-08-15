@@ -26,6 +26,11 @@ class ModuleItem extends Model
         return $this->hasMany(Problem::class)->orderBy('order');
     }
 
+    public function activeProblems()
+    {
+        return $this->hasMany(Problem::class)->where('is_active', true)->orderBy('order');
+    }
+
     public function progress()
     {
         return $this->hasMany(UserItemProgress::class);

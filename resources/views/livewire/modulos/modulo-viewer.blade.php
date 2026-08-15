@@ -37,9 +37,13 @@
                     </div>
                 @endif
 
-                @if ($this->isReadingCompleted($item->id) && $item->problems->count())
+                @php
+                    $activeProblems = $item->problems->where('is_active', true);
+                @endphp
+
+                @if ($this->isReadingCompleted($item->id) && $activeProblems->count())
                     <div class="accordion" style="margin-top:22px;">
-                        @foreach ($item->problems as $problem)
+                        @foreach ($activeProblems as $problem)
         @php
             $unlockedProblemOrder = $this->getUnlockedProblemOrder($item->id);
             $isUnlocked = $problem->order <= $unlockedProblemOrder;

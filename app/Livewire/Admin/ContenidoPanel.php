@@ -46,6 +46,7 @@ class ContenidoPanel extends Component
     public $customComponent = '';
     public $problemOrder = 1;
     public $problemPercentage = 100;
+    public bool $problemIsActive = true;
 
     // Available interactive problem components list
     public array $availableComponents = [
@@ -151,6 +152,7 @@ class ContenidoPanel extends Component
             $this->problemContent = $problem->content;
             $this->problemOrder = $problem->order;
             $this->problemPercentage = $problem->percentage;
+            $this->problemIsActive = $problem->is_active ?? true;
 
             if (array_key_exists($problem->component, $this->availableComponents)) {
                 $this->problemComponent = $problem->component;
@@ -168,6 +170,7 @@ class ContenidoPanel extends Component
             }
             $this->problemPercentage = 100;
             $this->problemComponent = 'problemas.problema1';
+            $this->problemIsActive = true;
         }
 
         $this->showProblemModal = true;
@@ -284,6 +287,7 @@ class ContenidoPanel extends Component
                 'component' => $finalComponent,
                 'order' => $this->problemOrder,
                 'percentage' => $this->problemPercentage,
+                'is_active' => $this->problemIsActive,
             ]
         );
 
@@ -370,6 +374,7 @@ class ContenidoPanel extends Component
         $this->customComponent = '';
         $this->problemOrder = 1;
         $this->problemPercentage = 100;
+        $this->problemIsActive = true;
     }
 
     public function render()

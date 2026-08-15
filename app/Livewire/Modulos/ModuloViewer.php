@@ -31,7 +31,14 @@ class ModuloViewer extends Component
     public function mount(string $slug)
     {
         $this->module = Module::where('slug', $slug)
-            ->with('items.problems')
+            ->with([
+                'items' => function ($query) {
+                    $query->orderBy('order');
+                },
+                'items.problems' => function ($query) {
+                    $query->where('is_active', true)->orderBy('order');
+                },
+            ])
             ->firstOrFail();
 
         $this->moduleProgress = UserModuleProgress::firstOrCreate(
@@ -131,7 +138,7 @@ class ModuloViewer extends Component
         $readingTotal = $this->items->sum('percentage');
 
         $allProblems = $this->items->flatMap(function ($item) {
-            return $item->problems;
+            return $item->problems->where('is_active', true);
         });
 
         $problemTotal = $allProblems->sum('percentage');
@@ -142,7 +149,7 @@ class ModuloViewer extends Component
                 $readingCompleted += $item->percentage;
             }
 
-            foreach ($item->problems as $problem) {
+            foreach ($item->problems->where('is_active', true) as $problem) {
                 if ($this->isProblemCompleted($problem->id)) {
                     $this->totalProgress += $problem->percentage;
                     $problemCompleted += $problem->percentage;
@@ -163,7 +170,8 @@ class ModuloViewer extends Component
     {
         $problems = $this->items
             ->firstWhere('id', $moduleItemId)
-            ?->problems;
+            ?->problems
+            ?->where('is_active', true);
 
         if (! $problems || $problems->isEmpty()) {
             return 0;

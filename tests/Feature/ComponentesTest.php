@@ -184,3 +184,32 @@ test('problema dinamico validates step responses and emits completion event on f
        ->assertSet('isCompleted', true)
        ->assertDispatched('problema-completado', problemId: $problem->id);
 });
+
+test('inactive problems are not displayed in modulo viewer for students', function () {
+    $activeProblem = Problem::create([
+        'module_item_id' => $this->reading->id,
+        'title' => 'Problema Activo Visible',
+        'slug' => 'problema-activo-' . uniqid(),
+        'component' => 'problemas.problema-dinamico',
+        'order' => 1,
+        'percentage' => 30,
+        'is_active' => true,
+    ]);
+
+    $inactiveProblem = Problem::create([
+        'module_item_id' => $this->reading->id,
+        'title' => 'Problema Inactivo Oculto',
+        'slug' => 'problema-inactivo-' . uniqid(),
+        'component' => 'problemas.problema-dinamico',
+        'order' => 2,
+        'percentage' => 30,
+        'is_active' => false,
+    ]);
+
+    // Complete reading so problems accordion is shown
+    Livewire::actingAs($this->student)
+        ->test(\App\Livewire\Modulos\ModuloViewer::class, ['slug' => $this->module->slug])
+        ->call('completeReading', $this->reading->id)
+        ->assertSee('Problema Activo Visible')
+        ->assertDontSee('Problema Inactivo Oculto');
+});
