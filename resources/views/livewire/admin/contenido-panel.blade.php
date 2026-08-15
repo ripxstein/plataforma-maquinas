@@ -202,10 +202,18 @@
                         @error('readingTitle') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Orden</label>
-                        <input class="admin-input" type="number" wire:model="readingOrder" min="1">
-                        @error('readingOrder') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Orden de Aparición</label>
+                            <input class="admin-input" type="number" wire:model="readingOrder" min="1">
+                            @error('readingOrder') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Peso en Progreso (%)</label>
+                            <input class="admin-input" type="number" min="0" max="100" wire:model="readingPercentage">
+                            @error('readingPercentage') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -275,10 +283,18 @@
                         </div>
                     @endif
 
-                    <div class="form-group">
-                        <label class="form-label">Orden de Aparición</label>
-                        <input class="admin-input" type="number" wire:model="problemOrder" min="1">
-                        @error('problemOrder') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Orden de Aparición</label>
+                            <input class="admin-input" type="number" wire:model="problemOrder" min="1">
+                            @error('problemOrder') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Peso en Progreso (%)</label>
+                            <input class="admin-input" type="number" min="0" max="100" wire:model="problemPercentage">
+                            @error('problemPercentage') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
                     <div class="form-group">
