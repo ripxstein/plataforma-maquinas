@@ -22,6 +22,10 @@
             href="{{ route('admin.contenido') }}" wire:navigate>
             Contenido
         </a>
+        <a class="nav-link {{ request()->routeIs('admin.componentes*') ? 'active' : '' }}"
+            href="{{ route('admin.componentes') }}" wire:navigate>
+            Componentes
+        </a>
         <a class="nav-link {{ request()->routeIs('admin.codigos') ? 'active' : '' }}"
             href="{{ route('admin.codigos') }}" wire:navigate>
             Códigos de acceso

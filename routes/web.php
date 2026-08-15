@@ -30,6 +30,7 @@ Route::prefix('admin')
         Route::view('/alumnos', 'admin.alumnos')->name('alumnos');
         Route::view('/progresos', 'admin.progresos')->name('progresos');
         Route::view('/contenido', 'admin.contenido')->name('contenido');
+        Route::view('/componentes', 'admin.componentes')->name('componentes');
         Route::view('/codigos', 'admin.codigos')->name('codigos');
 
         Route::post('/upload-image', function (Request $request) {

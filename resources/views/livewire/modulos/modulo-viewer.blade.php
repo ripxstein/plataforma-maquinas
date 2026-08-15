@@ -81,8 +81,12 @@
                             La plataforma validará tus respuestas.
                         </p>
 
+                        @php
+                            $comp = $problem->component ?: 'problemas.problema-dinamico';
+                        @endphp
+
                         @livewire(
-                            $problem->component,
+                            $comp,
                             ['problemId' => $problem->id],
                             key('problem-'.$problem->id)
                         )

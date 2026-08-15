@@ -49,6 +49,7 @@ class ContenidoPanel extends Component
 
     // Available interactive problem components list
     public array $availableComponents = [
+        'problemas.problema-dinamico' => '🧩 Problema Dinámico (Constructor Visual / Paso a Paso)',
         'problemas.problema1' => 'Problema 1: Placa con muescas (Concentración de esfuerzos)',
         'problemas.problema2' => 'Problema 2: Selección de diseño (Taladro vs Filete)',
         'custom' => '⚙️ Componente personalizado...'

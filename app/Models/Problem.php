@@ -11,13 +11,23 @@ class Problem extends Model
         'title',
         'slug',
         'component',
-        'content', // 👈 agregar
+        'content',
         'order',
         'percentage',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     public function moduleItem()
     {
         return $this->belongsTo(ModuleItem::class);
+    }
+
+    public function steps()
+    {
+        return $this->hasMany(ProblemStep::class)->orderBy('step_number');
     }
 }
