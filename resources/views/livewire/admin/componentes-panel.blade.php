@@ -844,20 +844,153 @@
                     </div>
 
                     <!-- Step Image / Graphic Support Section -->
-                    <div style="background: #fbfdff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px;">
+                    <div 
+                        style="background: #fbfdff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px;"
+                        x-data="{
+                            imageSourceType: 'file',
+                            isUploading: false,
+                            uploadError: '',
+                            imageUrl: @entangle('stepImageUrl'),
+                            imageAlt: @entangle('stepImageAlt'),
+                            uploadFile(event) {
+                                const file = event.target.files ? event.target.files[0] : null;
+                                if (!file) return;
+
+                                this.isUploading = true;
+                                this.uploadError = '';
+
+                                const formData = new FormData();
+                                formData.append('image', file);
+
+                                const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
+
+                                fetch('/admin/upload-image', {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': csrfToken || ''
+                                    },
+                                    body: formData
+                                })
+                                .then(response => {
+                                    if (!response.ok) throw new Error('Error al subir la imagen al servidor');
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    this.isUploading = false;
+                                    if (data.url) {
+                                        this.imageUrl = data.url;
+                                        if (!this.imageAlt) {
+                                            const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                                            this.imageAlt = nameWithoutExt.replace(/[-_]/g, ' ');
+                                        }
+                                    } else if (data.error) {
+                                        this.uploadError = data.error;
+                                    }
+                                })
+                                .catch(err => {
+                                    console.warn('Network upload failed, reading locally:', err);
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => {
+                                        this.isUploading = false;
+                                        this.imageUrl = e.target.result;
+                                        if (!this.imageAlt) {
+                                            const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                                            this.imageAlt = nameWithoutExt.replace(/[-_]/g, ' ');
+                                        }
+                                    };
+                                    reader.onerror = () => {
+                                        this.isUploading = false;
+                                        this.uploadError = 'No se pudo procesar el archivo seleccionado.';
+                                    };
+                                    reader.readAsDataURL(file);
+                                });
+                            },
+                            removeImage() {
+                                this.imageUrl = '';
+                                this.imageAlt = '';
+                            }
+                        }"
+                    >
                         <h5 style="margin: 0 0 12px; color: var(--azul-oscuro); font-size: 1rem;">🖼️ Ilustración / Gráfica del Paso (Opcional)</h5>
                         
-                        <div class="form-group">
-                            <label class="form-label">URL de la Imagen</label>
-                            <div class="form-hint">Puedes ingresar una ruta local (ej: <code>/images/graficas/figura-a-15-4.png</code>) o una URL:</div>
-                            <input class="admin-input" type="text" wire:model="stepImageUrl" placeholder="/images/graficas/... o https://...">
+                        <!-- Source Selector Tabs -->
+                        <div style="display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                            <button 
+                                type="button" 
+                                class="edu-tab-btn" 
+                                :class="{ 'active': imageSourceType === 'file' }"
+                                @click="imageSourceType = 'file'"
+                                style="font-size: 0.85rem; padding: 6px 12px;"
+                            >
+                                📁 Subir desde archivo
+                            </button>
+                            <button 
+                                type="button" 
+                                class="edu-tab-btn" 
+                                :class="{ 'active': imageSourceType === 'url' }"
+                                @click="imageSourceType = 'url'"
+                                style="font-size: 0.85rem; padding: 6px 12px;"
+                            >
+                                🔗 Enlace URL o Ruta
+                            </button>
                         </div>
 
-                        @if($stepImageUrl)
-                            <div style="text-align: center; margin-bottom: 14px; background: #fff; padding: 10px; border-radius: 10px; border: 1px solid var(--borde);">
-                                <img src="{{ $stepImageUrl }}" style="max-height: 120px; max-width: 100%; border-radius: 8px;">
+                        <!-- Mode 1: File Upload -->
+                        <div x-show="imageSourceType === 'file'">
+                            <div class="form-group">
+                                <label class="form-label">Seleccionar Imagen de tu equipo</label>
+                                <div class="form-hint">Formatos soportados: PNG, JPG, WEBP, GIF, SVG (máx. 10MB).</div>
+                                
+                                <div 
+                                    style="border: 2px dashed #cbd5e1; border-radius: 10px; padding: 20px 16px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s;"
+                                    @click="$refs.stepFileInput.click()"
+                                >
+                                    <div x-show="!isUploading && !imageUrl">
+                                        <span style="font-size: 2rem; display: block; margin-bottom: 4px;">☁️</span>
+                                        <strong style="color: var(--azul-oscuro); font-size: 0.92rem;">Haz clic para seleccionar una imagen</strong>
+                                        <p style="font-size: 0.78rem; color: var(--gris); margin-top: 2px;">O elige un archivo de tu computadora</p>
+                                    </div>
+
+                                    <div x-show="isUploading">
+                                        <span style="font-size: 1.8rem; display: inline-block;">⏳</span>
+                                        <p style="font-size: 0.9rem; color: var(--azul-oscuro); font-weight: 500; margin-top: 4px;">Subiendo imagen al servidor...</p>
+                                    </div>
+
+                                    <div x-show="!isUploading && imageUrl" style="text-align: center;">
+                                        <img :src="imageUrl" style="max-height: 130px; max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); margin: 0 auto 6px auto; display: block;">
+                                        <span style="font-size: 0.78rem; color: #166534; font-weight: 600; background: #dcfce7; padding: 2px 8px; border-radius: 10px; display: inline-block;">✅ Imagen lista</span>
+                                        <p style="font-size: 0.75rem; color: var(--gris); margin-top: 4px;">Haz clic para cambiar la imagen seleccionada</p>
+                                    </div>
+
+                                    <input 
+                                        type="file" 
+                                        x-ref="stepFileInput" 
+                                        accept="image/*" 
+                                        style="display: none;" 
+                                        @change="uploadFile($event)"
+                                    >
+                                </div>
+                                
+                                <div x-show="uploadError" style="color: #b42318; font-size: 0.85rem; margin-top: 6px;" x-text="uploadError"></div>
                             </div>
-                        @endif
+                        </div>
+
+                        <!-- Mode 2: URL Input -->
+                        <div x-show="imageSourceType === 'url'">
+                            <div class="form-group">
+                                <label class="form-label">URL de la Imagen o Ruta</label>
+                                <div class="form-hint">Escribe la URL directa o ruta local (ej: <code>/images/graficas/figura-a-15-4.png</code>).</div>
+                                <input class="admin-input" type="text" x-model="imageUrl" placeholder="/images/graficas/... o https://...">
+                            </div>
+                        </div>
+
+                        <!-- Image Preview and Remove Option -->
+                        <div x-show="imageUrl" style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 8px 14px; margin-bottom: 14px;">
+                            <span style="font-size: 0.84rem; color: #166534; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 450px;" x-text="imageUrl"></span>
+                            <button type="button" class="btn-secondary btn-sm btn-danger" style="font-size: 0.78rem; padding: 3px 8px;" @click="removeImage()">
+                                🗑️ Quitar Imagen
+                            </button>
+                        </div>
 
                         <div class="grid-2">
                             <div class="form-group">
@@ -890,7 +1023,7 @@
                         <div class="grid-2">
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label class="form-label">Texto Alternativo (Alt)</label>
-                                <input class="admin-input" type="text" wire:model="stepImageAlt" placeholder="Ej: Gráfica Kt para barra con muescas">
+                                <input class="admin-input" type="text" wire:model="stepImageAlt" x-model="imageAlt" placeholder="Ej: Gráfica Kt para barra con muescas">
                             </div>
 
                             <div class="form-group" style="margin-bottom: 0;">
