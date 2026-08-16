@@ -181,6 +181,70 @@ section.content-section {
   line-height: 1.7;
 }
 
+/* Listas en contenidos educativos (viñetas y numeradas) */
+.section-body ul,
+.problema-enunciado ul,
+.edu-block-content ul,
+.pstep ul,
+.card ul {
+  list-style-type: disc !important;
+  margin: 12px 0 14px 24px !important;
+  padding-left: 12px !important;
+}
+
+.section-body ol,
+.problema-enunciado ol,
+.edu-block-content ol,
+.pstep ol,
+.card ol {
+  list-style-type: decimal !important;
+  margin: 12px 0 14px 24px !important;
+  padding-left: 12px !important;
+}
+
+.section-body li,
+.problema-enunciado li,
+.edu-block-content li,
+.pstep li,
+.card li {
+  display: list-item !important;
+  margin-bottom: 6px;
+  line-height: 1.65;
+}
+
+.section-body ul ul,
+.section-body ol ul,
+.problema-enunciado ul ul,
+.problema-enunciado ol ul,
+.edu-block-content ul ul,
+.edu-block-content ol ul,
+.pstep ul ul,
+.pstep ol ul {
+  list-style-type: circle !important;
+  margin: 4px 0 4px 18px !important;
+}
+
+.section-body ul ol,
+.section-body ol ol,
+.problema-enunciado ul ol,
+.problema-enunciado ol ol,
+.edu-block-content ul ol,
+.edu-block-content ol ol,
+.pstep ul ol,
+.pstep ol ol {
+  list-style-type: lower-alpha !important;
+  margin: 4px 0 4px 18px !important;
+}
+
+.section-body hr,
+.problema-enunciado hr,
+.edu-block-content hr,
+.pstep hr {
+  border: none;
+  border-top: 2px solid var(--borde);
+  margin: 20px 0;
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1082,6 +1146,50 @@ th {
 .edu-wysiwyg-editable p {
   margin-top: 0;
   margin-bottom: 12px;
+}
+
+.edu-wysiwyg-editable ul,
+.edu-wysiwyg-preview-pane ul {
+  list-style-type: disc !important;
+  margin: 12px 0 14px 24px !important;
+  padding-left: 12px !important;
+}
+
+.edu-wysiwyg-editable ol,
+.edu-wysiwyg-preview-pane ol {
+  list-style-type: decimal !important;
+  margin: 12px 0 14px 24px !important;
+  padding-left: 12px !important;
+}
+
+.edu-wysiwyg-editable li,
+.edu-wysiwyg-preview-pane li {
+  display: list-item !important;
+  margin-bottom: 6px;
+  line-height: 1.65;
+}
+
+.edu-wysiwyg-editable ul ul,
+.edu-wysiwyg-editable ol ul,
+.edu-wysiwyg-preview-pane ul ul,
+.edu-wysiwyg-preview-pane ol ul {
+  list-style-type: circle !important;
+  margin: 4px 0 4px 18px !important;
+}
+
+.edu-wysiwyg-editable ul ol,
+.edu-wysiwyg-editable ol ol,
+.edu-wysiwyg-preview-pane ul ol,
+.edu-wysiwyg-preview-pane ol ol {
+  list-style-type: lower-alpha !important;
+  margin: 4px 0 4px 18px !important;
+}
+
+.edu-wysiwyg-editable hr,
+.edu-wysiwyg-preview-pane hr {
+  border: none;
+  border-top: 2px solid var(--borde);
+  margin: 20px 0;
 }
 
 .edu-wysiwyg-editable h2 {

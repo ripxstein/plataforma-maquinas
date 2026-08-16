@@ -41,30 +41,33 @@
     <div class="edu-wysiwyg-toolbar" x-show="activeTab === 'edit'">
         <!-- Text Styles -->
         <div class="edu-toolbar-section">
-            <button type="button" class="edu-toolbar-btn" @click="format('formatBlock', '<h2>')" title="Encabezado principal">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('formatBlock', '<h2>')" title="Encabezado principal">
                 <strong>H1</strong> Principal
             </button>
-            <button type="button" class="edu-toolbar-btn" @click="format('formatBlock', '<h3>')" title="Subtítulo">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('formatBlock', '<h3>')" title="Subtítulo">
                 <strong>H2</strong> Subtítulo
             </button>
-            <button type="button" class="edu-toolbar-btn" @click="format('formatBlock', '<p>')" title="Texto normal">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('formatBlock', '<p>')" title="Texto normal">
                 📄 Párrafo
             </button>
         </div>
 
         <!-- Inline formatting -->
         <div class="edu-toolbar-section">
-            <button type="button" class="edu-toolbar-btn" @click="format('bold')" title="Negrita">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('bold')" title="Negrita">
                 <strong>B</strong>
             </button>
-            <button type="button" class="edu-toolbar-btn" @click="format('italic')" title="Cursiva">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('italic')" title="Cursiva">
                 <em>I</em>
             </button>
-            <button type="button" class="edu-toolbar-btn" @click="format('insertUnorderedList')" title="Lista viñetas">
-                • Lista
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('insertUnorderedList')" title="Lista con viñetas">
+                • Viñetas
             </button>
-            <button type="button" class="edu-toolbar-btn" @click="format('insertOrderedList')" title="Lista numerada">
-                1. Lista
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('insertOrderedList')" title="Lista numerada">
+                1. Numerada
+            </button>
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('insertHorizontalRule')" title="Línea horizontal">
+                — Línea
             </button>
         </div>
 
