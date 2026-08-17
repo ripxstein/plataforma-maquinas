@@ -82,6 +82,9 @@
             <button type="button" class="edu-toolbar-btn" @click="openTableModal()" style="background:#fefce8; color:#854d0e; border-color:#fef08a;">
                 📊 Tabla
             </button>
+            <button type="button" class="edu-toolbar-btn" @click="openCardModal()" style="background:#fefce8; color:#854d0e; border-color:#fef08a;">
+                📊 Card
+            </button>   
         </div>
 
         <!-- Educational Callout Blocks -->
@@ -100,6 +103,15 @@
             </button>
             <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlock('note')">
                 📝 Nota
+            </button>
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlockNote('footnote')">
+                📝 Nota al pie
+            </button>
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlockCard('card')">
+                🖼️ Card
+            </button>
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlockHeader('header')">
+                🏷️ Encabezado
             </button>
         </div>
     </div>
@@ -328,7 +340,33 @@
             </div>
         </div>
     </div>
+    <!-- MODAL: Card Assistant -->
+    <div class="edu-modal-backdrop" x-show="showCardModal" style="display: none;">
+        <div class="edu-modal-dialog">
+            <div class="admin-modal-header">
+                <h3>📊 Insertar Card Educativa</h3>
+                <button type="button" class="modal-close-btn" @click="showCardModal = false">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <div class="grid-1">
+                
+                    <div class="form-group">
+                        <label class="form-label">Número de Columnas</label>
+                        <input class="admin-input" type="number" min="1" max="4" x-model="tableCols">
+                    </div>
+                </div>
+                <div class="form-hint">La Tarjeta insertada se podrá editar directamente de forma visual en la lectura.</div>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" @click="showCardModal = false">Cancelar</button>
+                <button type="button" class="btn-primary" @click="insertCard()">Insertar Card</button>
+            </div>
+        </div>
+    </div>
 </div>
+
+
+
 
 <script>
 if (typeof registerEduWysiwygEditor === 'function') {

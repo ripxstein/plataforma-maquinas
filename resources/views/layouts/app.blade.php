@@ -72,6 +72,8 @@
             isUploadingImage: false,
             uploadError: '',
 
+            showCardModal: false,
+
             showTableModal: false,
             tableRows: 3,
             tableCols: 3,
@@ -124,6 +126,7 @@
                     warning: { label: '⚠️ Advertencia', placeholder: 'Escribe aquí la advertencia...' },
                     example: { label: '📐 Ejemplo', placeholder: 'Escribe aquí el ejemplo práctico...' },
                     note: { label: '📝 Nota', placeholder: 'Escribe aquí la nota explicativa...' }
+                    
                 };
 
                 const item = config[type] || config.definition;
@@ -139,6 +142,56 @@
 
                 this.insertHtmlAtCursor(html);
             },
+
+            // Insert Educational Callout BlocksNoteFoot
+            insertEducationalBlockNote(type) {
+                const config = {
+                    footnote: { label: '📝 Nota al pie', placeholder: 'Escribe aquí la nota al pie...' }
+                };
+
+                const item = config[type] || config.footnote;
+                const html = `
+                    <div class="footer-note" style="margin-top:18px;">
+                        <strong>${item.label}:</strong> ${item.placeholder}.
+                    </div>
+                `;
+
+                this.insertHtmlAtCursor(html);
+            },
+
+            // Insert Educational Callout Card
+            insertEducationalBlockCard(type) {
+                const config = {
+                    card: { label: '📝 Tarjeta', placeholder: 'Escribe el contenido de la tarjeta...' }
+                };
+
+                const item = config[type] || config.card;
+                const html = `
+                    <div class="ilustracion-header">
+                        <h4>${item.label}</h4>
+                        <p>${item.placeholder}</p>
+                    </div>
+                    
+                `;
+
+                this.insertHtmlAtCursor(html);
+            },
+
+            // Insert Educational Callout Header
+            insertEducationalBlockHeader(type) {
+                const config = {
+                    header: { label: 'Encabezado'}
+                };
+
+                const item = config[type] || config.header;
+                const html = `
+                    <div class="tag">${item.label}</div>
+                    
+                `;
+
+                this.insertHtmlAtCursor(html);
+            },
+            
 
             // Formula Modal Logic
             openFormulaModal() {
@@ -271,6 +324,27 @@
                 this.tableRows = 3;
                 this.tableCols = 3;
                 this.showTableModal = true;
+            },
+
+             // Card Modal Logic
+            openCardModal() {
+                this.showCardModal = true;
+                this.tableCols = 2;
+            },
+
+            insertCard() {
+                let cardHtml = `<div class="grid-${this.tableCols} graficas-grid">`;
+                for (let c = 1; c <= this.tableCols; c++) {
+                    cardHtml += `<div class="card grafica-card"><div class="figura-descripcion">
+                                <h4>Card ${c}</h4>
+                                <p>
+                                   Escribe el contenido de la tarjeta
+                                </p>
+                            </div></div>`;
+                }
+                cardHtml += '</div><p><br></p>';
+                this.insertHtmlAtCursor(cardHtml);
+                this.showCardModal = false;
             },
 
             insertTable() {
