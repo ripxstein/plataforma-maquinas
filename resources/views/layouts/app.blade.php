@@ -56,6 +56,8 @@
             value: config.value || '',
             editorId: config.editorId || 'edu-editor',
             activeTab: 'edit',
+            currentBlockTag: 'p',
+            savedSelection: null,
             
             // Modals state
             showFormulaModal: false,
@@ -82,6 +84,13 @@
                 const editable = document.getElementById(this.editorId + '-editable');
                 if (editable) {
                     editable.innerHTML = this.value || '';
+
+                    ['keyup', 'mouseup', 'touchend', 'input'].forEach(evt => {
+                        editable.addEventListener(evt, () => {
+                            this.saveSelection();
+                            this.updateCurrentBlockTag();
+                        });
+                    });
                 }
 
                 this.$watch('value', (newValue) => {
@@ -93,6 +102,52 @@
                         this.$nextTick(() => this.triggerKaTeX());
                     }
                 });
+            },
+
+            saveSelection() {
+                const editable = document.getElementById(this.editorId + '-editable');
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0 && editable) {
+                    const range = sel.getRangeAt(0);
+                    if (editable.contains(range.commonAncestorContainer)) {
+                        this.savedSelection = range.cloneRange();
+                    }
+                }
+            },
+
+            restoreSelection() {
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return;
+
+                const sel = window.getSelection();
+                if (this.savedSelection && editable.contains(this.savedSelection.commonAncestorContainer)) {
+                    sel.removeAllRanges();
+                    sel.addRange(this.savedSelection);
+                } else {
+                    const range = document.createRange();
+                    range.selectNodeContents(editable);
+                    range.collapse(false);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            },
+
+            updateCurrentBlockTag() {
+                const sel = window.getSelection();
+                if (!sel || !sel.rangeCount) return;
+                let node = sel.anchorNode;
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!node || !editable || !editable.contains(node)) return;
+
+                while (node && node !== editable) {
+                    const tag = node.nodeName ? node.nodeName.toLowerCase() : '';
+                    if (['h1', 'h2', 'h3', 'h4', 'h5', 'p'].includes(tag)) {
+                        this.currentBlockTag = tag;
+                        return;
+                    }
+                    node = node.parentNode;
+                }
+                this.currentBlockTag = 'p';
             },
 
             onContentChange() {
@@ -112,10 +167,49 @@
             format(command, value = null) {
                 const editable = document.getElementById(this.editorId + '-editable');
                 if (editable) {
+                    this.restoreSelection();
                     editable.focus();
                     document.execCommand(command, false, value);
+                    this.saveSelection();
                     this.onContentChange();
                 }
+            },
+
+            applyHeading(tag) {
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return;
+
+                this.restoreSelection();
+                editable.focus();
+
+                const normalizedTag = (tag || 'p').toLowerCase();
+                let success = false;
+
+                try {
+                    success = document.execCommand('formatBlock', false, '<' + normalizedTag + '>');
+                } catch (e) {
+                    success = false;
+                }
+
+                if (!success) {
+                    try {
+                        success = document.execCommand('formatBlock', false, normalizedTag);
+                    } catch (e) {
+                        success = false;
+                    }
+                }
+
+                if (!success) {
+                    try {
+                        document.execCommand('formatBlock', false, normalizedTag.toUpperCase());
+                    } catch (e) {
+                        console.warn('formatBlock error:', e);
+                    }
+                }
+
+                this.saveSelection();
+                this.currentBlockTag = normalizedTag;
+                this.onContentChange();
             },
 
             // Insert Educational Callout Blocks

@@ -39,17 +39,23 @@
 
     <!-- Edit Mode Toolbar -->
     <div class="edu-wysiwyg-toolbar" x-show="activeTab === 'edit'">
-        <!-- Text Styles -->
+        <!-- Text Styles / Headings Selector (H1 - H5) -->
         <div class="edu-toolbar-section">
-            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('formatBlock', '<h2>')" title="Encabezado principal">
-                <strong>H1</strong> Principal
-            </button>
-            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('formatBlock', '<h3>')" title="Subtítulo">
-                <strong>H2</strong> Subtítulo
-            </button>
-            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('formatBlock', '<p>')" title="Texto normal">
-                📄 Párrafo
-            </button>
+            <select 
+                class="edu-toolbar-select" 
+                x-model="currentBlockTag" 
+                @focus="saveSelection()" 
+                @mousedown="saveSelection()" 
+                @change="applyHeading($event.target.value)"
+                title="Estilo de texto / Encabezado"
+            >
+                <option value="p">📄 Párrafo normal</option>
+                <option value="h1">H1 — Título Principal</option>
+                <option value="h2">H2 — Subtítulo Principal</option>
+                <option value="h3">H3 — Encabezado de Sección</option>
+                <option value="h4">H4 — Subsección</option>
+                <option value="h5">H5 — Encabezado Menor</option>
+            </select>
         </div>
 
         <!-- Inline formatting -->
