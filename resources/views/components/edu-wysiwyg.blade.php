@@ -71,6 +71,46 @@
             </button>
         </div>
 
+        <!-- Text Alignment -->
+        <div class="edu-toolbar-section">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('justifyLeft')" title="Alinear a la izquierda">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="17" y1="10" x2="3" y2="10"></line>
+                    <line x1="21" y1="6" x2="3" y2="6"></line>
+                    <line x1="21" y1="14" x2="3" y2="14"></line>
+                    <line x1="17" y1="18" x2="3" y2="18"></line>
+                </svg>
+                Izquierda
+            </button>
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('justifyCenter')" title="Centrar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="10" x2="6" y2="10"></line>
+                    <line x1="21" y1="6" x2="3" y2="6"></line>
+                    <line x1="21" y1="14" x2="3" y2="14"></line>
+                    <line x1="18" y1="18" x2="6" y2="18"></line>
+                </svg>
+                Centrado
+            </button>
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('justifyRight')" title="Alinear a la derecha">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="21" y1="10" x2="7" y2="10"></line>
+                    <line x1="21" y1="6" x2="3" y2="6"></line>
+                    <line x1="21" y1="14" x2="3" y2="14"></line>
+                    <line x1="21" y1="18" x2="7" y2="18"></line>
+                </svg>
+                Derecha
+            </button>
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('justifyFull')" title="Justificar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="21" y1="10" x2="3" y2="10"></line>
+                    <line x1="21" y1="6" x2="3" y2="6"></line>
+                    <line x1="21" y1="14" x2="3" y2="14"></line>
+                    <line x1="21" y1="18" x2="3" y2="18"></line>
+                </svg>
+                Justificado
+            </button>
+        </div>
+
         <!-- Math & Media Insertion -->
         <div class="edu-toolbar-section">
             <button type="button" class="edu-toolbar-btn" @click="openFormulaModal()" style="background:#eef6ff; color:#1e40af; border-color:#bcdcff;">
