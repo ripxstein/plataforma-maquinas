@@ -57,3 +57,23 @@ test('cannot register with an existing email', function () {
 
     $component->assertHasErrors(['email' => 'unique']);
 });
+
+test('password must be at least 8 characters with spanish error message', function () {
+    AccessCode::create([
+        'code' => 'ACC123',
+        'group_name' => 'GRUPO-A',
+        'active' => true,
+    ]);
+
+    $component = Volt::test('pages.auth.register')
+        ->set('name', 'Test User')
+        ->set('email', 'shortpass@example.com')
+        ->set('access_code', 'ACC123')
+        ->set('password', '1234567')
+        ->set('password_confirmation', '1234567');
+
+    $component->call('register');
+
+    $component->assertHasErrors(['password'])
+        ->assertSee('La contraseña debe tener al menos 8 caracteres.');
+});

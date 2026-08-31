@@ -49,6 +49,8 @@ new #[Layout('layouts.guest')] class extends Component
             'access_code.required' => 'El código de acceso es obligatorio.',
             'password.required' => 'La contraseña es obligatoria.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password' => 'La contraseña debe tener al menos 8 caracteres.',
         ]);
 
         $accessCode = AccessCode::where('code', strtoupper($validated['access_code']))
