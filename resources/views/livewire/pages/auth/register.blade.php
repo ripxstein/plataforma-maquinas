@@ -18,15 +18,37 @@ new #[Layout('layouts.guest')] class extends Component
     public string $password_confirmation = '';
 
     /**
+     * Real-time validation for email.
+     */
+    public function updatedEmail(): void
+    {
+        $this->validateOnly('email', [
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class.',email'],
+        ], [
+            'email.unique' => 'Este correo electrónico ya se encuentra registrado.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Debes ingresar un correo electrónico válido.',
+        ]);
+    }
+
+    /**
      * Handle an incoming registration request.
      */
     public function register(): void
     {
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class.',email'],
             'access_code' => ['required', 'string', 'max:50'],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'email.unique' => 'Este correo electrónico ya se encuentra registrado.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Debes ingresar un correo electrónico válido.',
+            'name.required' => 'El nombre es obligatorio.',
+            'access_code.required' => 'El código de acceso es obligatorio.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
         ]);
 
         $accessCode = AccessCode::where('code', strtoupper($validated['access_code']))
@@ -66,7 +88,7 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Email Address -->
         <div class="mt-4">
             <x-input-label for="email" :value="__('Correo electrónico')" />
-            <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autocomplete="username" />
+            <x-text-input wire:model.blur="email" id="email" class="block mt-1 w-full" type="email" name="email" required autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
