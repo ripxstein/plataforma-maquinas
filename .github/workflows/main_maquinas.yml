@@ -36,6 +36,14 @@ jobs:
           npm ci
           npm run build
 
+      - name: Ensure Laravel storage directories exist
+        run: |
+          mkdir -p storage/framework/cache/data
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
