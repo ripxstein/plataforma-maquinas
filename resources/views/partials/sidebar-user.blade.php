@@ -42,9 +42,10 @@
             </a>
             @php $currentIndex++; @endphp
 
-            @php
+            {{--
+                 @php
                 $problems = $module->items->flatMap->problems;
-            @endphp
+            @endphp 
 
             @if($problems->isNotEmpty())
                 <div class="submenu">
@@ -54,9 +55,9 @@
                         </a>
                     @endforeach
                 </div>
-            @endif
+            @endif--}}
         @endforeach
-
+                {{--
         @if(! $modules->pluck('slug')->contains('aplicacion'))
             <a class="nav-link {{ request()->routeIs('student.aplicacion') ? 'active' : '' }}"
                href="{{ route('student.aplicacion') }}" wire:navigate>
@@ -87,10 +88,10 @@
            href="{{ route('student.retos') }}" wire:navigate>
             {{ $currentIndex }}. Retos de competencia
         </a>
-
+--}}
         <a class="nav-link {{ request()->routeIs('student.bibliografia') ? 'active' : '' }}"
            href="{{ route('student.bibliografia') }}" wire:navigate>
             Bibliografía
         </a>
     </div>
-</aside>
+</aside>
