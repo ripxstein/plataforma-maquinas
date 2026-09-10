@@ -1,30 +1,30 @@
 <?php
 
+use App\Livewire\Admin\ComponentesPanel;
+use App\Livewire\Modulos\ModuloViewer;
+use App\Livewire\Problemas\ProblemaDinamico;
 use App\Models\Module;
 use App\Models\ModuleItem;
 use App\Models\Problem;
 use App\Models\ProblemStep;
 use App\Models\ProblemStepOption;
 use App\Models\User;
-use App\Models\UserProblemProgress;
-use App\Livewire\Admin\ComponentesPanel;
-use App\Livewire\Problemas\ProblemaDinamico;
 use Livewire\Livewire;
 
 beforeEach(function () {
     $this->admin = User::factory()->create([
         'role' => 'admin',
-        'email' => 'admin_' . uniqid() . '@example.com',
+        'email' => 'admin_'.uniqid().'@example.com',
     ]);
 
     $this->student = User::factory()->create([
         'role' => 'student',
-        'email' => 'student_' . uniqid() . '@example.com',
+        'email' => 'student_'.uniqid().'@example.com',
     ]);
 
     $this->module = Module::create([
         'title' => 'Módulo de Prueba',
-        'slug' => 'modulo-prueba-' . uniqid(),
+        'slug' => 'modulo-prueba-'.uniqid(),
         'order' => 1,
     ]);
 
@@ -74,7 +74,7 @@ test('admin can duplicate an interactive component with its steps and options', 
     $problem = Problem::create([
         'module_item_id' => $this->reading->id,
         'title' => 'Problema Original',
-        'slug' => 'problema-original-' . uniqid(),
+        'slug' => 'problema-original-'.uniqid(),
         'component' => 'problemas.problema-dinamico',
         'order' => 1,
         'percentage' => 30,
@@ -117,7 +117,7 @@ test('problema dinamico validates step responses and emits completion event on f
     $problem = Problem::create([
         'module_item_id' => $this->reading->id,
         'title' => 'Problema Test Pasos',
-        'slug' => 'problema-test-pasos-' . uniqid(),
+        'slug' => 'problema-test-pasos-'.uniqid(),
         'component' => 'problemas.problema-dinamico',
         'order' => 1,
         'percentage' => 30,
@@ -162,34 +162,34 @@ test('problema dinamico validates step responses and emits completion event on f
         ->test(ProblemaDinamico::class, ['problemId' => $problem->id]);
 
     // Check wrong numeric answer on Step 1
-    $lw->set('answers.' . $step1->id, '100')
-       ->call('checkStep', $step1->id)
-       ->assertSet('currentStepIndex', 1)
-       ->assertSee('Respuesta incorrecta');
+    $lw->set('answers.'.$step1->id, '100')
+        ->call('checkStep', $step1->id)
+        ->assertSet('currentStepIndex', 1)
+        ->assertSee('Respuesta incorrecta');
 
     // Check correct numeric answer on Step 1 -> advances to Step 2
-    $lw->set('answers.' . $step1->id, '150.52')
-       ->call('checkStep', $step1->id)
-       ->assertSet('currentStepIndex', 2)
-       ->assertSee('¡Correcto!');
+    $lw->set('answers.'.$step1->id, '150.52')
+        ->call('checkStep', $step1->id)
+        ->assertSet('currentStepIndex', 2)
+        ->assertSee('¡Correcto!');
 
     // Check wrong option on Step 2
-    $lw->set('answers.' . $step2->id, $opt2->id)
-       ->call('checkStep', $step2->id)
-       ->assertSet('isCompleted', false);
+    $lw->set('answers.'.$step2->id, $opt2->id)
+        ->call('checkStep', $step2->id)
+        ->assertSet('isCompleted', false);
 
     // Check correct option on Step 2 -> Completes problem & dispatches event
-    $lw->set('answers.' . $step2->id, $opt1->id)
-       ->call('checkStep', $step2->id)
-       ->assertSet('isCompleted', true)
-       ->assertDispatched('problema-completado', problemId: $problem->id);
+    $lw->set('answers.'.$step2->id, $opt1->id)
+        ->call('checkStep', $step2->id)
+        ->assertSet('isCompleted', true)
+        ->assertDispatched('problema-completado', problemId: $problem->id);
 });
 
 test('inactive problems are not displayed in modulo viewer for students', function () {
     $activeProblem = Problem::create([
         'module_item_id' => $this->reading->id,
         'title' => 'Problema Activo Visible',
-        'slug' => 'problema-activo-' . uniqid(),
+        'slug' => 'problema-activo-'.uniqid(),
         'component' => 'problemas.problema-dinamico',
         'order' => 1,
         'percentage' => 30,
@@ -199,7 +199,7 @@ test('inactive problems are not displayed in modulo viewer for students', functi
     $inactiveProblem = Problem::create([
         'module_item_id' => $this->reading->id,
         'title' => 'Problema Inactivo Oculto',
-        'slug' => 'problema-inactivo-' . uniqid(),
+        'slug' => 'problema-inactivo-'.uniqid(),
         'component' => 'problemas.problema-dinamico',
         'order' => 2,
         'percentage' => 30,
@@ -208,7 +208,7 @@ test('inactive problems are not displayed in modulo viewer for students', functi
 
     // Complete reading so problems accordion is shown
     Livewire::actingAs($this->student)
-        ->test(\App\Livewire\Modulos\ModuloViewer::class, ['slug' => $this->module->slug])
+        ->test(ModuloViewer::class, ['slug' => $this->module->slug])
         ->call('completeReading', $this->reading->id)
         ->assertSee('Problema Activo Visible')
         ->assertDontSee('Problema Inactivo Oculto');

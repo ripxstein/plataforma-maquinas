@@ -24,6 +24,12 @@ class ModuloViewer extends Component
 
     public int $problemProgress = 0;
 
+    /** @var array<int> */
+    public array $completedItemIds = [];
+
+    /** @var array<int> */
+    public array $completedProblemIds = [];
+
     protected $listeners = [
         'problema-completado' => 'completeProblem',
     ];
@@ -56,28 +62,49 @@ class ModuloViewer extends Component
 
     public function loadProgress()
     {
+        $this->module->loadMissing([
+            'items' => function ($query) {
+                $query->orderBy('order');
+            },
+            'items.problems' => function ($query) {
+                $query->where('is_active', true)->orderBy('order');
+            },
+        ]);
+
         $this->items = $this->module->items;
 
         $this->visibleItems = $this->items
             ->where('order', '<=', $this->moduleProgress->unlocked_order);
+
+        $userId = auth()->id();
+        $itemIds = $this->items->pluck('id');
+        $problemIds = $this->items->flatMap(fn ($item) => $item->problems)->pluck('id');
+
+        $this->completedItemIds = UserItemProgress::where('user_id', $userId)
+            ->whereIn('module_item_id', $itemIds)
+            ->where('completed', true)
+            ->pluck('module_item_id')
+            ->map(fn ($id) => (int) $id)
+            ->toArray();
+
+        $this->completedProblemIds = UserProblemProgress::where('user_id', $userId)
+            ->whereIn('problem_id', $problemIds)
+            ->where('completed', true)
+            ->pluck('problem_id')
+            ->map(fn ($id) => (int) $id)
+            ->toArray();
 
         $this->calculateProgress();
     }
 
     public function isReadingCompleted($itemId): bool
     {
-        return UserItemProgress::where('user_id', auth()->id())
-            ->where('module_item_id', $itemId)
-            ->where('completed', true)
-            ->exists();
+        return in_array((int) $itemId, $this->completedItemIds, true);
     }
 
     public function isProblemCompleted($problemId): bool
     {
-        return UserProblemProgress::where('user_id', auth()->id())
-            ->where('problem_id', $problemId)
-            ->where('completed', true)
-            ->exists();
+        return in_array((int) $problemId, $this->completedProblemIds, true);
     }
 
     public function completeReading($itemId)

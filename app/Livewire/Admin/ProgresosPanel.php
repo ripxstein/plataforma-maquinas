@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\ModuleItem;
+use App\Models\Problem;
 use App\Models\User;
-use App\Models\UserItemProgress;
-use App\Models\UserProblemProgress;
 use Livewire\Component;
 
 class ProgresosPanel extends Component
@@ -13,26 +13,31 @@ class ProgresosPanel extends Component
 
     public function render()
     {
+        $totalLecturasCatalogo = ModuleItem::count();
+        $totalProblemasCatalogo = Problem::where('is_active', true)->count();
+        $totalCatalogo = $totalLecturasCatalogo + $totalProblemasCatalogo;
+
         $alumnos = User::query()
             ->where('role', 'user')
             ->where(function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('email', 'like', '%' . $this->search . '%');
+                $query->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('email', 'like', '%'.$this->search.'%');
             })
             ->withCount([
                 'readingProgress as lecturas_completadas' => fn ($q) => $q->where('completed', true),
                 'problemProgress as problemas_completados' => fn ($q) => $q->where('completed', true),
+                'readingProgress as total_lecturas',
+                'problemProgress as total_problemas',
             ])
             ->orderBy('name')
             ->get()
-            ->map(function ($alumno) {
-                $totalLecturas =  UserItemProgress::where('user_id', $alumno->id)->count();
-                $totalProblemas = UserProblemProgress::where('user_id', $alumno->id)->count();
-
+            ->map(function ($alumno) use ($totalCatalogo) {
                 $completadas = $alumno->lecturas_completadas + $alumno->problemas_completados;
-                $total = max($totalLecturas + $totalProblemas, 1);
+                $total = $totalCatalogo > 0
+                    ? $totalCatalogo
+                    : max($alumno->total_lecturas + $alumno->total_problemas, 1);
 
-                $alumno->avance_total = round(($completadas / $total) * 100);
+                $alumno->avance_total = min(round(($completadas / $total) * 100), 100);
 
                 return $alumno;
             });

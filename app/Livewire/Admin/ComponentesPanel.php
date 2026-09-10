@@ -7,6 +7,7 @@ use App\Models\ModuleItem;
 use App\Models\Problem;
 use App\Models\ProblemStep;
 use App\Models\ProblemStepOption;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -20,17 +21,26 @@ class ComponentesPanel extends Component
 
     // Filters for list
     public string $search = '';
+
     public string $moduleFilter = '';
 
     // Active Problem Data (General Settings)
     public ?int $problemId = null;
+
     public ?int $moduleItemId = null;
+
     public string $title = '';
+
     public string $slug = '';
+
     public ?string $content = '';
+
     public string $component = 'problemas.problema-dinamico';
+
     public int $order = 1;
+
     public int $percentage = 35;
+
     public bool $isActive = true;
 
     // Steps Collection in Builder (in-memory or synced)
@@ -38,27 +48,43 @@ class ComponentesPanel extends Component
 
     // Step Editor Modal/Drawer state
     public bool $showStepModal = false;
+
     public ?int $editingStepIndex = null;
 
     // Form fields for active step editing
     public string $stepTitle = '';
+
     public string $stepInstruction = '';
+
     public string $stepAnswerType = 'numeric'; // numeric, multiple_choice, true_false, text
+
     public string $stepCorrectAnswer = '';
+
     public $stepTolerance = 0.01;
+
     public string $stepToleranceType = 'absolute'; // absolute, percentage
+
     public string $stepUnit = '';
+
     public string $stepSuccessMessage = '¡Correcto! Puedes continuar con el siguiente paso.';
+
     public string $stepErrorMessage = 'Respuesta incorrecta. Revisa tus cálculos.';
+
     public string $stepReminderMessage = '';
 
     // Step Image settings
     public string $stepImageUrl = '';
+
     public string $stepImageAlt = '';
+
     public string $stepImageCaption = '';
+
     public string $stepImageSource = '';
+
     public string $stepImageAlign = 'align-center';
+
     public string $stepImageMaxWidth = '75%';
+
     public string $stepImageTrigger = 'always'; // always, on_error, on_success
 
     // Step Multiple Choice Options
@@ -69,9 +95,13 @@ class ComponentesPanel extends Component
 
     // Real-time Student Preview Simulator State
     public int $previewCurrentStep = 1;
+
     public array $previewAnswers = [];
+
     public array $previewMessages = [];
+
     public array $previewShowImages = [];
+
     public bool $previewCompleted = false;
 
     public function mount()
@@ -91,11 +121,11 @@ class ComponentesPanel extends Component
     {
         $this->resetValidation();
         $this->problemId = null;
-        
+
         $firstReading = ModuleItem::orderBy('module_id')->orderBy('order')->first();
         $this->moduleItemId = $firstReading ? $firstReading->id : null;
         $this->title = 'Nuevo Problema Interactivo';
-        $this->slug = 'nuevo-problema-' . time();
+        $this->slug = 'nuevo-problema-'.time();
         $this->content = '<p>Describe aquí el enunciado general del problema para el estudiante.</p>';
         $this->component = 'problemas.problema-dinamico';
         $this->order = (Problem::where('module_item_id', $this->moduleItemId)->max('order') ?? 0) + 1;
@@ -147,7 +177,7 @@ class ComponentesPanel extends Component
                 'image_max_width' => '75%',
                 'image_trigger' => 'on_error',
                 'options' => [],
-            ]
+            ],
         ];
 
         $this->resetPreviewSimulator();
@@ -157,7 +187,7 @@ class ComponentesPanel extends Component
     public function editComponent(int $id)
     {
         $this->resetValidation();
-        $problem = Problem::with(['steps.options' => function($q) {
+        $problem = Problem::with(['steps.options' => function ($q) {
             $q->orderBy('order');
         }])->findOrFail($id);
 
@@ -179,7 +209,7 @@ class ComponentesPanel extends Component
                 $options[] = [
                     'id' => $opt->id,
                     'option_text' => $opt->option_text,
-                    'is_correct' => (bool)$opt->is_correct,
+                    'is_correct' => (bool) $opt->is_correct,
                 ];
             }
 
@@ -189,7 +219,7 @@ class ComponentesPanel extends Component
                 'title' => $step->title,
                 'instruction' => $step->instruction,
                 'answer_type' => $step->answer_type,
-                'correct_answer' => (string)$step->correct_answer,
+                'correct_answer' => (string) $step->correct_answer,
                 'tolerance' => $step->tolerance ?? 0.01,
                 'tolerance_type' => $step->tolerance_type ?? 'absolute',
                 'unit' => $step->unit ?? '',
@@ -220,95 +250,105 @@ class ComponentesPanel extends Component
         $this->validate([
             'moduleItemId' => 'required|exists:module_items,id',
             'title' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:problems,slug,' . ($this->problemId ?? 'NULL') . ',id',
+            'slug' => 'required|string|max:255|unique:problems,slug,'.($this->problemId ?? 'NULL').',id',
             'order' => 'required|integer|min:1',
             'percentage' => 'required|integer|min:0|max:100',
         ]);
 
         if (empty($this->stepsData)) {
             $this->addError('steps', 'El problema debe tener al menos un paso interactivo.');
+
             return;
         }
 
-        // Save Problem
-        $problem = Problem::updateOrCreate(
-            ['id' => $this->problemId],
-            [
-                'module_item_id' => $this->moduleItemId,
-                'title' => $this->title,
-                'slug' => $this->slug,
-                'content' => $this->content,
-                'component' => $this->component ?: 'problemas.problema-dinamico',
-                'order' => $this->order,
-                'percentage' => $this->percentage,
-                'is_active' => $this->isActive,
-            ]
-        );
-
-        $this->problemId = $problem->id;
-
-        // Keep track of existing step IDs to delete removed steps
-        $keptStepIds = [];
-
-        foreach ($this->stepsData as $index => $stepData) {
-            $step = ProblemStep::updateOrCreate(
-                ['id' => $stepData['id'] ?? null],
+        DB::transaction(function () {
+            // Save Problem
+            $problem = Problem::updateOrCreate(
+                ['id' => $this->problemId],
                 [
-                    'problem_id' => $problem->id,
-                    'step_number' => $index + 1,
-                    'title' => $stepData['title'],
-                    'instruction' => $stepData['instruction'],
-                    'answer_type' => $stepData['answer_type'],
-                    'correct_answer' => $stepData['correct_answer'],
-                    'tolerance' => $stepData['tolerance'],
-                    'tolerance_type' => $stepData['tolerance_type'] ?? 'absolute',
-                    'unit' => $stepData['unit'] ?? '',
-                    'success_message' => $stepData['success_message'],
-                    'error_message' => $stepData['error_message'],
-                    'reminder_message' => $stepData['reminder_message'],
-                    'image_url' => $stepData['image_url'] ?? null,
-                    'image_alt' => $stepData['image_alt'] ?? null,
-                    'image_caption' => $stepData['image_caption'] ?? null,
-                    'image_source' => $stepData['image_source'] ?? null,
-                    'image_align' => $stepData['image_align'] ?? 'align-center',
-                    'image_max_width' => $stepData['image_max_width'] ?? '75%',
-                    'image_trigger' => $stepData['image_trigger'] ?? 'always',
+                    'module_item_id' => $this->moduleItemId,
+                    'title' => $this->title,
+                    'slug' => $this->slug,
+                    'content' => $this->content,
+                    'component' => $this->component ?: 'problemas.problema-dinamico',
+                    'order' => $this->order,
+                    'percentage' => $this->percentage,
+                    'is_active' => $this->isActive,
                 ]
             );
 
-            $keptStepIds[] = $step->id;
-            $this->stepsData[$index]['id'] = $step->id;
+            $this->problemId = $problem->id;
 
-            // Handle options for multiple choice
-            $keptOptionIds = [];
-            if ($stepData['answer_type'] === 'multiple_choice' && !empty($stepData['options'])) {
-                foreach ($stepData['options'] as $optIdx => $optData) {
-                    if (empty(trim($optData['option_text'] ?? ''))) continue;
+            // Keep track of existing step IDs to delete removed steps
+            $keptStepIds = [];
 
-                    $option = ProblemStepOption::updateOrCreate(
-                        ['id' => $optData['id'] ?? null],
-                        [
-                            'problem_step_id' => $step->id,
-                            'option_text' => $optData['option_text'],
-                            'is_correct' => (bool)($optData['is_correct'] ?? false),
-                            'order' => $optIdx + 1,
-                        ]
-                    );
-                    $keptOptionIds[] = $option->id;
-                    $this->stepsData[$index]['options'][$optIdx]['id'] = $option->id;
+            foreach ($this->stepsData as $index => $stepData) {
+                $step = ProblemStep::updateOrCreate(
+                    ['id' => $stepData['id'] ?? null],
+                    [
+                        'problem_id' => $problem->id,
+                        'step_number' => $index + 1,
+                        'title' => $stepData['title'],
+                        'instruction' => $stepData['instruction'],
+                        'answer_type' => $stepData['answer_type'],
+                        'correct_answer' => $stepData['correct_answer'],
+                        'tolerance' => $stepData['tolerance'],
+                        'tolerance_type' => $stepData['tolerance_type'] ?? 'absolute',
+                        'unit' => $stepData['unit'] ?? '',
+                        'success_message' => $stepData['success_message'],
+                        'error_message' => $stepData['error_message'],
+                        'reminder_message' => $stepData['reminder_message'],
+                        'image_url' => $stepData['image_url'] ?? null,
+                        'image_alt' => $stepData['image_alt'] ?? null,
+                        'image_caption' => $stepData['image_caption'] ?? null,
+                        'image_source' => $stepData['image_source'] ?? null,
+                        'image_align' => $stepData['image_align'] ?? 'align-center',
+                        'image_max_width' => $stepData['image_max_width'] ?? '75%',
+                        'image_trigger' => $stepData['image_trigger'] ?? 'always',
+                    ]
+                );
+
+                $keptStepIds[] = $step->id;
+                $this->stepsData[$index]['id'] = $step->id;
+
+                // Handle options for multiple choice
+                $keptOptionIds = [];
+                if ($stepData['answer_type'] === 'multiple_choice' && ! empty($stepData['options'])) {
+                    foreach ($stepData['options'] as $optIdx => $optData) {
+                        if (empty(trim($optData['option_text'] ?? ''))) {
+                            continue;
+                        }
+
+                        $option = ProblemStepOption::updateOrCreate(
+                            ['id' => $optData['id'] ?? null],
+                            [
+                                'problem_step_id' => $step->id,
+                                'option_text' => $optData['option_text'],
+                                'is_correct' => (bool) ($optData['is_correct'] ?? false),
+                                'order' => $optIdx + 1,
+                            ]
+                        );
+                        $keptOptionIds[] = $option->id;
+                        $this->stepsData[$index]['options'][$optIdx]['id'] = $option->id;
+                    }
                 }
+
+                // Remove deleted options for this step
+                ProblemStepOption::where('problem_step_id', $step->id)
+                    ->whereNotIn('id', $keptOptionIds)
+                    ->delete();
             }
 
-            // Remove deleted options for this step
-            ProblemStepOption::where('problem_step_id', $step->id)
-                ->whereNotIn('id', $keptOptionIds)
-                ->delete();
-        }
+            // Remove deleted steps (and their options)
+            $stepsToDelete = ProblemStep::where('problem_id', $problem->id)
+                ->whereNotIn('id', $keptStepIds)
+                ->get();
 
-        // Remove deleted steps
-        ProblemStep::where('problem_id', $problem->id)
-            ->whereNotIn('id', $keptStepIds)
-            ->delete();
+            foreach ($stepsToDelete as $st) {
+                ProblemStepOption::where('problem_step_id', $st->id)->delete();
+                $st->delete();
+            }
+        });
 
         session()->flash('message', '¡Componente interactivo guardado exitosamente!');
         $this->resetPreviewSimulator();
@@ -324,54 +364,56 @@ class ComponentesPanel extends Component
     {
         $original = Problem::with('steps.options')->findOrFail($id);
 
-        $newTitle = 'Copia de ' . $original->title;
-        $newSlug = Str::slug($newTitle) . '-' . rand(100, 999);
+        DB::transaction(function () use ($original) {
+            $newTitle = 'Copia de '.$original->title;
+            $newSlug = Str::slug($newTitle).'-'.rand(100, 999);
 
-        $newProblem = Problem::create([
-            'module_item_id' => $original->module_item_id,
-            'title' => $newTitle,
-            'slug' => $newSlug,
-            'content' => $original->content,
-            'component' => $original->component ?: 'problemas.problema-dinamico',
-            'order' => (Problem::where('module_item_id', $original->module_item_id)->max('order') ?? 0) + 1,
-            'percentage' => $original->percentage,
-            'is_active' => $original->is_active ?? true,
-        ]);
-
-        foreach ($original->steps as $step) {
-            $newStep = ProblemStep::create([
-                'problem_id' => $newProblem->id,
-                'step_number' => $step->step_number,
-                'title' => $step->title,
-                'instruction' => $step->instruction,
-                'answer_type' => $step->answer_type,
-                'correct_answer' => $step->correct_answer,
-                'tolerance' => $step->tolerance,
-                'tolerance_type' => $step->tolerance_type,
-                'unit' => $step->unit,
-                'success_message' => $step->success_message,
-                'error_message' => $step->error_message,
-                'reminder_message' => $step->reminder_message,
-                'image_url' => $step->image_url,
-                'image_alt' => $step->image_alt,
-                'image_caption' => $step->image_caption,
-                'image_source' => $step->image_source,
-                'image_align' => $step->image_align,
-                'image_max_width' => $step->image_max_width,
-                'image_trigger' => $step->image_trigger,
+            $newProblem = Problem::create([
+                'module_item_id' => $original->module_item_id,
+                'title' => $newTitle,
+                'slug' => $newSlug,
+                'content' => $original->content,
+                'component' => $original->component ?: 'problemas.problema-dinamico',
+                'order' => (Problem::where('module_item_id', $original->module_item_id)->max('order') ?? 0) + 1,
+                'percentage' => $original->percentage,
+                'is_active' => $original->is_active ?? true,
             ]);
 
-            foreach ($step->options as $opt) {
-                ProblemStepOption::create([
-                    'problem_step_id' => $newStep->id,
-                    'option_text' => $opt->option_text,
-                    'is_correct' => $opt->is_correct,
-                    'order' => $opt->order,
+            foreach ($original->steps as $step) {
+                $newStep = ProblemStep::create([
+                    'problem_id' => $newProblem->id,
+                    'step_number' => $step->step_number,
+                    'title' => $step->title,
+                    'instruction' => $step->instruction,
+                    'answer_type' => $step->answer_type,
+                    'correct_answer' => $step->correct_answer,
+                    'tolerance' => $step->tolerance,
+                    'tolerance_type' => $step->tolerance_type,
+                    'unit' => $step->unit,
+                    'success_message' => $step->success_message,
+                    'error_message' => $step->error_message,
+                    'reminder_message' => $step->reminder_message,
+                    'image_url' => $step->image_url,
+                    'image_alt' => $step->image_alt,
+                    'image_caption' => $step->image_caption,
+                    'image_source' => $step->image_source,
+                    'image_align' => $step->image_align,
+                    'image_max_width' => $step->image_max_width,
+                    'image_trigger' => $step->image_trigger,
                 ]);
-            }
-        }
 
-        session()->flash('message', 'Componente «' . $original->title . '» duplicado con éxito.');
+                foreach ($step->options as $opt) {
+                    ProblemStepOption::create([
+                        'problem_step_id' => $newStep->id,
+                        'option_text' => $opt->option_text,
+                        'is_correct' => $opt->is_correct,
+                        'order' => $opt->order,
+                    ]);
+                }
+            }
+        });
+
+        session()->flash('message', 'Componente «'.$original->title.'» duplicado con éxito.');
     }
 
     public function deleteComponent(int $id)
@@ -379,7 +421,7 @@ class ComponentesPanel extends Component
         $problem = Problem::findOrFail($id);
         $title = $problem->title;
         $problem->delete();
-        session()->flash('message', 'Componente «' . $title . '» eliminado.');
+        session()->flash('message', 'Componente «'.$title.'» eliminado.');
     }
 
     // ==========================================
@@ -390,7 +432,7 @@ class ComponentesPanel extends Component
     {
         $this->editingStepIndex = null;
         $nextNum = count($this->stepsData) + 1;
-        
+
         $this->stepTitle = "Paso {$nextNum}";
         $this->stepInstruction = '';
         $this->stepAnswerType = 'numeric';
@@ -420,7 +462,9 @@ class ComponentesPanel extends Component
 
     public function openEditStepModal(int $index)
     {
-        if (!isset($this->stepsData[$index])) return;
+        if (! isset($this->stepsData[$index])) {
+            return;
+        }
 
         $this->editingStepIndex = $index;
         $s = $this->stepsData[$index];
@@ -444,7 +488,7 @@ class ComponentesPanel extends Component
         $this->stepImageMaxWidth = $s['image_max_width'] ?? '75%';
         $this->stepImageTrigger = $s['image_trigger'] ?? 'always';
 
-        $this->stepOptions = !empty($s['options']) ? $s['options'] : [
+        $this->stepOptions = ! empty($s['options']) ? $s['options'] : [
             ['option_text' => '', 'is_correct' => true],
             ['option_text' => '', 'is_correct' => false],
         ];
@@ -464,9 +508,10 @@ class ComponentesPanel extends Component
                 'stepCorrectAnswer' => 'required|numeric',
             ]);
         } elseif ($this->stepAnswerType === 'multiple_choice') {
-            $hasCorrect = collect($this->stepOptions)->contains(fn($o) => !empty($o['is_correct']));
-            if (!$hasCorrect) {
+            $hasCorrect = collect($this->stepOptions)->contains(fn ($o) => ! empty($o['is_correct']));
+            if (! $hasCorrect) {
                 $this->addError('stepOptions', 'Debes marcar al menos una opción como correcta.');
+
                 return;
             }
         } elseif ($this->stepAnswerType === 'true_false') {
@@ -489,8 +534,8 @@ class ComponentesPanel extends Component
             'title' => $this->stepTitle,
             'instruction' => $this->stepInstruction,
             'answer_type' => $this->stepAnswerType,
-            'correct_answer' => (string)$this->stepCorrectAnswer,
-            'tolerance' => is_numeric($this->stepTolerance) ? (float)$this->stepTolerance : 0.01,
+            'correct_answer' => (string) $this->stepCorrectAnswer,
+            'tolerance' => is_numeric($this->stepTolerance) ? (float) $this->stepTolerance : 0.01,
             'tolerance_type' => $this->stepToleranceType,
             'unit' => $this->stepUnit,
             'success_message' => $this->stepSuccessMessage,
@@ -523,15 +568,17 @@ class ComponentesPanel extends Component
 
     public function duplicateStep(int $index)
     {
-        if (!isset($this->stepsData[$index])) return;
+        if (! isset($this->stepsData[$index])) {
+            return;
+        }
 
         $stepToCopy = $this->stepsData[$index];
         $cloned = $stepToCopy;
         $cloned['id'] = null;
-        $cloned['title'] = $cloned['title'] . ' (Copia)';
+        $cloned['title'] = $cloned['title'].' (Copia)';
         $cloned['step_number'] = count($this->stepsData) + 1;
 
-        if (!empty($cloned['options'])) {
+        if (! empty($cloned['options'])) {
             foreach ($cloned['options'] as $k => $opt) {
                 $cloned['options'][$k]['id'] = null;
             }
@@ -624,7 +671,9 @@ class ComponentesPanel extends Component
 
     public function testPreviewStep(int $index)
     {
-        if (!isset($this->stepsData[$index])) return;
+        if (! isset($this->stepsData[$index])) {
+            return;
+        }
 
         $step = $this->stepsData[$index];
         $userAnswer = $this->previewAnswers[$index] ?? null;
@@ -632,10 +681,10 @@ class ComponentesPanel extends Component
 
         switch ($step['answer_type']) {
             case 'numeric':
-                $userVal = (float)$userAnswer;
-                $expVal = (float)$step['correct_answer'];
-                $tol = (float)($step['tolerance'] ?? 0.01);
-                
+                $userVal = (float) $userAnswer;
+                $expVal = (float) $step['correct_answer'];
+                $tol = (float) ($step['tolerance'] ?? 0.01);
+
                 if ($userAnswer !== null && $userAnswer !== '' && is_numeric($userAnswer)) {
                     if (($step['tolerance_type'] ?? 'absolute') === 'percentage') {
                         $pct = $tol > 1 ? ($tol / 100) : $tol;
@@ -647,9 +696,9 @@ class ComponentesPanel extends Component
                 break;
 
             case 'multiple_choice':
-                if (!empty($step['options'])) {
+                if (! empty($step['options'])) {
                     foreach ($step['options'] as $optIdx => $opt) {
-                        if ($opt['is_correct'] && (string)$optIdx === (string)$userAnswer) {
+                        if ($opt['is_correct'] && (string) $optIdx === (string) $userAnswer) {
                             $isOk = true;
                             break;
                         }
@@ -658,8 +707,8 @@ class ComponentesPanel extends Component
                 break;
 
             case 'true_false':
-                $userNorm = strtolower(trim((string)$userAnswer));
-                $expNorm = strtolower(trim((string)$step['correct_answer']));
+                $userNorm = strtolower(trim((string) $userAnswer));
+                $expNorm = strtolower(trim((string) $step['correct_answer']));
                 $userBool = in_array($userNorm, ['1', 'true', 'verdadero', 'v', 't']);
                 $expBool = in_array($expNorm, ['1', 'true', 'verdadero', 'v', 't']);
                 $isOk = ($userBool === $expBool) && ($userNorm !== '');
@@ -667,8 +716,8 @@ class ComponentesPanel extends Component
 
             case 'text':
             default:
-                $userNorm = mb_strtolower(trim((string)$userAnswer));
-                $expNorm = mb_strtolower(trim((string)$step['correct_answer']));
+                $userNorm = mb_strtolower(trim((string) $userAnswer));
+                $expNorm = mb_strtolower(trim((string) $step['correct_answer']));
                 $isOk = ($userNorm !== '' && $userNorm === $expNorm);
                 break;
         }
@@ -715,15 +764,15 @@ class ComponentesPanel extends Component
             ->orderBy('module_item_id')
             ->orderBy('order');
 
-        if (!empty($this->search)) {
-            $query->where(function($q) {
-                $q->where('title', 'like', '%' . $this->search . '%')
-                  ->orWhere('slug', 'like', '%' . $this->search . '%');
+        if (! empty($this->search)) {
+            $query->where(function ($q) {
+                $q->where('title', 'like', '%'.$this->search.'%')
+                    ->orWhere('slug', 'like', '%'.$this->search.'%');
             });
         }
 
-        if (!empty($this->moduleFilter)) {
-            $query->whereHas('moduleItem', function($q) {
+        if (! empty($this->moduleFilter)) {
+            $query->whereHas('moduleItem', function ($q) {
                 $q->where('module_id', $this->moduleFilter);
             });
         }
