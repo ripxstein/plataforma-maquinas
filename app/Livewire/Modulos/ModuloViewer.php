@@ -6,6 +6,7 @@ use App\Models\Module;
 use App\Models\UserItemProgress;
 use App\Models\UserModuleProgress;
 use App\Models\UserProblemProgress;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class ModuloViewer extends Component
@@ -115,26 +116,28 @@ class ModuloViewer extends Component
             return;
         }
 
-        UserItemProgress::updateOrCreate(
-            [
-                'user_id' => auth()->id(),
-                'module_item_id' => $item->id,
-            ],
-            [
-                'completed' => true,
-                'completed_at' => now(),
-            ]
-        );
+        DB::transaction(function () use ($item) {
+            UserItemProgress::updateOrCreate(
+                [
+                    'user_id' => auth()->id(),
+                    'module_item_id' => $item->id,
+                ],
+                [
+                    'completed' => true,
+                    'completed_at' => now(),
+                ]
+            );
 
-        $nextOrder = $item->order + 1;
+            $nextOrder = $item->order + 1;
 
-        if ($nextOrder > $this->moduleProgress->unlocked_order) {
-            $this->moduleProgress->update([
-                'unlocked_order' => $nextOrder,
-            ]);
+            if ($this->moduleProgress && $nextOrder > $this->moduleProgress->unlocked_order) {
+                $this->moduleProgress->update([
+                    'unlocked_order' => $nextOrder,
+                ]);
 
-            $this->moduleProgress->refresh();
-        }
+                $this->moduleProgress->refresh();
+            }
+        });
 
         $this->loadProgress();
     }

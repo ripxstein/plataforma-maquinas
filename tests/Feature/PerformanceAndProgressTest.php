@@ -9,6 +9,7 @@ use App\Models\Problem;
 use App\Models\ProblemStep;
 use App\Models\User;
 use App\Models\UserItemProgress;
+use App\Models\UserModuleProgress;
 use App\Models\UserProblemProgress;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -164,4 +165,54 @@ test('saveComponent rolls back all changes if an exception occurs during the tra
     $this->assertDatabaseMissing('problems', [
         'slug' => $slug,
     ]);
+});
+
+test('completeReading rolls back all changes if an exception occurs during the transaction', function () {
+    try {
+        UserModuleProgress::updating(function () {
+            throw new Exception('Simulated failure during module progress update');
+        });
+
+        $component = Livewire::actingAs($this->student)
+            ->test(ModuloViewer::class, ['slug' => $this->module->slug]);
+
+        try {
+            $component->call('completeReading', $this->item1->id);
+        } catch (Throwable $e) {
+            // Exception expected because update failed
+        }
+
+        // Because of DB::transaction, UserItemProgress should NOT exist in database!
+        $this->assertDatabaseMissing('user_item_progress', [
+            'user_id' => $this->student->id,
+            'module_item_id' => $this->item1->id,
+        ]);
+
+        // Module progress unlocked_order should still remain at initial order (1)
+        $progress = UserModuleProgress::where('user_id', $this->student->id)
+            ->where('module_id', $this->module->id)
+            ->first();
+
+        expect($progress->unlocked_order)->toBe(1);
+    } finally {
+        UserModuleProgress::flushEventListeners();
+    }
+});
+
+test('completeReading atomically saves reading item progress and advances unlocked order on success', function () {
+    Livewire::actingAs($this->student)
+        ->test(ModuloViewer::class, ['slug' => $this->module->slug])
+        ->call('completeReading', $this->item1->id);
+
+    $this->assertDatabaseHas('user_item_progress', [
+        'user_id' => $this->student->id,
+        'module_item_id' => $this->item1->id,
+        'completed' => 1,
+    ]);
+
+    $progress = UserModuleProgress::where('user_id', $this->student->id)
+        ->where('module_id', $this->module->id)
+        ->first();
+
+    expect($progress->unlocked_order)->toBe(2);
 });
