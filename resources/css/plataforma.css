@@ -245,7 +245,9 @@ section.content-section {
   margin: 20px 0;
 }
 
-.grid-2,.grid-3,.grid-4 {
+.grid-2,
+.grid-3,
+.grid-4 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
@@ -344,7 +346,7 @@ th {
 .formula {
   background: #f6faff;
   border-left: 4px solid var(--azul-secundario);
-  padding: 14px 16px;
+  padding: 1px 16px;
   border-radius: 12px;
   font-family: "Cambria Math", "Times New Roman", serif;
   margin: 12px 0;

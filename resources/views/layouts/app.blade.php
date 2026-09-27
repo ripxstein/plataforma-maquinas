@@ -73,6 +73,7 @@
             imageSourceType: 'file',
             isUploadingImage: false,
             uploadError: '',
+            cursorRange: null,
 
             showCardModal: false,
 
@@ -316,7 +317,7 @@
             insertFormula() {
                 if (!this.formulaInput) return;
                 const formulaText = this.formulaInput.trim();
-                const html = `<div class="formula formula-display">\\[${formulaText}\\]</div><p><br></p>`;
+                const html = `<div class="formula">\\[${formulaText}\\]</div><p><br></p>`;
                 this.insertHtmlAtCursor(html);
                 this.showFormulaModal = false;
             },
@@ -333,6 +334,7 @@
                 this.isUploadingImage = false;
                 this.uploadError = '';
                 this.showImageModal = true;
+                this.cursorRange = this.getElementAtCursor();
             },
 
             uploadImageFile(event) {
@@ -409,7 +411,8 @@
                     <p><br></p>
                 `;
 
-                this.insertHtmlAtCursor(html);
+                
+                this.insertHtmlInElementAtCursor(html)
                 this.showImageModal = false;
             },
 
@@ -497,6 +500,78 @@
 
                 this.onContentChange();
             },
+
+          
+getElementAtCursor() {
+    const editable = document.getElementById(this.editorId + '-editable');
+
+    if (!editable) return null;
+
+    editable.focus();
+
+    const sel = window.getSelection();
+
+    if (!sel || !sel.rangeCount) {
+        return null;
+    }
+
+    let range = sel.getRangeAt(0);
+
+    // Verificar que el cursor esté dentro del editor
+    if (!editable.contains(range.commonAncestorContainer)) {
+        range = document.createRange();
+        range.selectNodeContents(editable);
+        range.collapse(false);
+    }
+
+    return range;
+},
+
+insertHtmlInElementAtCursor(html) {
+    const editable = document.getElementById(this.editorId + '-editable');
+
+    if (!editable) return;
+
+    this.cursorRange = this.cursorRange || this.getElementAtCursor();
+
+    if (!this.cursorRange) return;
+
+    const sel = window.getSelection();
+
+    // Eliminar el contenido seleccionado
+    this.cursorRange.deleteContents();
+
+    // Crear los elementos HTML
+    const el = document.createElement('div');
+    el.innerHTML = html;
+
+    const frag = document.createDocumentFragment();
+
+    let node;
+    let lastNode;
+
+    while ((node = el.firstChild)) {
+        lastNode = frag.appendChild(node);
+    }
+
+    // Insertar EXACTAMENTE en la posición del cursor
+    this.cursorRange.insertNode(frag);
+
+    // Colocar el cursor después del elemento insertado
+    if (lastNode) {
+        const newRange = this.cursorRange.cloneRange();
+
+        newRange.setStartAfter(lastNode);
+        newRange.collapse(true);
+
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+    }
+
+    this.onContentChange();
+},
+
+
 
             triggerKaTeX() {
                 const previewEl = document.getElementById(this.editorId + '-preview');
