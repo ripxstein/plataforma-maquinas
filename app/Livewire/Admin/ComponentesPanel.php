@@ -7,6 +7,7 @@ use App\Models\ModuleItem;
 use App\Models\Problem;
 use App\Models\ProblemStep;
 use App\Models\ProblemStepOption;
+use App\Services\ModuleCacheService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -350,6 +351,11 @@ class ComponentesPanel extends Component
             }
         });
 
+        $moduleId = ModuleItem::find($this->moduleItemId)?->module_id;
+        if ($moduleId) {
+            ModuleCacheService::forgetModule($moduleId);
+        }
+
         session()->flash('message', '¡Componente interactivo guardado exitosamente!');
         $this->resetPreviewSimulator();
     }
@@ -413,6 +419,11 @@ class ComponentesPanel extends Component
             }
         });
 
+        $moduleId = ModuleItem::find($original->module_item_id)?->module_id;
+        if ($moduleId) {
+            ModuleCacheService::forgetModule($moduleId);
+        }
+
         session()->flash('message', 'Componente «'.$original->title.'» duplicado con éxito.');
     }
 
@@ -420,7 +431,13 @@ class ComponentesPanel extends Component
     {
         $problem = Problem::findOrFail($id);
         $title = $problem->title;
+        $moduleId = ModuleItem::find($problem->module_item_id)?->module_id;
         $problem->delete();
+
+        if ($moduleId) {
+            ModuleCacheService::forgetModule($moduleId);
+        }
+
         session()->flash('message', 'Componente «'.$title.'» eliminado.');
     }
 

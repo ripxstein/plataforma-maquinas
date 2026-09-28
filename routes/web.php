@@ -40,17 +40,17 @@ Route::prefix('admin')
 
             if ($request->hasFile('image')) {
                 $file = $request->file('image');
-                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
-                
+                $filename = time().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)).'.'.$file->getClientOriginalExtension();
+
                 $destinationPath = public_path('images/uploads');
-                if (!file_exists($destinationPath)) {
+                if (! file_exists($destinationPath)) {
                     mkdir($destinationPath, 0755, true);
                 }
 
                 $file->move($destinationPath, $filename);
 
                 return response()->json([
-                    'url' => asset('images/uploads/' . $filename)
+                    'url' => asset('images/uploads/'.$filename),
                 ]);
             }
 

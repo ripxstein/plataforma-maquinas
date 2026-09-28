@@ -21,10 +21,10 @@ return new class extends Migration
             $table->unsignedInteger('step_number')->default(1);
             $table->string('title');
             $table->longText('instruction')->nullable();
-            
+
             // Response type: numeric, multiple_choice, true_false, text
             $table->string('answer_type')->default('numeric');
-            
+
             // Expected answer and tolerances
             $table->text('correct_answer')->nullable();
             $table->double('tolerance')->nullable()->default(0.01);

@@ -17,4 +17,3 @@ class Module extends Model
         return $this->hasMany(ModuleItem::class)->orderBy('order');
     }
 }
-

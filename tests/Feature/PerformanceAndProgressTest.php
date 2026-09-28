@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserItemProgress;
 use App\Models\UserModuleProgress;
 use App\Models\UserProblemProgress;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
@@ -215,4 +216,27 @@ test('completeReading atomically saves reading item progress and advances unlock
         ->first();
 
     expect($progress->unlocked_order)->toBe(2);
+});
+
+test('modules:cache command preloads all modules, items, problems, and sidebar into cache', function () {
+    Cache::flush();
+
+    expect(Cache::has('sidebar_modules'))->toBeFalse();
+    expect(Cache::has('module_slug_'.$this->module->slug))->toBeFalse();
+    expect(Cache::has('module_items_'.$this->module->id))->toBeFalse();
+
+    $this->artisan('modules:cache')
+        ->assertSuccessful();
+
+    expect(Cache::has('sidebar_modules'))->toBeTrue();
+    expect(Cache::has('module_slug_'.$this->module->slug))->toBeTrue();
+    expect(Cache::has('module_items_'.$this->module->id))->toBeTrue();
+
+    // Verify ModuloViewer uses the cached data seamlessly
+    $component = Livewire::actingAs($this->student)
+        ->test(ModuloViewer::class, ['slug' => $this->module->slug]);
+
+    $component->assertSee('Lectura 1')
+        ->call('completeReading', $this->item1->id)
+        ->assertSee('Problema 1');
 });

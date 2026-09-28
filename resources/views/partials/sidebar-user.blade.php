@@ -22,12 +22,7 @@
         </a>
 
         @php
-            $modules = $modules ?? \App\Models\Module::with(['items' => function($q) {
-                $q->orderBy('order');
-            }, 'items.problems' => function($q) {
-                $q->orderBy('order');
-            }])->orderBy('order')->get();
-
+            $modules = $modules ?? collect(\Illuminate\Support\Facades\Cache::get('sidebar_modules') ?? \App\Models\Module::orderBy('order')->get(['id', 'title', 'slug', 'order']))->map(fn ($m) => is_object($m) ? $m : (object) $m);
             $currentIndex = 1;
         @endphp
 

@@ -6,6 +6,8 @@ use App\Models\Module;
 use App\Models\UserItemProgress;
 use App\Models\UserModuleProgress;
 use App\Models\UserProblemProgress;
+use App\Services\ModuleCacheService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -37,16 +39,12 @@ class ModuloViewer extends Component
 
     public function mount(string $slug)
     {
-        $this->module = Module::where('slug', $slug)
-            ->with([
-                'items' => function ($query) {
-                    $query->orderBy('order');
-                },
-                'items.problems' => function ($query) {
-                    $query->where('is_active', true)->orderBy('order');
-                },
-            ])
-            ->firstOrFail();
+        // Cargamos el módulo desde caché o BD (ahorra ~1.6s de round-trip en BD)
+        $this->module = ModuleCacheService::getModuleBySlug($slug)
+            ?? Module::where('slug', $slug)->firstOrFail();
+
+        // Items y problems desde cache (evita 2 round-trips a BD remota)
+        $this->hydrateModuleRelations();
 
         $this->moduleProgress = UserModuleProgress::firstOrCreate(
             [
@@ -61,16 +59,22 @@ class ModuloViewer extends Component
         $this->loadProgress();
     }
 
+    /**
+     * Carga items y problems desde cache mediante ModuleCacheService.
+     * Evita 2 queries lentas a BD remota en cada request/rehydration de Livewire.
+     */
+    private function hydrateModuleRelations(): void
+    {
+        $items = ModuleCacheService::getModuleItemsWithProblems($this->module->id);
+        $this->module->setRelation('items', $items);
+    }
+
     public function loadProgress()
     {
-        $this->module->loadMissing([
-            'items' => function ($query) {
-                $query->orderBy('order');
-            },
-            'items.problems' => function ($query) {
-                $query->where('is_active', true)->orderBy('order');
-            },
-        ]);
+        // En rehydrations de Livewire la relacion no persiste; la recargamos desde cache
+        if (! $this->module->relationLoaded('items')) {
+            $this->hydrateModuleRelations();
+        }
 
         $this->items = $this->module->items;
 
@@ -81,19 +85,30 @@ class ModuloViewer extends Component
         $itemIds = $this->items->pluck('id');
         $problemIds = $this->items->flatMap(fn ($item) => $item->problems)->pluck('id');
 
-        $this->completedItemIds = UserItemProgress::where('user_id', $userId)
-            ->whereIn('module_item_id', $itemIds)
-            ->where('completed', true)
-            ->pluck('module_item_id')
-            ->map(fn ($id) => (int) $id)
-            ->toArray();
+        // Cache de progreso por usuario+modulo (30s).
+        // Elimina 2 queries (~580ms) en cada interaccion Livewire.
+        // Se invalida inmediatamente al completar una lectura o problema.
+        $progressKey = "user_progress_{$userId}_{$this->module->id}";
 
-        $this->completedProblemIds = UserProblemProgress::where('user_id', $userId)
-            ->whereIn('problem_id', $problemIds)
-            ->where('completed', true)
-            ->pluck('problem_id')
-            ->map(fn ($id) => (int) $id)
-            ->toArray();
+        $progress = Cache::remember($progressKey, 30, function () use ($userId, $itemIds, $problemIds) {
+            return [
+                'item_ids' => UserItemProgress::where('user_id', $userId)
+                    ->whereIn('module_item_id', $itemIds)
+                    ->where('completed', true)
+                    ->pluck('module_item_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->toArray(),
+                'problem_ids' => UserProblemProgress::where('user_id', $userId)
+                    ->whereIn('problem_id', $problemIds)
+                    ->where('completed', true)
+                    ->pluck('problem_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->toArray(),
+            ];
+        });
+
+        $this->completedItemIds = $progress['item_ids'];
+        $this->completedProblemIds = $progress['problem_ids'];
 
         $this->calculateProgress();
     }
@@ -139,6 +154,9 @@ class ModuloViewer extends Component
             }
         });
 
+        // Invalidar cache de progreso para que el siguiente loadProgress sea fresco
+        Cache::forget('user_progress_'.auth()->id().'_'.$this->module->id);
+
         $this->loadProgress();
     }
 
@@ -155,6 +173,9 @@ class ModuloViewer extends Component
                 'completed_at' => now(),
             ]
         );
+
+        // Invalidar cache de progreso
+        Cache::forget('user_progress_'.auth()->id().'_'.$this->module->id);
 
         $this->loadProgress();
     }

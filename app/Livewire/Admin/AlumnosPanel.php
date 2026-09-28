@@ -31,8 +31,8 @@ class AlumnosPanel extends Component
         $alumnos = User::query()
             ->where('role', 'user')
             ->where(function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('email', 'like', '%' . $this->search . '%');
+                $query->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('email', 'like', '%'.$this->search.'%');
             })
             ->withCount([
                 'readingProgress as lecturas_completadas' => function ($query) {

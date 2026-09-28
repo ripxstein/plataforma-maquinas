@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 
-          /*
+        /*
         |--------------------------------------------------------------------------
         | Módulo : Creacion de admin por default
         |--------------------------------------------------------------------------
@@ -30,7 +30,6 @@ class DatabaseSeeder extends Seeder
                 'role' => 'admin',
             ]
         );
-
 
         $this->call([
             ModuleSeeder::class,

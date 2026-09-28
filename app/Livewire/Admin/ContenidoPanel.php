@@ -5,7 +5,9 @@ namespace App\Livewire\Admin;
 use App\Models\Module;
 use App\Models\ModuleItem;
 use App\Models\Problem;
+use App\Services\ModuleCacheService;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -13,39 +15,58 @@ class ContenidoPanel extends Component
 {
     use WithFileUploads;
 
-    public $modules;
     public $editorImage = null;
 
     // Modal Control Flags
     public bool $showModuleModal = false;
+
     public bool $showReadingModal = false;
+
     public bool $showProblemModal = false;
 
     // Form fields - Module
     public $moduleId = null;
+
     public $moduleTitle = '';
+
     public $moduleSlug = '';
+
     public $moduleOrder = 1;
 
     // Form fields - Reading
     public $readingId = null;
+
     public $moduleIdForReading = null;
+
     public $readingTitle = '';
+
     public $readingSlug = '';
+
     public $readingContent = '';
+
     public $readingOrder = 1;
+
     public $readingPercentage = 100;
 
     // Form fields - Problem
     public $problemId = null;
+
     public $readingIdForProblem = null;
+
     public $problemTitle = '';
+
     public $problemSlug = '';
+
     public $problemContent = '';
+
     public $problemComponent = 'problemas.problema1';
+
     public $customComponent = '';
+
     public $problemOrder = 1;
+
     public $problemPercentage = 100;
+
     public bool $problemIsActive = true;
 
     // Available interactive problem components list
@@ -53,17 +74,17 @@ class ContenidoPanel extends Component
         'problemas.problema-dinamico' => '🧩 Problema Dinámico (Constructor Visual / Paso a Paso)',
         'problemas.problema1' => 'Problema 1: Placa con muescas (Concentración de esfuerzos)',
         'problemas.problema2' => 'Problema 2: Selección de diseño (Taladro vs Filete)',
-        'custom' => '⚙️ Componente personalizado...'
+        'custom' => '⚙️ Componente personalizado...',
     ];
 
-    public function mount()
+    /**
+     * Propiedad computada: se evalúa bajo demanda y NO se serializa en el payload
+     * de Livewire, eliminando por completo la query de EloquentCollectionSynth (~1.43s).
+     */
+    #[Computed]
+    public function modules()
     {
-        $this->loadData();
-    }
-
-    public function loadData()
-    {
-        $this->modules = Module::with('items.problems')
+        return Module::with(['items' => fn ($q) => $q->orderBy('order'), 'items.problems' => fn ($q) => $q->orderBy('order')])
             ->orderBy('order')
             ->get();
     }
@@ -185,7 +206,7 @@ class ContenidoPanel extends Component
     // Save Handlers
     public function saveModule()
     {
-        if (empty($this->moduleSlug) && !empty($this->moduleTitle)) {
+        if (empty($this->moduleSlug) && ! empty($this->moduleTitle)) {
             $this->moduleSlug = Str::slug($this->moduleTitle);
         }
 
@@ -195,7 +216,7 @@ class ContenidoPanel extends Component
             'moduleOrder' => 'required|integer|min:1',
         ]);
 
-        Module::updateOrCreate(
+        $module = Module::updateOrCreate(
             ['id' => $this->moduleId],
             [
                 'title' => $this->moduleTitle,
@@ -205,14 +226,18 @@ class ContenidoPanel extends Component
         );
 
         $this->closeModuleModal();
-        $this->loadData();
+        unset($this->modules);
+        ModuleCacheService::forgetModule($module->id, $module->slug);
         session()->flash('message', 'Módulo guardado correctamente.');
     }
 
     public function deleteModule($id)
     {
-        Module::findOrFail($id)->delete();
-        $this->loadData();
+        $module = Module::findOrFail($id);
+        $slug = $module->slug;
+        $module->delete();
+        unset($this->modules);
+        ModuleCacheService::forgetModule($id, $slug);
         session()->flash('message', 'Módulo eliminado.');
     }
 
@@ -229,10 +254,12 @@ class ContenidoPanel extends Component
         // Auto format plain paragraphs if teacher wrote line breaks without tags
         $formattedContent = $this->sanitizeHtml($this->readingContent);
 
+        $moduleId = $this->moduleIdForReading;
+
         ModuleItem::updateOrCreate(
             ['id' => $this->readingId],
             [
-                'module_id' => $this->moduleIdForReading,
+                'module_id' => $moduleId,
                 'title' => $this->readingTitle,
                 'type' => 'lectura',
                 'component' => null,
@@ -243,20 +270,24 @@ class ContenidoPanel extends Component
         );
 
         $this->closeReadingModal();
-        $this->loadData();
+        unset($this->modules);
+        ModuleCacheService::forgetModule($moduleId);
         session()->flash('message', 'Lectura guardada correctamente.');
     }
 
     public function deleteReading($id)
     {
-        ModuleItem::findOrFail($id)->delete();
-        $this->loadData();
+        $reading = ModuleItem::findOrFail($id);
+        $moduleId = $reading->module_id;
+        $reading->delete();
+        unset($this->modules);
+        ModuleCacheService::forgetModule($moduleId);
         session()->flash('message', 'Lectura eliminada.');
     }
 
     public function saveProblem()
     {
-        if (empty($this->problemSlug) && !empty($this->problemTitle)) {
+        if (empty($this->problemSlug) && ! empty($this->problemTitle)) {
             $this->problemSlug = Str::slug($this->problemTitle);
         }
 
@@ -277,10 +308,14 @@ class ContenidoPanel extends Component
 
         $formattedContent = $this->sanitizeHtml($this->problemContent);
 
+        $readingId = $this->readingIdForProblem;
+        $reading = ModuleItem::find($readingId);
+        $moduleId = $reading?->module_id;
+
         Problem::updateOrCreate(
             ['id' => $this->problemId],
             [
-                'module_item_id' => $this->readingIdForProblem,
+                'module_item_id' => $readingId,
                 'title' => $this->problemTitle,
                 'slug' => $this->problemSlug,
                 'content' => $formattedContent,
@@ -292,14 +327,26 @@ class ContenidoPanel extends Component
         );
 
         $this->closeProblemModal();
-        $this->loadData();
+        unset($this->modules);
+
+        if ($moduleId) {
+            ModuleCacheService::forgetModule($moduleId);
+        }
+
         session()->flash('message', 'Problema guardado correctamente.');
     }
 
     public function deleteProblem($id)
     {
-        Problem::findOrFail($id)->delete();
-        $this->loadData();
+        $problem = Problem::findOrFail($id);
+        $moduleId = ModuleItem::find($problem->module_item_id)?->module_id;
+        $problem->delete();
+        unset($this->modules);
+
+        if ($moduleId) {
+            ModuleCacheService::forgetModule($moduleId);
+        }
+
         session()->flash('message', 'Problema eliminado.');
     }
 
@@ -316,9 +363,9 @@ class ContenidoPanel extends Component
         };
 
         if ($target === 'reading') {
-            $this->readingContent .= "\n" . $snippet;
+            $this->readingContent .= "\n".$snippet;
         } else {
-            $this->problemContent .= "\n" . $snippet;
+            $this->problemContent .= "\n".$snippet;
         }
     }
 
@@ -329,16 +376,17 @@ class ContenidoPanel extends Component
         }
 
         // Remove script tags and inline javascript handlers to prevent XSS
-        $clean = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', "", $content);
-        $clean = preg_replace('/on[a-z]+\s*=\s*"[^"]*"/i', "", $clean);
-        $clean = preg_replace('/on[a-z]+\s*=\s*\'[^\']*\'/i', "", $clean);
-        $clean = preg_replace('/on[a-z]+\s*=\s*[^ >]+/i', "", $clean);
-        $clean = preg_replace('/javascript\s*:/i', "", $clean);
+        $clean = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $content);
+        $clean = preg_replace('/on[a-z]+\s*=\s*"[^"]*"/i', '', $clean);
+        $clean = preg_replace('/on[a-z]+\s*=\s*\'[^\']*\'/i', '', $clean);
+        $clean = preg_replace('/on[a-z]+\s*=\s*[^ >]+/i', '', $clean);
+        $clean = preg_replace('/javascript\s*:/i', '', $clean);
 
         // If content is plain text without HTML tags, wrap double line breaks in paragraphs
-        if (!preg_match('/<[a-z][\s\S]*>/i', $clean)) {
+        if (! preg_match('/<[a-z][\s\S]*>/i', $clean)) {
             $paragraphs = array_filter(array_map('trim', explode("\n\n", $clean)));
-            return implode("\n", array_map(fn($p) => '<p>' . nl2br(e($p)) . '</p>', $paragraphs));
+
+            return implode("\n", array_map(fn ($p) => '<p>'.nl2br(e($p)).'</p>', $paragraphs));
         }
 
         return $clean;
@@ -379,6 +427,8 @@ class ContenidoPanel extends Component
 
     public function render()
     {
-        return view('livewire.admin.contenido-panel');
+        return view('livewire.admin.contenido-panel', [
+            'modules' => $this->modules,
+        ]);
     }
 }

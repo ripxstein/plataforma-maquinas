@@ -3,19 +3,24 @@
 namespace App\Livewire\Problemas;
 
 use App\Models\Problem;
-use App\Models\ProblemStep;
 use Livewire\Component;
 
 class ProblemaDinamico extends Component
 {
     public $problemId;
+
     public $problem;
+
     public $steps;
-    
+
     public int $currentStepIndex = 1;
+
     public array $answers = [];
+
     public array $messages = [];
+
     public array $showTriggerImages = [];
+
     public bool $isCompleted = false;
 
     public function mount($problemId)
@@ -34,7 +39,7 @@ class ProblemaDinamico extends Component
 
         // Initialize answers
         foreach ($this->steps as $step) {
-            if (!isset($this->answers[$step->id])) {
+            if (! isset($this->answers[$step->id])) {
                 $this->answers[$step->id] = '';
             }
         }
@@ -42,7 +47,7 @@ class ProblemaDinamico extends Component
 
     public function approxEqual($userValue, $expected, $tolerance, $toleranceType = 'absolute'): bool
     {
-        if ($userValue === null || $userValue === '' || !is_numeric($userValue)) {
+        if ($userValue === null || $userValue === '' || ! is_numeric($userValue)) {
             return false;
         }
 
@@ -53,6 +58,7 @@ class ProblemaDinamico extends Component
         if ($toleranceType === 'percentage') {
             // E.g. tol = 2% or tol = 0.02
             $pct = $tol > 1 ? ($tol / 100) : $tol;
+
             return abs($userVal - $expVal) <= (abs($expVal) * $pct) || abs($userVal - $expVal) <= 0.0001;
         }
 
@@ -63,7 +69,7 @@ class ProblemaDinamico extends Component
     public function checkStep(int $stepId)
     {
         $step = $this->steps->firstWhere('id', $stepId);
-        if (!$step) {
+        if (! $step) {
             return;
         }
 
@@ -86,20 +92,20 @@ class ProblemaDinamico extends Component
                 break;
 
             case 'true_false':
-                $normalizedUser = strtolower(trim((string)$userAnswer));
-                $normalizedExpected = strtolower(trim((string)$step->correct_answer));
-                
+                $normalizedUser = strtolower(trim((string) $userAnswer));
+                $normalizedExpected = strtolower(trim((string) $step->correct_answer));
+
                 // Support true/false, 1/0, v/f, verdadero/falso
                 $userBool = in_array($normalizedUser, ['1', 'true', 'verdadero', 'v', 't']);
                 $expectedBool = in_array($normalizedExpected, ['1', 'true', 'verdadero', 'v', 't']);
-                
+
                 $isOk = ($userBool === $expectedBool) && ($normalizedUser !== '');
                 break;
 
             case 'text':
             default:
-                $normalizedUser = mb_strtolower(trim((string)$userAnswer));
-                $normalizedExpected = mb_strtolower(trim((string)$step->correct_answer));
+                $normalizedUser = mb_strtolower(trim((string) $userAnswer));
+                $normalizedExpected = mb_strtolower(trim((string) $step->correct_answer));
                 $isOk = ($normalizedUser !== '' && $normalizedUser === $normalizedExpected);
                 break;
         }
@@ -118,7 +124,7 @@ class ProblemaDinamico extends Component
             }
 
             // Find current position in list
-            $currentIndex = $this->steps->search(fn($s) => $s->id === $stepId);
+            $currentIndex = $this->steps->search(fn ($s) => $s->id === $stepId);
             $nextIndex = $currentIndex !== false ? $currentIndex + 2 : $this->currentStepIndex + 1;
 
             if ($nextIndex > count($this->steps)) {

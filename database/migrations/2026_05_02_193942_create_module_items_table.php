@@ -12,27 +12,27 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('module_items', function (Blueprint $table) {
-    $table->id();
+            $table->id();
 
-    $table->foreignId('module_id')
-        ->constrained()
-        ->cascadeOnDelete();
+            $table->foreignId('module_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-    $table->string('title');
-    $table->string('type'); 
-    // lectura o problema
+            $table->string('title');
+            $table->string('type');
+            // lectura o problema
 
-    $table->string('component')->nullable();
-    // ejemplo: problemas.problema1
+            $table->string('component')->nullable();
+            // ejemplo: problemas.problema1
 
-    $table->text('content')->nullable();
-    // para lecturas simples
+            $table->text('content')->nullable();
+            // para lecturas simples
 
-    $table->integer('order')->default(1);
-    $table->unsignedTinyInteger('percentage')->default(0);
+            $table->integer('order')->default(1);
+            $table->unsignedTinyInteger('percentage')->default(0);
 
-    $table->timestamps();
-});
+            $table->timestamps();
+        });
     }
 
     /**

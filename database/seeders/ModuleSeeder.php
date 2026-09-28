@@ -12,9 +12,6 @@ class ModuleSeeder extends Seeder
     public function run(): void
     {
 
-      
-
-
         /*
         |--------------------------------------------------------------------------
         | Módulo 1: Concentración de esfuerzos

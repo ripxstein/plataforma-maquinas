@@ -12,23 +12,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_item_progress', function (Blueprint $table) {
-    $table->id();
+            $table->id();
 
-    $table->foreignId('user_id')
-        ->constrained()
-        ->cascadeOnDelete();
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-    $table->foreignId('module_item_id')
-        ->constrained()
-        ->cascadeOnDelete();
+            $table->foreignId('module_item_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-    $table->boolean('completed')->default(false);
-    $table->timestamp('completed_at')->nullable();
+            $table->boolean('completed')->default(false);
+            $table->timestamp('completed_at')->nullable();
 
-    $table->timestamps();
+            $table->timestamps();
 
-    $table->unique(['user_id', 'module_item_id']);
-});
+            $table->unique(['user_id', 'module_item_id']);
+        });
     }
 
     /**

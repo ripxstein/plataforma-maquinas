@@ -7,18 +7,25 @@ use Livewire\Component;
 class Problema1 extends Component
 {
     public $d;
+
     public $A;
+
     public $snom;
+
     public $kt;
+
     public $smax;
 
     public $problemId;
+
     public $showImageStep4 = false;
 
     public int $currentStep = 1;
 
     public bool $askNextStep = false;
+
     public $nextStepAnswer = null;
+
     public $nextStepFor = null;
 
     public array $messages = [];
@@ -47,7 +54,7 @@ class Problema1 extends Component
 
     public function approxEqual($userValue, $expected, $tolAbs, $tolPct): bool
     {
-        if ($userValue === null || !is_numeric($userValue)) {
+        if ($userValue === null || ! is_numeric($userValue)) {
             return false;
         }
 
@@ -68,7 +75,7 @@ class Problema1 extends Component
 
     public function checkNextStep()
     {
-        if (!$this->nextStepFor) {
+        if (! $this->nextStepFor) {
             return;
         }
 

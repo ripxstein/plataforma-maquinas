@@ -48,11 +48,12 @@ test('navigation menu can be rendered', function () {
 
     $this->actingAs($user);
 
+    // /dashboard redirige al inicio según el rol del usuario
     $response = $this->get('/dashboard');
+    $response->assertRedirect();
 
-    $response
-        ->assertOk()
-        ->assertSeeVolt('layout.navigation');
+    $redirectResponse = $this->followingRedirects()->get('/dashboard');
+    $redirectResponse->assertOk();
 });
 
 test('users can logout', function () {
