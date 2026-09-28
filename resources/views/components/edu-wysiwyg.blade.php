@@ -75,6 +75,9 @@
             <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('insertHorizontalRule')" title="Línea horizontal">
                 — Línea
             </button>
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="toggleTagBlock()" title="Etiqueta">
+                🏷️ 
+            </button>
         </div>
 
         <!-- Text Alignment -->
@@ -156,9 +159,7 @@
             <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlockCard('card')">
                 🖼️ Card
             </button>
-            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlockHeader('header')">
-                🏷️ Encabezado
-            </button>
+
         </div>
     </div>
 

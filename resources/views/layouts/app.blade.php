@@ -572,6 +572,117 @@ insertHtmlInElementAtCursor(html) {
 },
 
 
+toggleTagBlock() {
+    const range = this.getElementAtCursor();
+
+    if (!range) return;
+
+    const editable = document.getElementById(
+        this.editorId + '-editable'
+    );
+
+    if (!editable) return;
+
+    let element = range.startContainer;
+
+    if (element.nodeType === Node.TEXT_NODE) {
+        element = element.parentElement;
+    }
+
+    // -------------------------------------------------
+    // 1. Buscar si ya estamos dentro de un .tag
+    // -------------------------------------------------
+
+    const tagElement = element.closest('.tag');
+
+    if (tagElement && editable.contains(tagElement)) {
+
+        // Crear nuevamente un P
+        const newElement = document.createElement('p');
+
+        // Mantener el contenido
+        while (tagElement.firstChild) {
+            newElement.appendChild(tagElement.firstChild);
+        }
+
+        // Reemplazar el div.tag
+        tagElement.replaceWith(newElement);
+
+        // Restaurar cursor
+        const newRange = document.createRange();
+
+        newRange.selectNodeContents(newElement);
+        newRange.collapse(false);
+
+        const selection = window.getSelection();
+
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+
+        this.onContentChange();
+
+        return;
+    }
+
+    // -------------------------------------------------
+    // 2. Buscar el bloque actual
+    // -------------------------------------------------
+
+    const blockTags = [
+        'P',
+        'DIV',
+        'H1',
+        'H2',
+        'H3',
+        'H4',
+        'H5',
+        'H6',
+        'LI',
+        'BLOCKQUOTE'
+    ];
+
+    while (
+        element &&
+        element !== editable &&
+        !blockTags.includes(element.tagName)
+    ) {
+        element = element.parentElement;
+    }
+
+    if (!element || element === editable) return;
+
+    // -------------------------------------------------
+    // 3. Convertir el bloque a div.tag
+    // -------------------------------------------------
+
+    const newElement = document.createElement('div');
+
+    newElement.className = 'tag';
+
+    while (element.firstChild) {
+        newElement.appendChild(element.firstChild);
+    }
+
+    element.replaceWith(newElement);
+
+    // -------------------------------------------------
+    // 4. Restaurar cursor
+    // -------------------------------------------------
+
+    const newRange = document.createRange();
+
+    newRange.selectNodeContents(newElement);
+    newRange.collapse(false);
+
+    const selection = window.getSelection();
+
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+
+    this.onContentChange();
+},
+
+
 
             triggerKaTeX() {
                 const previewEl = document.getElementById(this.editorId + '-preview');
