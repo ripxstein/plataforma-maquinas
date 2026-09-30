@@ -948,9 +948,11 @@ th {
    FIGURES & IMAGES
    ========================================================================== */
 .edu-figure {
-  margin: 20px 0;
   display: block;
   clear: both;
+  width: 100%;
+  margin: 0;
+  text-align: center;
 }
 
 .edu-figure img {
@@ -961,6 +963,8 @@ th {
   background: #ffffff;
   padding: 6px;
   box-shadow: 0 6px 16px rgba(30, 90, 168, 0.08);
+  display: block;
+  margin: 0 auto;
 }
 
 .edu-figure.align-center {
