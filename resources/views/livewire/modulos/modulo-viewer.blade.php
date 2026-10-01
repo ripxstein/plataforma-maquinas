@@ -104,17 +104,4 @@
             </div>
         </section>
     @endforeach
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof renderAllMath === 'function') {
-                renderAllMath();
-            }
-        });
-        document.addEventListener('livewire:navigated', () => {
-            if (typeof renderAllMath === 'function') {
-                renderAllMath();
-            }
-        });
-    </script>
 </div>

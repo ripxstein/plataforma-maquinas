@@ -13,37 +13,76 @@
 
         <!-- KaTeX for Math Formulas -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" data-navigate-once></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" data-navigate-once onload="if (typeof renderAllMath === 'function') renderAllMath();"></script>
 
         <!-- Scripts -->
         
-<script>
+<script data-navigate-once>
     // -----------------------------
     // UI: acordeones y KaTeX auto-render
     // -----------------------------
-    function renderAllMath() {
-        if (typeof renderMathInElement === 'function') {
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '\\[', right: '\\]', display: true},
-                    {left: '\\(', right: '\\)', display: false},
-                    {left: '$', right: '$', display: false}
-                ],
-                throwOnError: false
-            });
+    function renderAllMath(target = document.body) {
+        if (!target) return;
+
+        const doRender = () => {
+            if (typeof window.renderMathInElement === 'function' && typeof window.katex !== 'undefined') {
+                try {
+                    window.renderMathInElement(target, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '\\[', right: '\\]', display: true},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '$', right: '$', display: false}
+                        ],
+                        throwOnError: false
+                    });
+                } catch (err) {
+                    console.warn('Error al renderizar KaTeX:', err);
+                }
+            }
+        };
+
+        if (typeof window.renderMathInElement === 'function' && typeof window.katex !== 'undefined') {
+            doRender();
+        } else {
+            let retries = 0;
+            const timer = setInterval(() => {
+                retries++;
+                if (typeof window.renderMathInElement === 'function' && typeof window.katex !== 'undefined') {
+                    clearInterval(timer);
+                    doRender();
+                } else if (retries > 30) {
+                    clearInterval(timer);
+                }
+            }, 100);
         }
     }
 
-    document.addEventListener('DOMContentLoaded', renderAllMath);
+    document.addEventListener('DOMContentLoaded', () => renderAllMath());
     document.addEventListener('livewire:navigated', () => {
         renderAllMath();
         document.querySelectorAll('.accordion-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.parentElement.classList.toggle('open');
-            });
+            if (!btn.dataset.accordionBound) {
+                btn.dataset.accordionBound = 'true';
+                btn.addEventListener('click', () => {
+                    btn.parentElement.classList.toggle('open');
+                });
+            }
         });
+    });
+
+    document.addEventListener('livewire:init', () => {
+        if (window.Livewire && typeof window.Livewire.hook === 'function') {
+            window.Livewire.hook('morph.updated', ({ el }) => {
+                if (el) renderAllMath(el);
+            });
+            window.Livewire.hook('commit', ({ succeed }) => {
+                succeed(() => {
+                    setTimeout(() => renderAllMath(), 50);
+                });
+            });
+        }
     });
 
     // -----------------------------
@@ -686,16 +725,8 @@ toggleTagBlock() {
 
             triggerKaTeX() {
                 const previewEl = document.getElementById(this.editorId + '-preview');
-                if (previewEl && typeof renderMathInElement === 'function') {
-                    renderMathInElement(previewEl, {
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '\\[', right: '\\]', display: true},
-                            {left: '\\(', right: '\\)', display: false},
-                            {left: '$', right: '$', display: false}
-                        ],
-                        throwOnError: false
-                    });
+                if (previewEl) {
+                    renderAllMath(previewEl);
                 }
             }
         }));
