@@ -9,7 +9,7 @@
     })"
     x-init="init()"
     class="edu-wysiwyg-container"
-    wire:ignore.self
+    wire:ignore
 >
     <!-- Header with Tabs -->
     <div class="edu-wysiwyg-tabs">
@@ -171,6 +171,7 @@
         contenteditable="true"
         @input="onContentChange()"
         @blur="onContentChange()"
+        wire:ignore
     ></div>
 
     <!-- Preview Mode Viewport -->

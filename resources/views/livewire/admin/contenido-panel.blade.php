@@ -144,7 +144,7 @@
 
     <!-- MODAL: MODULE -->
     @if($showModuleModal)
-        <div class="admin-modal-backdrop" wire:click.self="closeModuleModal">
+        <div class="admin-modal-backdrop">
             <div class="admin-modal">
                 <div class="admin-modal-header">
                     <h3>{{ $moduleId ? '✏️ Editar Módulo' : '➕ Nuevo Módulo' }}</h3>
@@ -155,7 +155,7 @@
                     <div class="form-group">
                         <label class="form-label">Título del Módulo</label>
                         <div class="form-hint">Escribe el nombre principal del módulo educativo (ej: <em>Concentración de esfuerzos</em>).</div>
-                        <input class="admin-input" type="text" wire:model.live="moduleTitle" placeholder="Ej: Concentración de esfuerzos">
+                        <input class="admin-input" type="text" wire:model="moduleTitle" placeholder="Ej: Concentración de esfuerzos">
                         @error('moduleTitle') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
 
@@ -177,7 +177,7 @@
 
     <!-- MODAL: READING -->
     @if($showReadingModal)
-        <div class="admin-modal-backdrop" wire:click.self="closeReadingModal">
+        <div class="admin-modal-backdrop">
             <div class="admin-modal">
                 <div class="admin-modal-header">
                     <h3>{{ $readingId ? '✏️ Editar Lectura' : '📖 Nueva Lectura' }}</h3>
@@ -198,7 +198,7 @@
 
                     <div class="form-group">
                         <label class="form-label">Título de la Lectura</label>
-                        <input class="admin-input" type="text" wire:model.live="readingTitle" placeholder="Ej: Introducción a concentradores de esfuerzo">
+                        <input class="admin-input" type="text" wire:model="readingTitle" placeholder="Ej: Introducción a concentradores de esfuerzo">
                         @error('readingTitle') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
 
@@ -235,7 +235,7 @@
 
     <!-- MODAL: PROBLEM -->
     @if($showProblemModal)
-        <div class="admin-modal-backdrop" wire:click.self="closeProblemModal">
+        <div class="admin-modal-backdrop">
             <div class="admin-modal">
                 <div class="admin-modal-header">
                     <h3>{{ $problemId ? '✏️ Editar Problema Interactivo' : '⚡ Nuevo Problema Interactivo' }}</h3>
@@ -260,7 +260,7 @@
 
                     <div class="form-group">
                         <label class="form-label">Título del Problema</label>
-                        <input class="admin-input" type="text" wire:model.live="problemTitle" placeholder="Ej: Problema 1: Placa con muescas">
+                        <input class="admin-input" type="text" wire:model="problemTitle" placeholder="Ej: Problema 1: Placa con muescas">
                         @error('problemTitle') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
 

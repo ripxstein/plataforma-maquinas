@@ -135,7 +135,7 @@
 
                 this.$watch('value', (newValue) => {
                     const el = document.getElementById(this.editorId + '-editable');
-                    if (el && el.innerHTML !== (newValue || '')) {
+                    if (el && el !== document.activeElement && el.innerHTML !== (newValue || '')) {
                         el.innerHTML = newValue || '';
                     }
                     if (this.activeTab === 'preview') {
