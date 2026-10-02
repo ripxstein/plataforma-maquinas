@@ -332,6 +332,7 @@
                 this.formulaInput = '\\sigma_{max} = K_t \\cdot \\sigma_{nom}';
                 this.showFormulaModal = true;
                 this.$nextTick(() => this.updateFormulaPreview());
+                this.cursorRange = this.getElementAtCursor();
             },
 
             addSymbol(symbol) {
@@ -357,7 +358,7 @@
                 if (!this.formulaInput) return;
                 const formulaText = this.formulaInput.trim();
                 const html = `<div class="formula">\\[${formulaText}\\]</div><p><br></p>`;
-                this.insertHtmlAtCursor(html);
+                this.insertHtmlInElementAtCursor(html)
                 this.showFormulaModal = false;
             },
 
