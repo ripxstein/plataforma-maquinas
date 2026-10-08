@@ -345,12 +345,13 @@ th {
 
 .formula {
   background: #f6faff;
-  border-left: 4px solid var(--azul-secundario);
+  /*border-left: 4px solid var(--azul-secundario);*/
   padding: 1px 16px;
   border-radius: 12px;
   font-family: "Cambria Math", "Times New Roman", serif;
   margin: 12px 0;
   overflow-x: auto;
+  font-size: 20px;
 }
 
 .steps {
