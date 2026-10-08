@@ -907,7 +907,17 @@ toggleTagBlock() {
             <livewire:layout.navigation />
 
             <!-- Page Heading -->
-            <div class="layout">
+            <div class="layout"
+                 @if(auth()->check() && auth()->user()->role !== 'admin')
+                 x-data="{ 
+                     sidebarCollapsed: localStorage.getItem('student_sidebar_collapsed') === 'true',
+                     toggleSidebar() {
+                         this.sidebarCollapsed = !this.sidebarCollapsed;
+                         localStorage.setItem('student_sidebar_collapsed', this.sidebarCollapsed);
+                     }
+                 }"
+                 :class="{ 'sidebar-collapsed': sidebarCollapsed }"
+                 @endif>
         @auth
     @if(auth()->user()->role === 'admin')
         @include('partials.sidebar-admin')
