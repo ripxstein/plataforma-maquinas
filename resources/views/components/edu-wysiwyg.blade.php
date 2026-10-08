@@ -222,11 +222,87 @@
                     <button type="button" class="editor-btn" @click="addSymbol('\\pm')">±</button>
                 </div>
 
+                <!-- Modalidad de Numeración -->
+                <div class="form-group" style="background: #f8fbff; border: 1.5px solid #d5e5f8; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;">
+                    <label class="form-label" style="color: var(--azul-oscuro); font-size: 0.95rem; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>🔢 Numeración de la Fórmula</span>
+                        <span style="font-size: 0.78rem; color: var(--gris); font-weight: normal;">Estilo libro de texto</span>
+                    </label>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                        <!-- Opción 1: Automática -->
+                        <label 
+                            style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #ffffff; border: 2px solid; border-radius: 10px; cursor: pointer; transition: all 0.2s;"
+                            :style="formulaNumberMode === 'auto' ? 'border-color: var(--azul-secundario); background: #eef6ff;' : 'border-color: var(--borde);'"
+                        >
+                            <input type="radio" name="formula_num_mode_{{ $id }}" value="auto" x-model="formulaNumberMode" style="margin-top: 3px;">
+                            <div>
+                                <strong style="display: block; font-size: 0.88rem; color: var(--azul-oscuro);">Automática</strong>
+                                <span style="font-size: 0.78rem; color: var(--gris); line-height: 1.3; display: block; margin-top: 2px;">
+                                    Nueva fórmula (incremental según módulo y lectura)
+                                </span>
+                            </div>
+                        </label>
+
+                        <!-- Opción 2: Manual / Referencia -->
+                        <label 
+                            style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #ffffff; border: 2px solid; border-radius: 10px; cursor: pointer; transition: all 0.2s;"
+                            :style="formulaNumberMode === 'manual' ? 'border-color: var(--azul-secundario); background: #eef6ff;' : 'border-color: var(--borde);'"
+                        >
+                            <input type="radio" name="formula_num_mode_{{ $id }}" value="manual" x-model="formulaNumberMode" style="margin-top: 3px;">
+                            <div>
+                                <strong style="display: block; font-size: 0.88rem; color: var(--azul-secundario);">Manual / Referencia</strong>
+                                <span style="font-size: 0.78rem; color: var(--gris); line-height: 1.3; display: block; margin-top: 2px;">
+                                    Referenciar fórmula previa (no incremental)
+                                </span>
+                            </div>
+                        </label>
+
+                        <!-- Opción 3: Sin numeración -->
+                        <label 
+                            style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #ffffff; border: 2px solid; border-radius: 10px; cursor: pointer; transition: all 0.2s;"
+                            :style="formulaNumberMode === 'none' ? 'border-color: var(--azul-secundario); background: #eef6ff;' : 'border-color: var(--borde);'"
+                        >
+                            <input type="radio" name="formula_num_mode_{{ $id }}" value="none" x-model="formulaNumberMode" style="margin-top: 3px;">
+                            <div>
+                                <strong style="display: block; font-size: 0.88rem; color: var(--gris);">Sin número</strong>
+                                <span style="font-size: 0.78rem; color: var(--gris); line-height: 1.3; display: block; margin-top: 2px;">
+                                    Fórmula libre sin etiqueta numérica lateral
+                                </span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Input manual cuando formulaNumberMode === 'manual' -->
+                    <div x-show="formulaNumberMode === 'manual'" x-transition style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #bcdcff;">
+                        <label class="form-label" style="font-size: 0.86rem; color: var(--azul-oscuro); margin-bottom: 4px;">
+                            Número de la fórmula a referenciar
+                        </label>
+                        <div class="form-hint" style="margin-bottom: 8px;">
+                            Ingresa la numeración exacta de la fórmula ya existente (ej: <code>1.1.1</code> o <code>2.3.1</code>). Se mostrará a la derecha como <code>(1.1.1)</code> sin alterar la secuencia:
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; max-width: 260px;">
+                            <span style="font-weight: 700; color: var(--azul-oscuro); font-size: 1.15rem;">(</span>
+                            <input 
+                                type="text" 
+                                class="admin-input" 
+                                style="margin: 0; font-weight: 700; font-family: 'Cambria Math', 'Times New Roman', serif; text-align: center; color: var(--azul-oscuro); font-size: 1rem;" 
+                                x-model="formulaCustomNumber" 
+                                placeholder="1.1.1"
+                                @input="updateFormulaPreview()"
+                            >
+                            <span style="font-weight: 700; color: var(--azul-oscuro); font-size: 1.15rem;">)</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Previsualización Visual de la Fórmula</label>
                     <div 
                         class="formula-display" 
                         id="{{ $id }}-formula-preview"
+                        :class="{ 'no-number': formulaNumberMode === 'none' }"
+                        :data-custom-number="formulaNumberMode === 'manual' ? ((formulaCustomNumber || '').replace(/^\s*\(+/, '').replace(/\)+\s*$/, '').trim() || '1.1.1') : null"
                         style="min-height:50px;"
                     >
                         <span x-text="formulaInput ? '\\(' + formulaInput + '\\)' : 'Notación aquí...'"></span>

@@ -56,6 +56,52 @@ test('admin can create a dynamic problem with steps via ComponentesPanel', funct
         ->set('slug', 'problema-dinamico-prueba')
         ->set('moduleItemId', $this->reading->id)
         ->set('percentage', 40)
+        ->set('stepsData', [
+            [
+                'id' => null,
+                'step_number' => 1,
+                'title' => 'Paso 1: Cálculo Inicial',
+                'instruction' => 'Calcula el valor.',
+                'answer_type' => 'numeric',
+                'correct_answer' => '100',
+                'tolerance' => 0.01,
+                'tolerance_type' => 'absolute',
+                'unit' => 'MPa',
+                'success_message' => '¡Correcto!',
+                'error_message' => 'Incorrecto.',
+                'reminder_message' => '',
+                'image_url' => '',
+                'image_alt' => '',
+                'image_caption' => '',
+                'image_source' => '',
+                'image_align' => 'align-center',
+                'image_max_width' => '75%',
+                'image_trigger' => 'always',
+                'options' => [],
+            ],
+            [
+                'id' => null,
+                'step_number' => 2,
+                'title' => 'Paso 2: Cálculo Final',
+                'instruction' => 'Calcula el segundo valor.',
+                'answer_type' => 'numeric',
+                'correct_answer' => '200',
+                'tolerance' => 0.01,
+                'tolerance_type' => 'absolute',
+                'unit' => 'MPa',
+                'success_message' => '¡Correcto!',
+                'error_message' => 'Incorrecto.',
+                'reminder_message' => '',
+                'image_url' => '',
+                'image_alt' => '',
+                'image_caption' => '',
+                'image_source' => '',
+                'image_align' => 'align-center',
+                'image_max_width' => '75%',
+                'image_trigger' => 'always',
+                'options' => [],
+            ],
+        ])
         ->call('saveComponent');
 
     $component->assertHasNoErrors();

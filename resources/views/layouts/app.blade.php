@@ -263,6 +263,8 @@
             // Modals state
             showFormulaModal: false,
             formulaInput: '',
+            formulaNumberMode: 'auto', // 'auto', 'manual', 'none'
+            formulaCustomNumber: '',
             
             showImageModal: false,
             imageUrl: '',
@@ -492,6 +494,8 @@
             // Formula Modal Logic
             openFormulaModal() {
                 this.formulaInput = '\\sigma_{max} = K_t \\cdot \\sigma_{nom}';
+                this.formulaNumberMode = 'auto';
+                this.formulaCustomNumber = '';
                 this.showFormulaModal = true;
                 this.$nextTick(() => this.updateFormulaPreview());
                 this.cursorRange = this.getElementAtCursor();
@@ -519,8 +523,17 @@
             insertFormula() {
                 if (!this.formulaInput) return;
                 const formulaText = this.formulaInput.trim();
-                const html = `<div class="formula">\\[${formulaText}\\]</div><p><br></p>`;
-                this.insertHtmlInElementAtCursor(html)
+                let html = '';
+                if (this.formulaNumberMode === 'manual') {
+                    const rawNum = this.formulaCustomNumber ? this.formulaCustomNumber.trim() : '';
+                    const cleanNumber = rawNum.replace(/^\s*\(+/, '').replace(/\)+\s*$/, '').trim() || '1.1.1';
+                    html = `<div class="formula" data-custom-number="${cleanNumber}">\\[${formulaText}\\]</div><p><br></p>`;
+                } else if (this.formulaNumberMode === 'none') {
+                    html = `<div class="formula no-number">\\[${formulaText}\\]</div><p><br></p>`;
+                } else {
+                    html = `<div class="formula">\\[${formulaText}\\]</div><p><br></p>`;
+                }
+                this.insertHtmlInElementAtCursor(html);
                 this.showFormulaModal = false;
             },
 
