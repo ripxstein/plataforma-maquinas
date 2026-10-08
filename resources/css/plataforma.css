@@ -1570,11 +1570,25 @@ th {
   background: #ffffff;
   border-radius: 18px;
   width: 100%;
-  max-width: 540px;
+  max-width: 660px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
   border: 1px solid var(--borde);
   overflow: hidden;
   animation: modalFadeIn 0.2s ease-out;
+}
+
+.edu-modal-dialog .admin-modal-header,
+.edu-modal-dialog .admin-modal-footer {
+  flex-shrink: 0;
+}
+
+.edu-modal-dialog .admin-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 18px 24px;
 }
 
 .edu-modal-dialog-image {
