@@ -1,5 +1,7 @@
 @props([
     'id' => 'edu-editor-' . uniqid(),
+    'moduleOrder' => 1,
+    'readingOrder' => 1,
 ])
 
 <div 
@@ -9,6 +11,7 @@
     })"
     x-init="init()"
     class="edu-wysiwyg-container"
+    style="counter-reset: mod-num {{ $moduleOrder ?? 1 }} read-num {{ $readingOrder ?? 1 }} formula-idx 0;"
     wire:ignore
 >
     <!-- Header with Tabs -->

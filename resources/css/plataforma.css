@@ -26,6 +26,7 @@ body {
   font-family: "Segoe UI", Arial, sans-serif;
   background: linear-gradient(180deg, #dff1ff 0%, var(--fondo) 220px);
   color: var(--texto);
+  counter-reset: mod-num 1 read-num 1 formula-idx 0;
 }
 
 .layout {
@@ -345,13 +346,70 @@ th {
 
 .formula {
   background: #f6faff;
-  /*border-left: 4px solid var(--azul-secundario);*/
-  padding: 1px 16px;
-  border-radius: 12px;
+  /*border: 1px solid var(--borde);*/
+  padding: 14px 85px 14px 24px;
+  border-radius: 14px;
   font-family: "Cambria Math", "Times New Roman", serif;
-  margin: 12px 0;
-  overflow-x: auto;
+  margin: 16px 0;
   font-size: 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  counter-increment: formula-idx;
+  box-shadow: 0 2px 8px rgba(30, 90, 168, 0.04);
+}
+
+.formula .katex-display {
+  margin: 0 !important;
+  text-align: center;
+  width: 100%;
+  /* overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;*/
+}
+
+.formula::after {
+  content: "(" counter(mod-num) "." counter(read-num) "." counter(formula-idx) ")";
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--azul-oscuro, #103b73);
+  font-family: "Cambria Math", "Times New Roman", serif;
+  white-space: nowrap;
+  user-select: none;
+  background: #eaf3fd;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 3px 10px;
+  letter-spacing: 0.5px;
+}
+
+.formula.no-number {
+  counter-increment: none;
+  padding-right: 24px;
+}
+
+.formula.no-number::after {
+  content: none !important;
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .formula {
+    padding: 14px 14px 38px 14px;
+    flex-direction: column;
+  }
+  .formula::after {
+    top: auto;
+    bottom: 8px;
+    right: 14px;
+    transform: none;
+    font-size: 0.82rem;
+  }
 }
 
 .steps {
@@ -1012,12 +1070,42 @@ th {
   justify-content: center;
   align-items: center;
   background: #f6faff;
-  border-left: 4px solid var(--azul-secundario);
-  padding: 16px 20px;
-  border-radius: 12px;
+  border: 1px solid var(--borde);
+  padding: 14px 85px 14px 24px;
+  border-radius: 14px;
   margin: 16px 0;
-  overflow-x: auto;
+  font-size: 20px;
+  position: relative;
+  counter-increment: formula-idx;
   box-shadow: 0 2px 8px rgba(30, 90, 168, 0.04);
+}
+
+.formula-display .katex-display {
+  margin: 0 !important;
+  text-align: center;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.formula-display::after {
+  content: "(" counter(mod-num) "." counter(read-num) "." counter(formula-idx) ")";
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--azul-oscuro, #103b73);
+  font-family: "Cambria Math", "Times New Roman", serif;
+  white-space: nowrap;
+  user-select: none;
+  background: #eaf3fd;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 3px 10px;
+  letter-spacing: 0.5px;
 }
 
 .formula-inline {

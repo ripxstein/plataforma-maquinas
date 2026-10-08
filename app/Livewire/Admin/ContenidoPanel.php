@@ -89,6 +89,17 @@ class ContenidoPanel extends Component
             ->get();
     }
 
+    public function getSelectedModuleOrder(): int
+    {
+        if (! $this->moduleIdForReading) {
+            return 1;
+        }
+
+        $mod = $this->modules->firstWhere('id', (int) $this->moduleIdForReading);
+
+        return $mod ? (int) $mod->order : 1;
+    }
+
     // Auto-slug hooks
     public function updatedModuleTitle($value)
     {

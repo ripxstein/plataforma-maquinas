@@ -220,7 +220,12 @@
                         <label class="form-label">Contenido Teórico de la Lectura</label>
                         <div class="form-hint">Construye la lección visualmente usando encabezados, negritas, listas, fórmulas matemáticas, imágenes y bloques educativos:</div>
 
-                        <x-edu-wysiwyg wire:model="readingContent" id="reading-editor" />
+                        <x-edu-wysiwyg 
+                            wire:model="readingContent" 
+                            id="reading-editor" 
+                            :module-order="$this->getSelectedModuleOrder()" 
+                            :reading-order="$readingOrder ?: 1" 
+                        />
                         @error('readingContent') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
                 </div>

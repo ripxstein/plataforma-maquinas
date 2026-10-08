@@ -15,7 +15,7 @@
     </section>
 
     @foreach ($visibleItems as $item)
-        <section class="content-section" id="lectura-{{ $item->id }}">
+        <section class="content-section" id="lectura-{{ $item->id }}" style="counter-reset: mod-num {{ $module->order ?? 1 }} read-num {{ $item->order ?? 1 }} formula-idx 0;">
             <div class="section-header">
                 <h3>
                     {{ $item->title }}
