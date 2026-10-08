@@ -3,6 +3,7 @@
     <!-- VIEW MODE 1: COMPONENT LISTING                          -->
     <!-- ======================================================== -->
     @if($viewMode === 'list')
+        <div wire:key="view-mode-list">
         <!-- Hero Section -->
         <section class="hero" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
             <div>
@@ -35,11 +36,16 @@
                             placeholder="🔍 Buscar por nombre o slug..." 
                             wire:model.live.debounce.300ms="search"
                         >
-                        <select class="admin-select" style="margin: 0; flex: 1.5; min-width: 180px;" wire:model.live="moduleFilter">
+                        <select class="admin-select" style="margin: 0; flex: 1.2; min-width: 170px;" wire:model.live="moduleFilter">
                             <option value="">-- Todos los Módulos --</option>
                             @foreach($modules as $m)
                                 <option value="{{ $m->id }}">Módulo {{ $m->order }}: {{ $m->title }}</option>
                             @endforeach
+                        </select>
+                        <select class="admin-select" style="margin: 0; flex: 1.1; min-width: 160px;" wire:model.live="typeFilter">
+                            <option value="">-- Todos los Tipos --</option>
+                            <option value="examples">📘 Ejemplos Resueltos</option>
+                            <option value="exercises">✏️ Problemas Prácticos</option>
                         </select>
                     </div>
 
@@ -120,15 +126,18 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @if($isDynamic)
-                                                <span style="font-size: 0.84rem; color: #15803d; font-weight: 600;">
-                                                    ✨ Constructor Visual
+                                            @if($prob->is_example)
+                                                <span class="tag" style="margin: 0 0 4px; background: #eaf3fd; color: var(--azul-secundario); border: 1px solid #9fc4ec; font-weight: 700; display: inline-block;">
+                                                    📘 Ejemplo Guiado
                                                 </span>
                                             @else
-                                                <span style="font-size: 0.84rem; color: #6b7280;">
-                                                    ⚙️ <code>{{ $prob->component }}</code>
+                                                <span class="tag" style="margin: 0 0 4px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 700; display: inline-block;">
+                                                    ✏️ Problema Práctico
                                                 </span>
                                             @endif
+                                            <div style="font-size: 0.78rem; color: var(--gris);">
+                                                {{ $isDynamic ? 'Visual (Pasos)' : $prob->component }}
+                                            </div>
                                         </td>
                                         <td style="text-align: center;">
                                             @if($prob->is_active ?? true)
@@ -181,11 +190,13 @@
                 @endif
             </div>
         </section>
+        </div>
 
     <!-- ======================================================== -->
     <!-- VIEW MODE 2: VISUAL PROBLEM BUILDER & LIVE PREVIEW      -->
     <!-- ======================================================== -->
     @elseif($viewMode === 'builder')
+        <div wire:key="view-mode-builder">
         <!-- Builder Top Bar -->
         <section class="hero" style="padding: 20px 26px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
             <div style="display: flex; align-items: center; gap: 14px;">
@@ -237,12 +248,40 @@
                 <div class="card" style="background: #ffffff; padding: 22px; border-radius: 18px; box-shadow: 0 4px 14px rgba(30,90,168,0.06);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--borde); padding-bottom: 12px;">
                         <h4 style="margin: 0; color: var(--azul-oscuro); font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
-                            ⚙️ Datos Generales del Problema
+                            ⚙️ Datos Generales del Componente
                         </h4>
                         <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
                             <input type="checkbox" wire:model.live="isActive" style="width: 18px; height: 18px;">
-                            <span style="color: {{ $isActive ? '#166534' : '#991b1b' }};">{{ $isActive ? 'Problema Activo' : 'Inactivo' }}</span>
+                            <span style="color: {{ $isActive ? '#166534' : '#991b1b' }};">{{ $isActive ? 'Componente Activo' : 'Inactivo' }}</span>
                         </label>
+                    </div>
+
+                    <!-- Selector de Modalidad: Ejemplo Resuelto vs Problema de Práctica -->
+                    <div class="form-group" style="background: #f8fbff; border: 1.5px solid #cfe0f5; border-radius: 14px; padding: 14px 16px; margin-bottom: 18px;">
+                        <label class="form-label" style="margin-bottom: 8px; color: var(--azul-oscuro); font-size: 0.98rem;">
+                            Modalidad del Componente
+                        </label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: {{ $isExample ? '#eef6ff' : '#ffffff' }}; border: 2px solid {{ $isExample ? 'var(--azul-secundario)' : 'var(--borde)' }}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                                <input type="radio" name="component_type_mode" value="1" wire:model.live="isExample" style="margin-top: 3px;">
+                                <div>
+                                    <strong style="display: block; color: var(--azul-secundario); font-size: 0.95rem;">📘 Ejemplo Resuelto</strong>
+                                    <span style="font-size: 0.82rem; color: var(--gris); line-height: 1.35; display: block; margin-top: 2px;">
+                                        Demostrativo: El alumno avanza con "Siguiente" revisando los pasos sin evaluarse. No otorga porcentaje.
+                                    </span>
+                                </div>
+                            </label>
+
+                            <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: {{ !$isExample ? '#f0fdf4' : '#ffffff' }}; border: 2px solid {{ !$isExample ? '#16a34a' : 'var(--borde)' }}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                                <input type="radio" name="component_type_mode" value="0" wire:model.live="isExample" style="margin-top: 3px;">
+                                <div>
+                                    <strong style="display: block; color: #15803d; font-size: 0.95rem;">✏️ Problema de Práctica</strong>
+                                    <span style="font-size: 0.82rem; color: var(--gris); line-height: 1.35; display: block; margin-top: 2px;">
+                                        Evaluado: El alumno debe calcular e ingresar respuestas para validar cada paso y sumar avance.
+                                    </span>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -283,7 +322,12 @@
 
                         <div class="form-group">
                             <label class="form-label">Peso en Progreso (%)</label>
-                            <input class="admin-input" type="number" min="0" max="100" wire:model="percentage">
+                            <input class="admin-input" type="number" min="0" max="100" wire:model="percentage" @disabled($isExample)>
+                            @if($isExample)
+                                <span style="font-size: 0.78rem; color: #1e40af; display: block; margin-top: 4px;">
+                                    ℹ️ En modo Ejemplo el peso es 0% (consulta libre para el alumno).
+                                </span>
+                            @endif
                             @error('percentage') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                         </div>
                     </div>
@@ -523,124 +567,138 @@
 
                                     <!-- Simulator Input Form -->
                                     <div style="margin-top: 10px;">
-                                        @if(($step['answer_type'] ?? 'numeric') === 'numeric')
-                                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                                <label style="font-size: 0.88rem; font-weight: 600; color: var(--azul-oscuro);">
-                                                    Tu respuesta:
-                                                </label>
-                                                <input 
-                                                    type="number" 
-                                                    step="any"
-                                                    wire:model="previewAnswers.{{ $index }}"
-                                                    placeholder="0.00"
-                                                    style="padding: 6px 10px; border: 1px solid var(--borde); border-radius: 8px; font-size: 0.92rem; width: 120px;"
-                                                    @disabled($isStepDone)
-                                                    wire:keydown.enter="testPreviewStep({{ $index }})"
+                                        @if($isExample)
+                                            @if(!$isStepDone && $previewCurrentStep === $stepNum)
+                                                <button 
+                                                    type="button" 
+                                                    class="badge" 
+                                                    wire:click="testPreviewExampleStep({{ $index }})"
+                                                    style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 7px 18px; font-size: 0.86rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;"
                                                 >
-                                                @if(!empty($step['unit']))
-                                                    <span class="badge" style="font-size: 0.78rem; padding: 4px 8px;">{{ $step['unit'] }}</span>
-                                                @endif
+                                                    <span>{{ $stepNum < count($stepsData) ? 'Siguiente paso' : 'Finalizar ejemplo' }}</span>
+                                                    <span>{{ $stepNum < count($stepsData) ? '→' : '✔' }}</span>
+                                                </button>
+                                            @endif
+                                        @else
+                                            @if(($step['answer_type'] ?? 'numeric') === 'numeric')
+                                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                                    <label style="font-size: 0.88rem; font-weight: 600; color: var(--azul-oscuro);">
+                                                        Tu respuesta:
+                                                    </label>
+                                                    <input 
+                                                        type="number" 
+                                                        step="any" 
+                                                        wire:model="previewAnswers.{{ $index }}"
+                                                        placeholder="0.00"
+                                                        style="padding: 6px 10px; border: 1px solid var(--borde); border-radius: 8px; font-size: 0.92rem; width: 120px;"
+                                                        @disabled($isStepDone)
+                                                        wire:keydown.enter="testPreviewStep({{ $index }})"
+                                                    >
+                                                    @if(!empty($step['unit']))
+                                                        <span class="badge" style="font-size: 0.78rem; padding: 4px 8px;">{{ $step['unit'] }}</span>
+                                                    @endif
+
+                                                    @if(!$isStepDone)
+                                                        <button 
+                                                            type="button" 
+                                                            class="badge" 
+                                                            wire:click="testPreviewStep({{ $index }})"
+                                                            style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 6px 14px; font-size: 0.82rem;"
+                                                        >
+                                                            Revisar
+                                                        </button>
+                                                    @endif
+                                                </div>
+
+                                            @elseif($step['answer_type'] === 'multiple_choice')
+                                                <div style="display: grid; gap: 6px; margin-top: 6px;">
+                                                    @foreach($step['options'] ?? [] as $optIdx => $opt)
+                                                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; padding: 6px 10px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 8px; cursor: pointer;">
+                                                            <input 
+                                                                type="radio" 
+                                                                name="preview_opt_{{ $index }}" 
+                                                                value="{{ $optIdx }}"
+                                                                wire:model="previewAnswers.{{ $index }}"
+                                                                @disabled($isStepDone)
+                                                            >
+                                                            <span>{{ $opt['option_text'] }}</span>
+                                                        </label>
+                                                    @endforeach
+                                                </div>
 
                                                 @if(!$isStepDone)
-                                                    <button 
-                                                        type="button" 
-                                                        class="badge" 
-                                                        wire:click="testPreviewStep({{ $index }})"
-                                                        style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 6px 14px; font-size: 0.82rem;"
-                                                    >
-                                                        Revisar
-                                                    </button>
+                                                    <div style="margin-top: 8px;">
+                                                        <button 
+                                                            type="button" 
+                                                            class="badge" 
+                                                            wire:click="testPreviewStep({{ $index }})"
+                                                            style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 6px 14px; font-size: 0.82rem;"
+                                                        >
+                                                            Revisar
+                                                        </button>
+                                                    </div>
                                                 @endif
-                                            </div>
 
-                                        @elseif($step['answer_type'] === 'multiple_choice')
-                                            <div style="display: grid; gap: 6px; margin-top: 6px;">
-                                                @foreach($step['options'] ?? [] as $optIdx => $opt)
-                                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; padding: 6px 10px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 8px; cursor: pointer;">
+                                            @elseif($step['answer_type'] === 'true_false')
+                                                <div style="display: flex; gap: 10px; margin-top: 6px;">
+                                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.88rem; padding: 6px 12px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 8px; cursor: pointer;">
                                                         <input 
                                                             type="radio" 
-                                                            name="preview_opt_{{ $index }}" 
-                                                            value="{{ $optIdx }}"
+                                                            name="preview_tf_{{ $index }}" 
+                                                            value="1"
                                                             wire:model="previewAnswers.{{ $index }}"
                                                             @disabled($isStepDone)
                                                         >
-                                                        <span>{{ $opt['option_text'] }}</span>
+                                                        <span>Verdadero</span>
                                                     </label>
-                                                @endforeach
-                                            </div>
-
-                                            @if(!$isStepDone)
-                                                <div style="margin-top: 8px;">
-                                                    <button 
-                                                        type="button" 
-                                                        class="badge" 
-                                                        wire:click="testPreviewStep({{ $index }})"
-                                                        style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 6px 14px; font-size: 0.82rem;"
-                                                    >
-                                                        Revisar
-                                                    </button>
+                                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.88rem; padding: 6px 12px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 8px; cursor: pointer;">
+                                                        <input 
+                                                            type="radio" 
+                                                            name="preview_tf_{{ $index }}" 
+                                                            value="0"
+                                                            wire:model="previewAnswers.{{ $index }}"
+                                                            @disabled($isStepDone)
+                                                        >
+                                                        <span>Falso</span>
+                                                    </label>
                                                 </div>
-                                            @endif
-
-                                        @elseif($step['answer_type'] === 'true_false')
-                                            <div style="display: flex; gap: 10px; margin-top: 6px;">
-                                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.88rem; padding: 6px 12px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 8px; cursor: pointer;">
-                                                    <input 
-                                                        type="radio" 
-                                                        name="preview_tf_{{ $index }}" 
-                                                        value="1"
-                                                        wire:model="previewAnswers.{{ $index }}"
-                                                        @disabled($isStepDone)
-                                                    >
-                                                    <span>Verdadero</span>
-                                                </label>
-                                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.88rem; padding: 6px 12px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 8px; cursor: pointer;">
-                                                    <input 
-                                                        type="radio" 
-                                                        name="preview_tf_{{ $index }}" 
-                                                        value="0"
-                                                        wire:model="previewAnswers.{{ $index }}"
-                                                        @disabled($isStepDone)
-                                                    >
-                                                    <span>Falso</span>
-                                                </label>
-                                            </div>
-
-                                            @if(!$isStepDone)
-                                                <div style="margin-top: 8px;">
-                                                    <button 
-                                                        type="button" 
-                                                        class="badge" 
-                                                        wire:click="testPreviewStep({{ $index }})"
-                                                        style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 6px 14px; font-size: 0.82rem;"
-                                                    >
-                                                        Revisar
-                                                    </button>
-                                                </div>
-                                            @endif
-
-                                        @else {{-- Text --}}
-                                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                                <input 
-                                                    type="text" 
-                                                    wire:model="previewAnswers.{{ $index }}"
-                                                    placeholder="Escribe tu respuesta..."
-                                                    style="padding: 6px 10px; border: 1px solid var(--borde); border-radius: 8px; font-size: 0.88rem; min-width: 180px;"
-                                                    @disabled($isStepDone)
-                                                    wire:keydown.enter="testPreviewStep({{ $index }})"
-                                                >
 
                                                 @if(!$isStepDone)
-                                                    <button 
-                                                        type="button" 
-                                                        class="badge" 
-                                                        wire:click="testPreviewStep({{ $index }})"
-                                                        style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 6px 14px; font-size: 0.82rem;"
-                                                    >
-                                                        Revisar
-                                                    </button>
+                                                    <div style="margin-top: 8px;">
+                                                        <button 
+                                                            type="button" 
+                                                            class="badge" 
+                                                            wire:click="testPreviewStep({{ $index }})"
+                                                            style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 6px 14px; font-size: 0.82rem;"
+                                                        >
+                                                            Revisar
+                                                        </button>
+                                                    </div>
                                                 @endif
-                                            </div>
+
+                                            @else {{-- Text --}}
+                                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                                    <input 
+                                                        type="text" 
+                                                        wire:model="previewAnswers.{{ $index }}"
+                                                        placeholder="Escribe tu respuesta..."
+                                                        style="padding: 6px 10px; border: 1px solid var(--borde); border-radius: 8px; font-size: 0.88rem; min-width: 180px;"
+                                                        @disabled($isStepDone)
+                                                        wire:keydown.enter="testPreviewStep({{ $index }})"
+                                                    >
+
+                                                    @if(!$isStepDone)
+                                                        <button 
+                                                            type="button" 
+                                                            class="badge" 
+                                                            wire:click="testPreviewStep({{ $index }})"
+                                                            style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 6px 14px; font-size: 0.82rem;"
+                                                        >
+                                                            Revisar
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            @endif
                                         @endif
                                     </div>
 
@@ -680,13 +738,14 @@
                 </div>
             </div>
         </div>
+        </div>
     @endif
 
     <!-- ======================================================== -->
     <!-- MODAL: STEP EDITOR (CREAR / EDITAR PASO DETALLADO)       -->
     <!-- ======================================================== -->
     @if($showStepModal)
-        <div class="admin-modal-backdrop" wire:click.self="closeStepModal">
+        <div wire:key="step-editor-modal" class="admin-modal-backdrop" wire:click.self="closeStepModal">
             <div class="admin-modal" style="max-width: 780px;">
                 <div class="admin-modal-header">
                     <h3>{{ $editingStepIndex !== null ? '✏️ Configurar Paso ' . ($editingStepIndex + 1) : '➕ Agregar Nuevo Paso' }}</h3>
@@ -694,6 +753,16 @@
                 </div>
 
                 <div class="admin-modal-body">
+                    @if($isExample)
+                        <div style="background: #eaf3fd; border: 1.5px solid #9fc4ec; border-radius: 14px; padding: 14px 18px; margin-bottom: 18px; color: var(--azul-oscuro); display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 1.5rem;">📘</span>
+                            <div style="font-size: 0.92rem; line-height: 1.4;">
+                                <strong style="color: var(--azul-secundario); display: block; margin-bottom: 2px;">Paso de Ejemplo Demostrativo (Sin Evaluación)</strong>
+                                Este paso muestra el procedimiento resuelto al alumno. Solo redacta el título y la solución/explicación con el editor. No se requieren respuestas de validación.
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Step Title -->
                     <div class="form-group">
                         <label class="form-label">Título del Paso</label>
@@ -704,144 +773,146 @@
 
                     <!-- Step Instruction / Rich Content -->
                     <div class="form-group">
-                        <label class="form-label">Instrucción / Enunciado del Paso</label>
-                        <div class="form-hint">Puedes incluir fórmulas matemáticas (ej: <code>\[d = w - 2r\]</code>) o texto explicativo:</div>
+                        <label class="form-label">{{ $isExample ? 'Desarrollo / Explicación del Paso' : 'Instrucción / Enunciado del Paso' }}</label>
+                        <div class="form-hint">Puedes incluir fórmulas matemáticas (ej: <code>\[d = w - 2r\]</code>), procedimientos o texto explicativo:</div>
                         <x-edu-wysiwyg wire:model="stepInstruction" id="step-instruction-wysiwyg" />
                         @error('stepInstruction') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Step Answer Type -->
-                    <div class="form-group">
-                        <label class="form-label">Tipo de Respuesta</label>
-                        <select class="admin-select" wire:model.live="stepAnswerType">
-                            <option value="numeric">🔢 Respuesta Numérica (con tolerancia y unidad)</option>
-                            <option value="multiple_choice">🔘 Selección Múltiple (opciones con única respuesta correcta)</option>
-                            <option value="true_false">⚖️ Verdadero / Falso</option>
-                            <option value="text">📝 Texto Libre (comparación exacta de texto/palabra)</option>
-                        </select>
-                    </div>
-
-                    <!-- Conditional Config by Answer Type -->
-                    @if($stepAnswerType === 'numeric')
-                        <div style="background: #f8fbff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
-                            <h5 style="margin: 0 0 12px; color: var(--azul-oscuro); font-size: 1rem;">Configuración de Respuesta Numérica</h5>
-                            
-                            <div class="grid-2">
-                                <div class="form-group">
-                                    <label class="form-label">Respuesta Correcta Esperada</label>
-                                    <input class="admin-input" type="number" step="any" wire:model="stepCorrectAnswer" placeholder="Ej: 156.25">
-                                    @error('stepCorrectAnswer') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">Unidad de Medida (Opcional)</label>
-                                    <input class="admin-input" type="text" wire:model="stepUnit" placeholder="Ej: MPa, psi, in², mm">
-                                </div>
-                            </div>
-
-                            <div class="grid-2">
-                                <div class="form-group">
-                                    <label class="form-label">Tolerancia Aceptada</label>
-                                    <input class="admin-input" type="number" step="any" wire:model="stepTolerance" placeholder="0.01">
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">Tipo de Tolerancia</label>
-                                    <select class="admin-select" wire:model="stepToleranceType">
-                                        <option value="absolute">Absoluta (ej: ±0.01 unidades)</option>
-                                        <option value="percentage">Porcentual (ej: ±2%)</option>
-                                    </select>
-                                </div>
-                            </div>
+                    @if(!$isExample)
+                        <!-- Step Answer Type -->
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Respuesta</label>
+                            <select class="admin-select" wire:model.live="stepAnswerType">
+                                <option value="numeric">🔢 Respuesta Numérica (con tolerancia y unidad)</option>
+                                <option value="multiple_choice">🔘 Selección Múltiple (opciones con única respuesta correcta)</option>
+                                <option value="true_false">⚖️ Verdadero / Falso</option>
+                                <option value="text">📝 Texto Libre (comparación exacta de texto/palabra)</option>
+                            </select>
                         </div>
 
-                    @elseif($stepAnswerType === 'multiple_choice')
-                        <div style="background: #f8fbff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h5 style="margin: 0; color: var(--azul-oscuro); font-size: 1rem;">Opciones de Selección Múltiple</h5>
-                                <button type="button" class="btn-secondary btn-sm" wire:click="addOptionToActiveStep">
-                                    ➕ Agregar Opción
-                                </button>
-                            </div>
-
-                            <div class="form-hint" style="margin-bottom: 10px;">Marca el botón circular en la opción que sea la correcta:</div>
-
-                            <div style="display: grid; gap: 10px;">
-                                @foreach($stepOptions as $optIdx => $opt)
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <input 
-                                            type="radio" 
-                                            name="active_modal_correct_opt" 
-                                            checked="{{ !empty($opt['is_correct']) }}"
-                                            wire:click="setOptionAsCorrect({{ $optIdx }})"
-                                            title="Marcar como respuesta correcta"
-                                            style="width: 20px; height: 20px; cursor: pointer;"
-                                        >
-                                        <input 
-                                            type="text" 
-                                            class="admin-input" 
-                                            style="margin: 0; flex: 1;" 
-                                            wire:model="stepOptions.{{ $optIdx }}.option_text" 
-                                            placeholder="Texto de la opción {{ $optIdx + 1 }}"
-                                        >
-                                        <button 
-                                            type="button" 
-                                            class="btn-secondary btn-sm btn-danger" 
-                                            style="padding: 8px 10px;"
-                                            @disabled(count($stepOptions) <= 2)
-                                            wire:click="removeOptionFromActiveStep({{ $optIdx }})"
-                                        >
-                                            🗑️
-                                        </button>
+                        <!-- Conditional Config by Answer Type -->
+                        @if($stepAnswerType === 'numeric')
+                            <div style="background: #f8fbff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                                <h5 style="margin: 0 0 12px; color: var(--azul-oscuro); font-size: 1rem;">Configuración de Respuesta Numérica</h5>
+                                
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Respuesta Correcta Esperada</label>
+                                        <input class="admin-input" type="number" step="any" wire:model="stepCorrectAnswer" placeholder="Ej: 156.25">
+                                        @error('stepCorrectAnswer') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                                     </div>
-                                @endforeach
-                            </div>
-                            @error('stepOptions') <span style="color:#b42318; font-size:0.85rem; display:block; margin-top:8px;">{{ $message }}</span> @enderror
-                        </div>
 
-                    @elseif($stepAnswerType === 'true_false')
-                        <div style="background: #f8fbff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
-                            <h5 style="margin: 0 0 10px; color: var(--azul-oscuro); font-size: 1rem;">Opción Correcta</h5>
-                            <div style="display: flex; gap: 16px;">
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1rem;">
-                                    <input type="radio" value="1" wire:model="stepCorrectAnswer">
-                                    <span>Verdadero</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1rem;">
-                                    <input type="radio" value="0" wire:model="stepCorrectAnswer">
-                                    <span>Falso</span>
-                                </label>
-                            </div>
-                        </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Unidad de Medida (Opcional)</label>
+                                        <input class="admin-input" type="text" wire:model="stepUnit" placeholder="Ej: MPa, psi, in², mm">
+                                    </div>
+                                </div>
 
-                    @else {{-- Text --}}
-                        <div style="background: #f8fbff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
-                            <label class="form-label">Texto o Palabra Correcta Esperada</label>
-                            <input class="admin-input" type="text" wire:model="stepCorrectAnswer" placeholder="Ej: concentración de esfuerzos">
-                            @error('stepCorrectAnswer') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Tolerancia Aceptada</label>
+                                        <input class="admin-input" type="number" step="any" wire:model="stepTolerance" placeholder="0.01">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Tipo de Tolerancia</label>
+                                        <select class="admin-select" wire:model="stepToleranceType">
+                                            <option value="absolute">Absoluta (ej: ±0.01 unidades)</option>
+                                            <option value="percentage">Porcentual (ej: ±2%)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                        @elseif($stepAnswerType === 'multiple_choice')
+                            <div style="background: #f8fbff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <h5 style="margin: 0; color: var(--azul-oscuro); font-size: 1rem;">Opciones de Selección Múltiple</h5>
+                                    <button type="button" class="btn-secondary btn-sm" wire:click="addOptionToActiveStep">
+                                        ➕ Agregar Opción
+                                    </button>
+                                </div>
+
+                                <div class="form-hint" style="margin-bottom: 10px;">Marca el botón circular en la opción que sea la correcta:</div>
+
+                                <div style="display: grid; gap: 10px;">
+                                    @foreach($stepOptions as $optIdx => $opt)
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <input 
+                                                type="radio" 
+                                                name="active_modal_correct_opt" 
+                                                checked="{{ !empty($opt['is_correct']) }}"
+                                                wire:click="setOptionAsCorrect({{ $optIdx }})"
+                                                title="Marcar como respuesta correcta"
+                                                style="width: 20px; height: 20px; cursor: pointer;"
+                                            >
+                                            <input 
+                                                type="text" 
+                                                class="admin-input" 
+                                                style="margin: 0; flex: 1;" 
+                                                wire:model="stepOptions.{{ $optIdx }}.option_text" 
+                                                placeholder="Texto de la opción {{ $optIdx + 1 }}"
+                                            >
+                                            <button 
+                                                type="button" 
+                                                class="btn-secondary btn-sm btn-danger" 
+                                                style="padding: 8px 10px;"
+                                                @disabled(count($stepOptions) <= 2)
+                                                wire:click="removeOptionFromActiveStep({{ $optIdx }})"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                @error('stepOptions') <span style="color:#b42318; font-size:0.85rem; display:block; margin-top:8px;">{{ $message }}</span> @enderror
+                            </div>
+
+                        @elseif($stepAnswerType === 'true_false')
+                            <div style="background: #f8fbff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                                <h5 style="margin: 0 0 10px; color: var(--azul-oscuro); font-size: 1rem;">Opción Correcta</h5>
+                                <div style="display: flex; gap: 16px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1rem;">
+                                        <input type="radio" value="1" wire:model="stepCorrectAnswer">
+                                        <span>Verdadero</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1rem;">
+                                        <input type="radio" value="0" wire:model="stepCorrectAnswer">
+                                        <span>Falso</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                        @else {{-- Text --}}
+                            <div style="background: #f8fbff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                                <label class="form-label">Texto o Palabra Correcta Esperada</label>
+                                <input class="admin-input" type="text" wire:model="stepCorrectAnswer" placeholder="Ej: concentración de esfuerzos">
+                                @error('stepCorrectAnswer') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                            </div>
+                        @endif
+
+                        <!-- Feedback & Reminders Section -->
+                        <div style="background: #fbfdff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                            <h5 style="margin: 0 0 12px; color: var(--azul-oscuro); font-size: 1rem;">💬 Mensajes y Retroalimentación</h5>
+
+                            <div class="form-group">
+                                <label class="form-label">Mensaje al Responder Correctamente</label>
+                                <input class="admin-input" type="text" wire:model="stepSuccessMessage" placeholder="Ej: ¡Correcto! Ahora calcula el área mínima.">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Mensaje al Responder Incorrectamente</label>
+                                <input class="admin-input" type="text" wire:model="stepErrorMessage" placeholder="Ej: Revisa nuevamente la operación.">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Recordatorio / Pista de Ayuda (Opcional)</label>
+                                <div class="form-hint">Se mostrará cuando el alumno se equivoque para orientarlo:</div>
+                                <input class="admin-input" type="text" wire:model="stepReminderMessage" placeholder="Ej: Recuerda que d = w - 2r. Sustituye w = 1.5 in y r = 0.25 in.">
+                            </div>
                         </div>
                     @endif
-
-                    <!-- Feedback & Reminders Section -->
-                    <div style="background: #fbfdff; border: 1px solid var(--borde); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
-                        <h5 style="margin: 0 0 12px; color: var(--azul-oscuro); font-size: 1rem;">💬 Mensajes y Retroalimentación</h5>
-
-                        <div class="form-group">
-                            <label class="form-label">Mensaje al Responder Correctamente</label>
-                            <input class="admin-input" type="text" wire:model="stepSuccessMessage" placeholder="Ej: ¡Correcto! Ahora calcula el área mínima.">
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Mensaje al Responder Incorrectamente</label>
-                            <input class="admin-input" type="text" wire:model="stepErrorMessage" placeholder="Ej: Revisa nuevamente la operación.">
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label">Recordatorio / Pista de Ayuda (Opcional)</label>
-                            <div class="form-hint">Se mostrará cuando el alumno se equivoque para orientarlo:</div>
-                            <input class="admin-input" type="text" wire:model="stepReminderMessage" placeholder="Ej: Recuerda que d = w - 2r. Sustituye w = 1.5 in y r = 0.25 in.">
-                        </div>
-                    </div>
 
                     <!-- Step Image / Graphic Support Section -->
                     <div 

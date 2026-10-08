@@ -25,6 +25,8 @@ class ComponentesPanel extends Component
 
     public string $moduleFilter = '';
 
+    public string $typeFilter = ''; // '', 'examples', 'exercises'
+
     // Active Problem Data (General Settings)
     public ?int $problemId = null;
 
@@ -43,6 +45,8 @@ class ComponentesPanel extends Component
     public int $percentage = 35;
 
     public bool $isActive = true;
+
+    public bool $isExample = false;
 
     // Steps Collection in Builder (in-memory or synced)
     public array $stepsData = [];
@@ -118,6 +122,15 @@ class ComponentesPanel extends Component
         }
     }
 
+    public function updatedIsExample($value)
+    {
+        if ($value) {
+            $this->percentage = 0;
+        } elseif ($this->percentage === 0) {
+            $this->percentage = 35;
+        }
+    }
+
     public function createComponent()
     {
         $this->resetValidation();
@@ -132,53 +145,11 @@ class ComponentesPanel extends Component
         $this->order = (Problem::where('module_item_id', $this->moduleItemId)->max('order') ?? 0) + 1;
         $this->percentage = 35;
         $this->isActive = true;
+        $this->isExample = false;
 
         // Initialize with 2 default sample steps
         $this->stepsData = [
-            [
-                'id' => null,
-                'step_number' => 1,
-                'title' => 'Paso 1: Identificación o Cálculo Inicial',
-                'instruction' => 'Calcula el valor del primer parámetro requerido con las fórmulas dadas.',
-                'answer_type' => 'numeric',
-                'correct_answer' => '100',
-                'tolerance' => 0.01,
-                'tolerance_type' => 'absolute',
-                'unit' => 'MPa',
-                'success_message' => '¡Correcto! Has determinado el valor inicial.',
-                'error_message' => 'Revisa la fórmula inicial y tus unidades.',
-                'reminder_message' => 'Recuerda verificar las dimensiones geométricas.',
-                'image_url' => '',
-                'image_alt' => '',
-                'image_caption' => '',
-                'image_source' => '',
-                'image_align' => 'align-center',
-                'image_max_width' => '75%',
-                'image_trigger' => 'always',
-                'options' => [],
-            ],
-            [
-                'id' => null,
-                'step_number' => 2,
-                'title' => 'Paso 2: Cálculo de Esfuerzo o Factor',
-                'instruction' => 'Con el resultado anterior, determina el esfuerzo resultante.',
-                'answer_type' => 'numeric',
-                'correct_answer' => '250',
-                'tolerance' => 0.01,
-                'tolerance_type' => 'absolute',
-                'unit' => 'MPa',
-                'success_message' => '¡Excelente! Has completado el problema.',
-                'error_message' => 'Revisa la multiplicación por el factor de concentración.',
-                'reminder_message' => 'Asegúrate de sustituir los valores obtenidos en el Paso 1.',
-                'image_url' => '',
-                'image_alt' => '',
-                'image_caption' => '',
-                'image_source' => '',
-                'image_align' => 'align-center',
-                'image_max_width' => '75%',
-                'image_trigger' => 'on_error',
-                'options' => [],
-            ],
+           
         ];
 
         $this->resetPreviewSimulator();
@@ -201,6 +172,7 @@ class ComponentesPanel extends Component
         $this->order = $problem->order;
         $this->percentage = $problem->percentage;
         $this->isActive = $problem->is_active ?? true;
+        $this->isExample = (bool) ($problem->is_example ?? false);
 
         // Load steps
         $this->stepsData = [];
@@ -275,6 +247,7 @@ class ComponentesPanel extends Component
                     'order' => $this->order,
                     'percentage' => $this->percentage,
                     'is_active' => $this->isActive,
+                    'is_example' => $this->isExample,
                 ]
             );
 
@@ -364,6 +337,7 @@ class ComponentesPanel extends Component
     {
         $this->viewMode = 'list';
         $this->resetValidation();
+        $this->resetPreviewSimulator();
     }
 
     public function duplicateComponent(int $id)
@@ -383,6 +357,7 @@ class ComponentesPanel extends Component
                 'order' => (Problem::where('module_item_id', $original->module_item_id)->max('order') ?? 0) + 1,
                 'percentage' => $original->percentage,
                 'is_active' => $original->is_active ?? true,
+                'is_example' => $original->is_example ?? false,
             ]);
 
             foreach ($original->steps as $step) {
@@ -515,6 +490,50 @@ class ComponentesPanel extends Component
 
     public function saveStepModal()
     {
+        if ($this->isExample) {
+            $this->validate([
+                'stepTitle' => 'required|string|max:255',
+            ]);
+
+            $stepPayload = [
+                'id' => ($this->editingStepIndex !== null && isset($this->stepsData[$this->editingStepIndex]['id']))
+                    ? $this->stepsData[$this->editingStepIndex]['id']
+                    : null,
+                'step_number' => ($this->editingStepIndex !== null)
+                    ? ($this->editingStepIndex + 1)
+                    : (count($this->stepsData) + 1),
+                'title' => $this->stepTitle,
+                'instruction' => $this->stepInstruction,
+                'answer_type' => 'informational',
+                'correct_answer' => '',
+                'tolerance' => 0.01,
+                'tolerance_type' => 'absolute',
+                'unit' => '',
+                'success_message' => 'Paso revisado.',
+                'error_message' => '',
+                'reminder_message' => '',
+                'image_url' => $this->stepImageUrl,
+                'image_alt' => $this->stepImageAlt,
+                'image_caption' => $this->stepImageCaption,
+                'image_source' => $this->stepImageSource,
+                'image_align' => $this->stepImageAlign,
+                'image_max_width' => $this->stepImageMaxWidth,
+                'image_trigger' => $this->stepImageTrigger,
+                'options' => [],
+            ];
+
+            if ($this->editingStepIndex !== null) {
+                $this->stepsData[$this->editingStepIndex] = $stepPayload;
+            } else {
+                $this->stepsData[] = $stepPayload;
+            }
+
+            $this->closeStepModal();
+            $this->resetPreviewSimulator();
+
+            return;
+        }
+
         $this->validate([
             'stepTitle' => 'required|string|max:255',
             'stepAnswerType' => 'required|in:numeric,multiple_choice,true_false,text',
@@ -771,6 +790,22 @@ class ComponentesPanel extends Component
         }
     }
 
+    public function testPreviewExampleStep(int $index)
+    {
+        $this->previewMessages[$index] = [
+            'ok' => true,
+            'text' => 'Paso revisado.',
+            'reminder' => null,
+        ];
+
+        if ($index + 1 >= count($this->stepsData)) {
+            $this->previewCompleted = true;
+            $this->previewCurrentStep = count($this->stepsData) + 1;
+        } else {
+            $this->previewCurrentStep = max($this->previewCurrentStep, $index + 2);
+        }
+    }
+
     public function render()
     {
         $modules = Module::with(['items.problems.steps'])
@@ -792,6 +827,14 @@ class ComponentesPanel extends Component
             $query->whereHas('moduleItem', function ($q) {
                 $q->where('module_id', $this->moduleFilter);
             });
+        }
+
+        if (! empty($this->typeFilter)) {
+            if ($this->typeFilter === 'examples') {
+                $query->where('is_example', true);
+            } elseif ($this->typeFilter === 'exercises') {
+                $query->where('is_example', false);
+            }
         }
 
         $problemsList = $query->get();

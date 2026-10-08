@@ -15,11 +15,23 @@ class Problem extends Model
         'order',
         'percentage',
         'is_active',
+        'is_example',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_example' => 'boolean',
     ];
+
+    public function scopeExamples($query)
+    {
+        return $query->where('is_example', true);
+    }
+
+    public function scopeExercises($query)
+    {
+        return $query->where('is_example', false);
+    }
 
     public function moduleItem()
     {

@@ -1,11 +1,18 @@
 <div class="steps problem-dynamic-container" id="problem-dyn-{{ $problemId }}">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h5 style="margin: 0; color: #25623b; font-size: 1.15rem; font-weight: 700;">
+        <h5 style="margin: 0; color: {{ $problem->is_example ? 'var(--azul-secundario)' : '#25623b' }}; font-size: 1.15rem; font-weight: 700;">
             {{ $problem->title }}
         </h5>
-        <span class="tag" style="background: #e7f7ea; color: #25623b; border: 1px solid #7bc28a; margin: 0;">
-            {{ $steps->count() }} {{ $steps->count() === 1 ? 'Paso' : 'Pasos' }}
-        </span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            @if($problem->is_example)
+                <span class="tag" style="background: #eaf3fd; color: var(--azul-secundario); border: 1px solid #9fc4ec; margin: 0; font-weight: 700;">
+                    📘 Ejemplo Guiado
+                </span>
+            @endif
+            <span class="tag" style="background: {{ $problem->is_example ? '#f0f6ff' : '#e7f7ea' }}; color: {{ $problem->is_example ? 'var(--azul-oscuro)' : '#25623b' }}; border: 1px solid {{ $problem->is_example ? '#c7d9ee' : '#7bc28a' }}; margin: 0;">
+                {{ $steps->count() }} {{ $steps->count() === 1 ? 'Paso' : 'Pasos' }}
+            </span>
+        </div>
     </div>
 
     @if($steps->isEmpty())
@@ -24,13 +31,15 @@
         @endphp
 
         @if($isUnlocked)
-            <div class="pstep" style="margin-top: {{ $index > 0 ? '16px' : '6px' }}; background: {{ $isStepDone ? '#fafffa' : '#ffffff' }}; border: 1px solid {{ $isStepDone ? '#b2e2bd' : '#c7d9ee' }}; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+            <div class="pstep" style="margin-top: {{ $index > 0 ? '16px' : '6px' }}; background: {{ $isStepDone ? ($problem->is_example ? '#f7faff' : '#fafffa') : '#ffffff' }}; border: 1px solid {{ $isStepDone ? ($problem->is_example ? '#bcd6f5' : '#b2e2bd') : '#c7d9ee' }}; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div class="tag" style="background: {{ $isStepDone ? '#e7f7ea' : '#dcecff' }}; color: {{ $isStepDone ? '#1e7e34' : '#103b73' }}; margin: 0; font-weight: 700;">
+                    <div class="tag" style="background: {{ $isStepDone ? ($problem->is_example ? '#dcecff' : '#e7f7ea') : '#dcecff' }}; color: {{ $isStepDone ? ($problem->is_example ? '#103b73' : '#1e7e34') : '#103b73' }}; margin: 0; font-weight: 700;">
                         {{ $isStepDone ? '✔ ' : '' }}Paso {{ $step->step_number ?? $stepNum }}: {{ $step->title }}
                     </div>
                     @if($isStepDone)
-                        <span style="font-size: 0.8rem; color: #25623b; font-weight: 600;">Completado</span>
+                        <span style="font-size: 0.8rem; color: {{ $problem->is_example ? 'var(--azul-secundario)' : '#25623b' }}; font-weight: 600;">
+                            {{ $problem->is_example ? 'Revisado' : 'Completado' }}
+                        </span>
                     @endif
                 </div>
 
@@ -59,164 +68,181 @@
                     </div>
                 @endif
 
-                {{-- Input Response Section --}}
-                <div style="margin-top: 14px;">
-                    @if($step->answer_type === 'numeric')
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-                            <label style="font-weight: 600; font-size: 0.95rem; color: var(--azul-oscuro);">
-                                Tu respuesta:
-                            </label>
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <input 
-                                    type="number" 
-                                    step="any" 
-                                    wire:model="answers.{{ $step->id }}"
-                                    placeholder="0.00"
-                                    style="padding: 8px 12px; border: 1px solid var(--borde); border-radius: 10px; font-size: 1rem; width: 160px;"
-                                    @disabled($isStepDone)
-                                    wire:keydown.enter="checkStep({{ $step->id }})"
-                                >
-                                @if($step->unit)
-                                    <span class="badge" style="background: #f0f6ff; color: var(--azul-oscuro); font-size: 0.85rem;">
-                                        {{ $step->unit }}
-                                    </span>
+                {{-- Sección de interacción: Si es Ejemplo guiado, sólo botón de avance; si es evaluado, inputs --}}
+                @if($problem->is_example)
+                    @if(!$isStepDone && $isCurrent)
+                        <div style="margin-top: 18px; display: flex; align-items: center; justify-content: flex-end;">
+                            <button 
+                                type="button" 
+                                class="badge" 
+                                wire:click="nextExampleStep({{ $step->id }})"
+                                style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 10px 22px; font-size: 0.98rem; font-weight: 600; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(30, 90, 168, 0.2);"
+                            >
+                                <span>{{ $stepNum < $steps->count() ? 'Siguiente paso' : 'Finalizar ejemplo' }}</span>
+                                <span>{{ $stepNum < $steps->count() ? '→' : '✔' }}</span>
+                            </button>
+                        </div>
+                    @endif
+                @else
+                    {{-- Input Response Section for Evaluated Exercise --}}
+                    <div style="margin-top: 14px;">
+                        @if($step->answer_type === 'numeric')
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+                                <label style="font-weight: 600; font-size: 0.95rem; color: var(--azul-oscuro);">
+                                    Tu respuesta:
+                                </label>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <input 
+                                        type="number" 
+                                        step="any" 
+                                        wire:model="answers.{{ $step->id }}"
+                                        placeholder="0.00"
+                                        style="padding: 8px 12px; border: 1px solid var(--borde); border-radius: 10px; font-size: 1rem; width: 160px;"
+                                        @disabled($isStepDone)
+                                        wire:keydown.enter="checkStep({{ $step->id }})"
+                                    >
+                                    @if($step->unit)
+                                        <span class="badge" style="background: #f0f6ff; color: var(--azul-oscuro); font-size: 0.85rem;">
+                                            {{ $step->unit }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if(!$isStepDone)
+                                    <button 
+                                        type="button" 
+                                        class="badge" 
+                                        wire:click="checkStep({{ $step->id }})"
+                                        style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
+                                    >
+                                        Revisar
+                                    </button>
                                 @endif
                             </div>
 
-                            @if(!$isStepDone)
-                                <button 
-                                    type="button" 
-                                    class="badge" 
-                                    wire:click="checkStep({{ $step->id }})"
-                                    style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
-                                >
-                                    Revisar
-                                </button>
-                            @endif
-                        </div>
+                        @elseif($step->answer_type === 'multiple_choice')
+                            <div style="margin-top: 8px;">
+                                <label style="font-weight: 600; font-size: 0.95rem; color: var(--azul-oscuro); display: block; margin-bottom: 8px;">
+                                    Selecciona la opción correcta:
+                                </label>
+                                <div style="display: grid; gap: 8px; max-width: 550px;">
+                                    @foreach($step->options as $opt)
+                                        <label style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 10px; cursor: {{ $isStepDone ? 'default' : 'pointer' }};">
+                                            <input 
+                                                type="radio" 
+                                                name="step_opt_{{ $step->id }}" 
+                                                value="{{ $opt->id }}"
+                                                wire:model="answers.{{ $step->id }}"
+                                                @disabled($isStepDone)
+                                            >
+                                            <span style="font-size: 0.95rem;">{{ $opt->option_text }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
 
-                    @elseif($step->answer_type === 'multiple_choice')
-                        <div style="margin-top: 8px;">
-                            <label style="font-weight: 600; font-size: 0.95rem; color: var(--azul-oscuro); display: block; margin-bottom: 8px;">
-                                Selecciona la opción correcta:
-                            </label>
-                            <div style="display: grid; gap: 8px; max-width: 550px;">
-                                @foreach($step->options as $opt)
-                                    <label style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 10px; cursor: {{ $isStepDone ? 'default' : 'pointer' }};">
+                                @if(!$isStepDone)
+                                    <div style="margin-top: 10px;">
+                                        <button 
+                                            type="button" 
+                                            class="badge" 
+                                            wire:click="checkStep({{ $step->id }})"
+                                            style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
+                                        >
+                                            Revisar
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+
+                        @elseif($step->answer_type === 'true_false')
+                            <div style="margin-top: 8px;">
+                                <label style="font-weight: 600; font-size: 0.95rem; color: var(--azul-oscuro); display: block; margin-bottom: 8px;">
+                                    Indica si la afirmación es Verdadera o Falsa:
+                                </label>
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    <label style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 10px; cursor: {{ $isStepDone ? 'default' : 'pointer' }};">
                                         <input 
                                             type="radio" 
-                                            name="step_opt_{{ $step->id }}" 
-                                            value="{{ $opt->id }}"
+                                            name="step_tf_{{ $step->id }}" 
+                                            value="1"
                                             wire:model="answers.{{ $step->id }}"
                                             @disabled($isStepDone)
                                         >
-                                        <span style="font-size: 0.95rem;">{{ $opt->option_text }}</span>
+                                        <span>Verdadero</span>
                                     </label>
-                                @endforeach
-                            </div>
-
-                            @if(!$isStepDone)
-                                <div style="margin-top: 10px;">
-                                    <button 
-                                        type="button" 
-                                        class="badge" 
-                                        wire:click="checkStep({{ $step->id }})"
-                                        style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
-                                    >
-                                        Revisar
-                                    </button>
+                                    <label style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 10px; cursor: {{ $isStepDone ? 'default' : 'pointer' }};">
+                                        <input 
+                                            type="radio" 
+                                            name="step_tf_{{ $step->id }}" 
+                                            value="0"
+                                            wire:model="answers.{{ $step->id }}"
+                                            @disabled($isStepDone)
+                                        >
+                                        <span>Falso</span>
+                                    </label>
                                 </div>
-                            @endif
-                        </div>
 
-                    @elseif($step->answer_type === 'true_false')
-                        <div style="margin-top: 8px;">
-                            <label style="font-weight: 600; font-size: 0.95rem; color: var(--azul-oscuro); display: block; margin-bottom: 8px;">
-                                Indica si la afirmación es Verdadera o Falsa:
-                            </label>
-                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                <label style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 10px; cursor: {{ $isStepDone ? 'default' : 'pointer' }};">
-                                    <input 
-                                        type="radio" 
-                                        name="step_tf_{{ $step->id }}" 
-                                        value="1"
-                                        wire:model="answers.{{ $step->id }}"
-                                        @disabled($isStepDone)
-                                    >
-                                    <span>Verdadero</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f8fbff; border: 1px solid var(--borde); border-radius: 10px; cursor: {{ $isStepDone ? 'default' : 'pointer' }};">
-                                    <input 
-                                        type="radio" 
-                                        name="step_tf_{{ $step->id }}" 
-                                        value="0"
-                                        wire:model="answers.{{ $step->id }}"
-                                        @disabled($isStepDone)
-                                    >
-                                    <span>Falso</span>
-                                </label>
-                            </div>
-
-                            @if(!$isStepDone)
-                                <div style="margin-top: 10px;">
-                                    <button 
-                                        type="button" 
-                                        class="badge" 
-                                        wire:click="checkStep({{ $step->id }})"
-                                        style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
-                                    >
-                                        Revisar
-                                    </button>
-                                </div>
-                            @endif
-                        </div>
-
-                    @else {{-- Text type --}}
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-                            <label style="font-weight: 600; font-size: 0.95rem; color: var(--azul-oscuro);">
-                                Tu respuesta:
-                            </label>
-                            <input 
-                                type="text" 
-                                wire:model="answers.{{ $step->id }}"
-                                placeholder="Escribe tu respuesta..."
-                                style="padding: 8px 12px; border: 1px solid var(--borde); border-radius: 10px; font-size: 0.95rem; min-width: 240px;"
-                                @disabled($isStepDone)
-                                wire:keydown.enter="checkStep({{ $step->id }})"
-                            >
-
-                            @if(!$isStepDone)
-                                <button 
-                                    type="button" 
-                                    class="badge" 
-                                    wire:click="checkStep({{ $step->id }})"
-                                    style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
-                                >
-                                    Revisar
-                                </button>
-                            @endif
-                        </div>
-                    @endif
-                </div>
-
-                {{-- Feedback / Error / Reminder Messages --}}
-                @if(isset($messages[$step->id]))
-                    <div style="margin-top: 12px;">
-                        @if($messages[$step->id]['ok'])
-                            <div style="padding: 12px 14px; background: #e8fff0; border: 1px solid #67c587; border-radius: 10px; color: #166534; font-size: 0.95rem;">
-                                ✔ {{ $messages[$step->id]['text'] }}
-                            </div>
-                        @else
-                            <div style="padding: 12px 14px; background: #fff1f1; border: 1px solid #e18b8b; border-radius: 10px; color: #991b1b; font-size: 0.95rem;">
-                                <div>✘ {{ $messages[$step->id]['text'] }}</div>
-                                @if(!empty($messages[$step->id]['reminder']))
-                                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #fca5a5; font-size: 0.9rem; color: #7f1d1d;">
-                                        💡 <strong>Pista / Recordatorio:</strong> {{ $messages[$step->id]['reminder'] }}
+                                @if(!$isStepDone)
+                                    <div style="margin-top: 10px;">
+                                        <button 
+                                            type="button" 
+                                            class="badge" 
+                                            wire:click="checkStep({{ $step->id }})"
+                                            style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
+                                        >
+                                            Revisar
+                                        </button>
                                     </div>
+                                @endif
+                            </div>
+
+                        @else {{-- Text type --}}
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+                                <label style="font-weight: 600; font-size: 0.95rem; color: var(--azul-oscuro);">
+                                    Tu respuesta:
+                                </label>
+                                <input 
+                                    type="text" 
+                                    wire:model="answers.{{ $step->id }}"
+                                    placeholder="Escribe tu respuesta..."
+                                    style="padding: 8px 12px; border: 1px solid var(--borde); border-radius: 10px; font-size: 0.95rem; min-width: 240px;"
+                                    @disabled($isStepDone)
+                                    wire:keydown.enter="checkStep({{ $step->id }})"
+                                >
+
+                                @if(!$isStepDone)
+                                    <button 
+                                        type="button" 
+                                        class="badge" 
+                                        wire:click="checkStep({{ $step->id }})"
+                                        style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
+                                    >
+                                        Revisar
+                                    </button>
                                 @endif
                             </div>
                         @endif
                     </div>
+
+                    {{-- Feedback / Error / Reminder Messages --}}
+                    @if(isset($messages[$step->id]))
+                        <div style="margin-top: 12px;">
+                            @if($messages[$step->id]['ok'])
+                                <div style="padding: 12px 14px; background: #e8fff0; border: 1px solid #67c587; border-radius: 10px; color: #166534; font-size: 0.95rem;">
+                                    ✔ {{ $messages[$step->id]['text'] }}
+                                </div>
+                            @else
+                                <div style="padding: 12px 14px; background: #fff1f1; border: 1px solid #e18b8b; border-radius: 10px; color: #991b1b; font-size: 0.95rem;">
+                                    <div>✘ {{ $messages[$step->id]['text'] }}</div>
+                                    @if(!empty($messages[$step->id]['reminder']))
+                                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #fca5a5; font-size: 0.9rem; color: #7f1d1d;">
+                                            💡 <strong>Pista / Recordatorio:</strong> {{ $messages[$step->id]['reminder'] }}
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 @endif
             </div>
         @endif
@@ -224,12 +250,22 @@
 
     {{-- Completion celebration banner --}}
     @if($isCompleted || ($currentStepIndex > $steps->count() && $steps->isNotEmpty()))
-        <div class="footer-note" style="margin-top: 20px; background: #e7f7ea; border: 1px solid #7bc28a; color: #1e5aa8; text-align: center; padding: 22px;">
-            <div style="font-size: 2rem; margin-bottom: 6px;">🎉</div>
-            <h4 style="margin: 0 0 6px; color: #1e5aa8; font-size: 1.25rem;">¡Problema Completado con Éxito!</h4>
-            <p style="margin: 0; color: #25623b; font-size: 0.98rem;">
-                Has resuelto satisfactoriamente todos los pasos interactivos de este problema. Tu progreso ha sido registrado.
-            </p>
-        </div>
+        @if($problem->is_example)
+            <div class="footer-note" style="margin-top: 20px; background: #eef5fc; border: 1px solid #9fc4ec; color: var(--azul-oscuro); text-align: center; padding: 22px;">
+                <div style="font-size: 2rem; margin-bottom: 6px;">📘</div>
+                <h4 style="margin: 0 0 6px; color: var(--azul-secundario); font-size: 1.25rem;">¡Ejemplo Guiado Finalizado!</h4>
+                <p style="margin: 0; color: #27425f; font-size: 0.98rem;">
+                    Has revisado todos los pasos de la solución de este ejemplo. Puedes consultarlo cuando gustes y continuar con los problemas de práctica a continuación.
+                </p>
+            </div>
+        @else
+            <div class="footer-note" style="margin-top: 20px; background: #e7f7ea; border: 1px solid #7bc28a; color: #1e5aa8; text-align: center; padding: 22px;">
+                <div style="font-size: 2rem; margin-bottom: 6px;">🎉</div>
+                <h4 style="margin: 0 0 6px; color: #1e5aa8; font-size: 1.25rem;">¡Problema Completado con Éxito!</h4>
+                <p style="margin: 0; color: #25623b; font-size: 0.98rem;">
+                    Has resuelto satisfactoriamente todos los pasos interactivos de este problema. Tu progreso ha sido registrado.
+                </p>
+            </div>
+        @endif
     @endif
 </div>

@@ -188,11 +188,12 @@ class ModuloViewer extends Component
 
         $readingTotal = $this->items->sum('percentage');
 
-        $allProblems = $this->items->flatMap(function ($item) {
-            return $item->problems->where('is_active', true);
+        // Solo los problemas evaluados (is_example == false) cuentan para el porcentaje del módulo
+        $evalProblems = $this->items->flatMap(function ($item) {
+            return $item->problems->where('is_active', true)->where('is_example', false);
         });
 
-        $problemTotal = $allProblems->sum('percentage');
+        $problemTotal = $evalProblems->sum('percentage');
 
         foreach ($this->items as $item) {
             if ($this->isReadingCompleted($item->id)) {
@@ -200,7 +201,7 @@ class ModuloViewer extends Component
                 $readingCompleted += $item->percentage;
             }
 
-            foreach ($item->problems->where('is_active', true) as $problem) {
+            foreach ($item->problems->where('is_active', true)->where('is_example', false) as $problem) {
                 if ($this->isProblemCompleted($problem->id)) {
                     $this->totalProgress += $problem->percentage;
                     $problemCompleted += $problem->percentage;
@@ -217,24 +218,81 @@ class ModuloViewer extends Component
             : 100;
     }
 
-    public function getUnlockedProblemOrder($moduleItemId): int
+    public function areExamplesCompleted($moduleItemId): bool
     {
-        $problems = $this->items
+        $examples = $this->items
             ->firstWhere('id', $moduleItemId)
             ?->problems
-            ?->where('is_active', true);
+            ?->where('is_active', true)
+            ->where('is_example', true);
 
-        if (! $problems || $problems->isEmpty()) {
-            return 0;
+        if (! $examples || $examples->isEmpty()) {
+            return true;
         }
 
-        foreach ($problems as $problem) {
-            if (! $this->isProblemCompleted($problem->id)) {
-                return $problem->order;
+        foreach ($examples as $example) {
+            if (! $this->isProblemCompleted($example->id)) {
+                return false;
             }
         }
 
-        return $problems->max('order');
+        return true;
+    }
+
+    public function isProblemUnlocked($problem, $moduleItemId): bool
+    {
+        // 1. Si el problema es un ejemplo demostrativo:
+        if ($problem->is_example) {
+            $examples = $this->items
+                ->firstWhere('id', $moduleItemId)
+                ?->problems
+                ?->where('is_active', true)
+                ->where('is_example', true)
+                ->sortBy('order');
+
+            if (! $examples) {
+                return true;
+            }
+
+            foreach ($examples as $ex) {
+                if ($ex->id === $problem->id) {
+                    return true;
+                }
+                if (! $this->isProblemCompleted($ex->id)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // 2. Si es un problema evaluado: requiere que TODOS los ejemplos de la lectura estén completados primero
+        if (! $this->areExamplesCompleted($moduleItemId)) {
+            return false;
+        }
+
+        // Y dentro de los ejercicios evaluados, se desbloquean en orden secuencial
+        $exercises = $this->items
+            ->firstWhere('id', $moduleItemId)
+            ?->problems
+            ?->where('is_active', true)
+            ->where('is_example', false)
+            ->sortBy('order');
+
+        if (! $exercises) {
+            return true;
+        }
+
+        foreach ($exercises as $ex) {
+            if ($ex->id === $problem->id) {
+                return true;
+            }
+            if (! $this->isProblemCompleted($ex->id)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function render()

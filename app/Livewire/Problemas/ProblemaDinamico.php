@@ -3,6 +3,7 @@
 namespace App\Livewire\Problemas;
 
 use App\Models\Problem;
+use App\Models\UserProblemProgress;
 use Livewire\Component;
 
 class ProblemaDinamico extends Component
@@ -42,6 +43,48 @@ class ProblemaDinamico extends Component
             if (! isset($this->answers[$step->id])) {
                 $this->answers[$step->id] = '';
             }
+        }
+
+        // Si ya está completado previamente por el usuario, mostrar todos los pasos desbloqueados
+        if (auth()->check()) {
+            $alreadyDone = UserProblemProgress::where('user_id', auth()->id())
+                ->where('problem_id', $this->problemId)
+                ->where('completed', true)
+                ->exists();
+
+            if ($alreadyDone) {
+                $this->isCompleted = true;
+                $this->currentStepIndex = count($this->steps) + 1;
+                foreach ($this->steps as $s) {
+                    $this->messages[$s->id] = ['ok' => true, 'text' => '', 'reminder' => null];
+                }
+            }
+        }
+    }
+
+    public function nextExampleStep(int $stepId)
+    {
+        $step = $this->steps->firstWhere('id', $stepId);
+        if (! $step) {
+            return;
+        }
+
+        $this->messages[$stepId] = [
+            'ok' => true,
+            'text' => 'Paso revisado.',
+            'reminder' => null,
+        ];
+
+        // Determinar siguiente paso
+        $currentIndex = $this->steps->search(fn ($s) => $s->id === $stepId);
+        $nextIndex = $currentIndex !== false ? $currentIndex + 2 : $this->currentStepIndex + 1;
+
+        if ($nextIndex > count($this->steps)) {
+            $this->isCompleted = true;
+            $this->currentStepIndex = count($this->steps) + 1;
+            $this->dispatch('problema-completado', problemId: $this->problemId);
+        } else {
+            $this->currentStepIndex = max($this->currentStepIndex, $nextIndex);
         }
     }
 
