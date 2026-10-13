@@ -295,6 +295,28 @@
                             this.updateCurrentBlockTag();
                         });
                     });
+
+                    editable.addEventListener('paste', (e) => {
+                        const clipboardData = e.clipboardData || window.clipboardData;
+                        if (!clipboardData) return;
+
+                        const items = clipboardData.items;
+                        let imageFile = null;
+
+                        if (items) {
+                            for (let i = 0; i < items.length; i++) {
+                                if (items[i].type && items[i].type.startsWith('image/')) {
+                                    imageFile = items[i].getAsFile();
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (imageFile) {
+                            e.preventDefault();
+                            this.uploadPastedImage(imageFile);
+                        }
+                    });
                 }
 
                 this.$watch('value', (newValue) => {
@@ -572,6 +594,9 @@
                     body: formData
                 })
                 .then(response => {
+                    if (response.status === 413) {
+                        throw new Error('La imagen excede el tamaño máximo permitido por Nginx (413 Request Entity Too Large).');
+                    }
                     if (!response.ok) throw new Error('Error al subir imagen al servidor');
                     return response.json();
                 })
@@ -588,21 +613,48 @@
                     }
                 })
                 .catch(err => {
-                    console.warn('Network upload failed, reading locally:', err);
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.isUploadingImage = false;
-                        this.imageUrl = e.target.result;
-                        if (!this.imageAlt) {
-                            const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                            this.imageAlt = nameWithoutExt.replace(/[-_]/g, ' ');
+                    this.isUploadingImage = false;
+                    this.uploadError = err.message || 'Error al subir la imagen al servidor.';
+                });
+            },
+
+            uploadPastedImage(file) {
+                const formData = new FormData();
+                formData.append('image', file);
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                const placeholderId = 'paste-upload-' + Date.now();
+                this.insertHtmlAtCursor(`<div id="${placeholderId}" class="footer-note" style="margin: 10px 0; background: #eef6ff; color: var(--azul-secundario); font-size: 0.85rem;">⏳ Subiendo imagen al servidor...</div>`);
+
+                fetch('/admin/upload-image', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken || '' },
+                    body: formData
+                })
+                .then(res => {
+                    if (res.status === 413) throw new Error('La imagen pegada supera el tamaño permitido por Nginx (413).');
+                    if (!res.ok) throw new Error('Error al subir la imagen pegada.');
+                    return res.json();
+                })
+                .then(data => {
+                    const el = document.getElementById(placeholderId);
+                    if (data.url) {
+                        const imgHtml = `<div class="edu-figure align-center" style="margin: 14px 0;"><img src="${data.url}" style="max-width: 75%; height: auto; border: 1px solid var(--borde); border-radius: 10px; padding: 3px; background: #fff;" alt="Figura pegada"><figcaption style="font-size: 0.8rem; color: var(--gris); margin-top: 4px;">Figura</figcaption></div><p><br></p>`;
+                        if (el) {
+                            el.outerHTML = imgHtml;
+                        } else {
+                            this.insertHtmlAtCursor(imgHtml);
                         }
-                    };
-                    reader.onerror = () => {
-                        this.isUploadingImage = false;
-                        this.uploadError = 'No se pudo procesar el archivo seleccionado.';
-                    };
-                    reader.readAsDataURL(file);
+                        this.onContentChange();
+                    } else {
+                        if (el) el.remove();
+                        alert(data.error || 'No se pudo subir la imagen.');
+                    }
+                })
+                .catch(err => {
+                    const el = document.getElementById(placeholderId);
+                    if (el) el.remove();
+                    alert(err.message || 'Error de red al subir la imagen.');
                 });
             },
 
