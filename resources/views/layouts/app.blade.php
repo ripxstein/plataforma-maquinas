@@ -315,6 +315,16 @@
                         if (imageFile) {
                             e.preventDefault();
                             this.uploadPastedImage(imageFile);
+                            return;
+                        }
+
+                        const html = clipboardData.getData('text/html');
+                        if (html && (html.includes('<!--[if') || html.includes('urn:schemas-microsoft-com') || html.includes('mso-') || html.includes('MsoNormal') || html.includes('<xml>'))) {
+                            e.preventDefault();
+                            const cleanedHtml = this.cleanWordHtml(html);
+                            document.execCommand('insertHTML', false, cleanedHtml);
+                            this.saveSelection();
+                            this.onContentChange();
                         }
                     });
                 }
@@ -956,6 +966,54 @@ toggleTagBlock() {
                 if (previewEl) {
                     renderAllMath(previewEl);
                 }
+            },
+
+            cleanWordHtml(html) {
+                // 1. Eliminar condicionales de comentarios de Word (<!--[if ...]>...<![endif]-->)
+                let clean = html.replace(/<!--\[if[\s\S]*?<!\[endif\]-->/gi, '');
+                clean = clean.replace(/<!--[\s\S]*?-->/gi, '');
+
+                // 2. Eliminar etiquetas específicas de Word/Office
+                clean = clean.replace(/<xml[\s\S]*?<\/xml>/gi, '');
+                clean = clean.replace(/<\/?\w+:[^>]*>/gi, '');
+
+                // 3. Parsear el HTML resultante con DOMParser
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(clean, 'text/html');
+
+                // 4. Remover etiquetas que no pertenecen al contenido (style, meta, link, title)
+                doc.querySelectorAll('style, meta, link, title').forEach(el => el.remove());
+
+                // 5. Limpiar clases Mso y estilos mso- de cada elemento
+                doc.body.querySelectorAll('*').forEach(el => {
+                    if (el.className) {
+                        const cleanedClass = el.className
+                            .split(/\s+/)
+                            .filter(cls => !cls.toLowerCase().startsWith('mso') && cls.trim() !== '')
+                            .join(' ');
+                        if (cleanedClass) {
+                            el.className = cleanedClass;
+                        } else {
+                            el.removeAttribute('class');
+                        }
+                    }
+
+                    if (el.hasAttribute('style')) {
+                        const styleVal = el.getAttribute('style') || '';
+                        const cleanedStyle = styleVal
+                            .split(';')
+                            .map(s => s.trim())
+                            .filter(s => s && !s.toLowerCase().startsWith('mso-') && !s.toLowerCase().startsWith('tab-stops:'))
+                            .join('; ');
+                        if (cleanedStyle) {
+                            el.setAttribute('style', cleanedStyle);
+                        } else {
+                            el.removeAttribute('style');
+                        }
+                    }
+                });
+
+                return doc.body.innerHTML;
             }
         }));
     }
