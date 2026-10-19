@@ -11,9 +11,9 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- KaTeX for Math Formulas -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" data-navigate-once onload="if (typeof renderAllMath === 'function') renderAllMath();"></script>
+        <!-- KaTeX for Math Formulas (Local / Offline) -->
+        <link rel="stylesheet" href="{{ asset('vendor/katex/katex.min.css') }}">
+        <script src="{{ asset('vendor/katex/katex.min.js') }}" data-navigate-once onload="if (typeof renderAllMath === 'function') renderAllMath();"></script>
 
         <!-- Scripts -->
         
