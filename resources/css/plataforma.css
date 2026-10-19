@@ -571,26 +571,50 @@ th {
 .formula .katex-display,
 .formula-display .katex-display {
   margin: 0 !important;
-  padding: 4px 0 !important;
-  text-align: center;
+  padding: 6px 4px 8px 4px !important;
+  display: flex !important;
+  justify-content: safe center !important;
+  align-items: center !important;
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none !important;
-  /* Firefox */
-  -ms-overflow-style: none !important;
-  /* IE y Edge clásico */
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  box-sizing: border-box;
+  scrollbar-width: thin !important;
+  scrollbar-color: #9ec2e6 #edf5fe !important;
 }
 
+.formula .katex-display > .katex,
+.formula-display .katex-display > .katex {
+  display: inline-block !important;
+  max-width: none !important;
+  white-space: nowrap !important;
+}
+
+/* Scrollbar estilizada y moderna para Chrome, Edge y Safari */
 .formula .katex-display::-webkit-scrollbar,
-.formula-display .katex-display::-webkit-scrollbar,
-.formula::-webkit-scrollbar,
-.formula-display::-webkit-scrollbar {
-  display: none !important;
-  /* Chrome, Edge, Safari */
-  width: 0 !important;
-  height: 0 !important;
+.formula-display .katex-display::-webkit-scrollbar {
+  display: block !important;
+  height: 6px !important;
+}
+
+.formula .katex-display::-webkit-scrollbar-track,
+.formula-display .katex-display::-webkit-scrollbar-track {
+  background: #edf5fe;
+  border-radius: 999px;
+}
+
+.formula .katex-display::-webkit-scrollbar-thumb,
+.formula-display .katex-display::-webkit-scrollbar-thumb {
+  background: #9ec2e6;
+  border-radius: 999px;
+}
+
+.formula .katex-display::-webkit-scrollbar-thumb:hover,
+.formula-display .katex-display::-webkit-scrollbar-thumb:hover {
+  background: #6fa8dc;
 }
 
 .formula::after {
@@ -639,8 +663,9 @@ th {
 
   .formula,
   .formula-display {
-    padding: 14px 16px 40px 16px;
+    padding: 14px 14px 44px 14px !important;
     flex-direction: column;
+    align-items: stretch !important;
     font-size: 16px;
   }
 
@@ -658,7 +683,7 @@ th {
 
   .formula,
   .formula-display {
-    padding: 12px 10px 36px 10px;
+    padding: 12px 10px 42px 10px !important;
     font-size: 14px;
   }
 
@@ -1341,16 +1366,6 @@ th {
   box-sizing: border-box;
 }
 
-.formula-display .katex-display {
-  margin: 0 !important;
-  padding: 4px 0 !important;
-  text-align: center;
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
 
 .formula-display::after {
   content: "(" counter(mod-num) "." counter(read-num) "." counter(formula-idx) ")";
