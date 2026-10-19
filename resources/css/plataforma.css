@@ -29,15 +29,24 @@ body {
   counter-reset: mod-num 1 read-num 1 formula-idx 0;
 }
 
+nav {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
 .layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 320px minmax(0, 1fr);
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .layout.sidebar-collapsed {
-  grid-template-columns: 78px 1fr;
+  grid-template-columns: 78px minmax(0, 1fr);
 }
 
 aside {
@@ -46,6 +55,7 @@ aside {
   position: sticky;
   top: 0;
   height: 100vh;
+  align-self: start;
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: 32px;
@@ -271,6 +281,9 @@ aside {
 
 main {
   padding: 28px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .hero {
@@ -343,7 +356,7 @@ section.content-section {
   word-wrap: break-word;
 }
 
-.section-body > *,
+.section-body>*,
 .section-body p,
 .section-body div,
 .section-body h1,
@@ -544,7 +557,7 @@ th {
   border-radius: 14px;
   font-family: "Cambria Math", "Times New Roman", serif;
   margin: 16px 0;
-  font-size: clamp(15px, 1.9vw, 20px);
+  font-size: clamp(13px, 1.9vw, 21px);
   position: relative;
   display: flex;
   align-items: center;
@@ -564,15 +577,18 @@ th {
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: none !important; /* Firefox */
-  -ms-overflow-style: none !important; /* IE y Edge clásico */
+  scrollbar-width: none !important;
+  /* Firefox */
+  -ms-overflow-style: none !important;
+  /* IE y Edge clásico */
 }
 
 .formula .katex-display::-webkit-scrollbar,
 .formula-display .katex-display::-webkit-scrollbar,
 .formula::-webkit-scrollbar,
 .formula-display::-webkit-scrollbar {
-  display: none !important; /* Chrome, Edge, Safari */
+  display: none !important;
+  /* Chrome, Edge, Safari */
   width: 0 !important;
   height: 0 !important;
 }
@@ -620,12 +636,14 @@ th {
 }
 
 @media (max-width: 820px) {
+
   .formula,
   .formula-display {
     padding: 14px 16px 40px 16px;
     flex-direction: column;
     font-size: 16px;
   }
+
   .formula::after,
   .formula-display::after {
     top: auto;
@@ -637,11 +655,13 @@ th {
 }
 
 @media (max-width: 520px) {
+
   .formula,
   .formula-display {
     padding: 12px 10px 36px 10px;
     font-size: 14px;
   }
+
   .formula::after,
   .formula-display::after {
     font-size: 0.74rem;
@@ -1674,9 +1694,13 @@ th {
    RESPONSIVE: SIDEBAR Y LAYOUT EN DISPOSITIVOS MÓVILES
    ======================================================== */
 @media (max-width: 1080px) {
+
   .layout,
   .layout.sidebar-collapsed {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden;
   }
 
   aside,
@@ -1684,13 +1708,47 @@ th {
     position: relative;
     height: auto;
     width: 100% !important;
+    max-width: 100% !important;
     border-right: none;
     border-bottom: 1px solid var(--borde);
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
+  main {
+    padding: 20px 16px !important;
+  }
+
+  .brand,
   .layout.sidebar-collapsed .sidebar-user .brand {
-    padding: 24px 20px 20px !important;
+    padding: 20px 16px !important;
     text-align: left !important;
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  .brand-header-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .brand .ipn {
+    font-size: 0.85rem !important;
+    word-break: break-word;
+  }
+
+  .brand h1 {
+    font-size: 1.45rem !important;
+    word-break: break-word;
+  }
+
+  .brand p {
+    font-size: 0.88rem !important;
+  }
+
+  .hero {
+    padding: 20px 18px !important;
+    border-radius: 18px !important;
   }
 
   .layout.sidebar-collapsed .sidebar-user .brand-expanded {
@@ -1713,5 +1771,28 @@ th {
     justify-content: flex-start !important;
     padding: 12px 16px !important;
     gap: 12px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  main {
+    padding: 16px 12px !important;
+  }
+
+  .brand,
+  .layout.sidebar-collapsed .sidebar-user .brand {
+    padding: 16px 14px !important;
+  }
+
+  .brand h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .brand .ipn {
+    font-size: 0.78rem !important;
+  }
+
+  .hero {
+    padding: 16px 14px !important;
   }
 }
