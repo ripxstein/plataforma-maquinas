@@ -7,6 +7,7 @@
 <div 
     x-data="eduWysiwygEditor({
         value: @entangle($attributes->wire('model')),
+        modelName: '{{ $attributes->wire('model') ? $attributes->wire('model')->value() : '' }}',
         editorId: '{{ $id }}'
     })"
     x-init="init()"
@@ -33,10 +34,19 @@
             >
                 👁️ Vista Previa del Alumno
             </button>
+            <button 
+                type="button" 
+                class="edu-tab-btn" 
+                :class="{ 'active': activeTab === 'html' }"
+                @click="switchTab('html')"
+            >
+                💻 Código HTML
+            </button>
         </div>
         <div style="font-size: 0.8rem; color: var(--gris); font-weight: 500;">
             <span x-show="activeTab === 'edit'">Modo Edición Visual</span>
             <span x-show="activeTab === 'preview'">Previsualización en tiempo real</span>
+            <span x-show="activeTab === 'html'" style="color: var(--azul-secundario); font-weight: 700;">⚙️ Edición Avanzada (HTML puro)</span>
         </div>
     </div>
 
@@ -184,6 +194,62 @@
         id="{{ $id }}-preview"
     >
         <div x-html="value || '<p style=\'color:var(--gris); font-style:italic;\'>No hay contenido para mostrar en la vista previa.</p>'"></div>
+    </div>
+
+    <!-- HTML Source Code Mode (Edición Avanzada) -->
+    <div 
+        x-show="activeTab === 'html'" 
+        class="edu-wysiwyg-html-pane"
+        id="{{ $id }}-html-pane"
+    >
+        <div class="edu-html-toolbar">
+            <div class="edu-html-toolbar-info">
+                <span class="edu-html-badge">⚙️ MODO AVANZADO</span>
+                <span class="edu-html-hint">
+                    Edita directamente el código HTML. Los cambios se sincronizan automáticamente.
+                </span>
+            </div>
+            <div class="edu-html-toolbar-actions">
+                <button 
+                    type="button" 
+                    class="edu-html-btn" 
+                    @click="formatHtmlCode()" 
+                    title="Dar formato e indentar el código HTML"
+                >
+                    ✨ Formatear HTML
+                </button>
+                <button 
+                    type="button" 
+                    class="edu-html-btn" 
+                    @click="cleanHtmlCode()" 
+                    title="Eliminar estilos inline innecesarios y atributos basura de Google/Word"
+                >
+                    🧹 Limpiar formato
+                </button>
+                <button 
+                    type="button" 
+                    class="edu-html-btn" 
+                    @click="copyHtmlToClipboard()" 
+                    title="Copiar todo el código al portapapeles"
+                >
+                    <span x-text="copiedHtml ? '✅ ¡Copiado!' : '📋 Copiar HTML'"></span>
+                </button>
+            </div>
+        </div>
+
+        <div class="edu-html-editor-wrapper">
+            <textarea 
+                class="edu-html-textarea" 
+                id="{{ $id }}-html-textarea"
+                x-model="htmlCode"
+                @input="onHtmlChange()"
+                placeholder="Escribe o pega aquí el código HTML..."
+                spellcheck="false"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+            ></textarea>
+        </div>
     </div>
 
     <!-- MODAL: Formula Assistant -->

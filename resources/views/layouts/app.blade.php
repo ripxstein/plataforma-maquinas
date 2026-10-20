@@ -255,10 +255,14 @@
 
         Alpine.data('eduWysiwygEditor', (config = {}) => ({
             value: config.value || '',
+            modelName: config.modelName || '',
             editorId: config.editorId || 'edu-editor',
+            hasUserEdited: false,
             activeTab: 'edit',
             currentBlockTag: 'p',
             savedSelection: null,
+            htmlCode: config.value || '',
+            copiedHtml: false,
             
             // Modals state
             showFormulaModal: false,
@@ -288,6 +292,7 @@
                 const editable = document.getElementById(this.editorId + '-editable');
                 if (editable) {
                     editable.innerHTML = this.value || '';
+                    this.hasUserEdited = false;
 
                     ['keyup', 'mouseup', 'touchend', 'input'].forEach(evt => {
                         editable.addEventListener(evt, () => {
@@ -331,8 +336,20 @@
 
                 this.$watch('value', (newValue) => {
                     const el = document.getElementById(this.editorId + '-editable');
-                    if (el && el !== document.activeElement && el.innerHTML !== (newValue || '')) {
-                        el.innerHTML = newValue || '';
+                    if (el && el !== document.activeElement) {
+                        // Protección contra desincronización de Livewire:
+                        // Si el usuario ya estuvo editando y Livewire devuelve un valor vacío o nulo
+                        // durante una petición secundaria (ej: al escribir en el título o cambiar selects),
+                        // no sobreescribir el contenido existente.
+                        if (this.hasUserEdited && !newValue && el.innerHTML.trim() !== '') {
+                            return;
+                        }
+                        if (el.innerHTML !== (newValue || '')) {
+                            el.innerHTML = newValue || '';
+                        }
+                    }
+                    if (this.activeTab !== 'html') {
+                        this.htmlCode = newValue || '';
                     }
                     if (this.activeTab === 'preview') {
                         this.$nextTick(() => this.triggerKaTeX());
@@ -389,15 +406,187 @@
             onContentChange() {
                 const el = document.getElementById(this.editorId + '-editable');
                 if (el) {
+                    this.hasUserEdited = true;
                     this.value = el.innerHTML;
+                    this.htmlCode = this.value;
+                    if (this.$wire && this.modelName) {
+                        try {
+                            this.$wire.set(this.modelName, this.value, false);
+                        } catch (e) {
+                            // Silently ignore if $wire property binding is not found
+                        }
+                    }
                 }
             },
 
             switchTab(tab) {
+                // Sincronizar desde la pestaña saliente antes del cambio
+                if (this.activeTab === 'edit') {
+                    const el = document.getElementById(this.editorId + '-editable');
+                    if (el) {
+                        this.value = el.innerHTML;
+                    }
+                } else if (this.activeTab === 'html') {
+                    this.value = this.htmlCode || '';
+                    const el = document.getElementById(this.editorId + '-editable');
+                    if (el) {
+                        el.innerHTML = this.value;
+                    }
+                }
+
                 this.activeTab = tab;
-                if (tab === 'preview') {
+
+                // Sincronizar hacia la pestaña entrante
+                if (tab === 'html') {
+                    this.htmlCode = this.formatHtml(this.value || '');
+                } else if (tab === 'edit') {
+                    const el = document.getElementById(this.editorId + '-editable');
+                    if (el && el.innerHTML !== (this.value || '')) {
+                        el.innerHTML = this.value || '';
+                    }
+                } else if (tab === 'preview') {
                     this.$nextTick(() => this.triggerKaTeX());
                 }
+            },
+
+            onHtmlChange() {
+                this.hasUserEdited = true;
+                this.value = this.htmlCode || '';
+                const el = document.getElementById(this.editorId + '-editable');
+                if (el && el !== document.activeElement) {
+                    el.innerHTML = this.value;
+                }
+                if (this.$wire && this.modelName) {
+                    try {
+                        this.$wire.set(this.modelName, this.value, false);
+                    } catch (e) {
+                        // Silently ignore
+                    }
+                }
+            },
+
+            formatHtmlCode() {
+                this.htmlCode = this.formatHtml(this.htmlCode || this.value || '');
+                this.onHtmlChange();
+            },
+
+            cleanHtmlCode() {
+                let clean = (this.htmlCode || this.value || '');
+                clean = clean.replace(/<!--[\s\S]*?-->/gi, '');
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(clean, 'text/html');
+                
+                doc.querySelectorAll('script, style').forEach(el => el.remove());
+
+                doc.body.querySelectorAll('*').forEach(el => {
+                    [...el.attributes].forEach(attr => {
+                        if (attr.name.startsWith('data-sfc') || 
+                            attr.name.startsWith('data-ep') || 
+                            attr.name.startsWith('data-hveid') || 
+                            attr.name.startsWith('data-processed') || 
+                            attr.name.startsWith('data-complete') || 
+                            attr.name.startsWith('data-subtree') || 
+                            attr.name.startsWith('data-sae') || 
+                            attr.name.startsWith('data-wiz') || 
+                            attr.name.startsWith('jsaction') || 
+                            attr.name.startsWith('jsc') || 
+                            attr.name === 'jsuid') {
+                            el.removeAttribute(attr.name);
+                        }
+                    });
+
+                    if (el.className) {
+                        const preserved = el.className.split(/\s+/).filter(cls => 
+                            cls.startsWith('edu-') || 
+                            cls.startsWith('formula') || 
+                            cls.startsWith('tag') || 
+                            cls.startsWith('card') || 
+                            cls.startsWith('pstep') || 
+                            cls.startsWith('katex') ||
+                            cls.startsWith('accordion')
+                        ).join(' ');
+                        if (preserved) {
+                            el.className = preserved;
+                        } else {
+                            el.removeAttribute('class');
+                        }
+                    }
+
+                    if (el.hasAttribute('style')) {
+                        const style = el.getAttribute('style') || '';
+                        const cleaned = style.split(';')
+                            .map(s => s.trim())
+                            .filter(s => s && 
+                                !s.startsWith('--tw-') && 
+                                !s.includes('margin: -1px') && 
+                                !s.includes('margin:-1px') && 
+                                !s.startsWith('font-family') && 
+                                !s.startsWith('border-bottom: 0px rgb')
+                            )
+                            .join('; ');
+                        if (cleaned) {
+                            el.setAttribute('style', cleaned);
+                        } else {
+                            el.removeAttribute('style');
+                        }
+                    }
+                });
+
+                this.htmlCode = this.formatHtml(doc.body.innerHTML);
+                this.onHtmlChange();
+            },
+
+            copyHtmlToClipboard() {
+                const textToCopy = this.htmlCode || this.value || '';
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        this.copiedHtml = true;
+                        setTimeout(() => { this.copiedHtml = false; }, 2000);
+                    });
+                } else {
+                    const textarea = document.getElementById(this.editorId + '-html-textarea');
+                    if (textarea) {
+                        textarea.select();
+                        document.execCommand('copy');
+                        this.copiedHtml = true;
+                        setTimeout(() => { this.copiedHtml = false; }, 2000);
+                    }
+                }
+            },
+
+            formatHtml(html) {
+                if (!html) return '';
+                let formatted = '';
+                let indent = 0;
+                const tab = '    ';
+                
+                const tokens = html.replace(/>\s*</g, '><').replace(/<(?:\/?)(?:[a-zA-Z0-9_\-]+)[^>]*>/g, function(match) {
+                    return '\n' + match + '\n';
+                }).split('\n').filter(Boolean);
+
+                const selfClosingTags = ['img', 'br', 'hr', 'input', 'meta', 'link'];
+
+                for (let i = 0; i < tokens.length; i++) {
+                    let token = tokens[i].trim();
+                    if (!token) continue;
+
+                    const isClosing = /^<\//.test(token);
+                    const tagNameMatch = token.match(/^<\/?([a-zA-Z0-9_\-]+)/);
+                    const tagName = tagNameMatch ? tagNameMatch[1].toLowerCase() : '';
+                    const isSelfClosing = selfClosingTags.includes(tagName) || /\/>$/.test(token);
+
+                    if (isClosing) {
+                        indent = Math.max(0, indent - 1);
+                    }
+
+                    formatted += tab.repeat(indent) + token + '\n';
+
+                    if (!isClosing && !isSelfClosing && tagName) {
+                        indent++;
+                    }
+                }
+
+                return formatted.trim();
             },
 
             format(command, value = null) {

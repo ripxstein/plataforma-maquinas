@@ -745,7 +745,7 @@
     <!-- MODAL: STEP EDITOR (CREAR / EDITAR PASO DETALLADO)       -->
     <!-- ======================================================== -->
     @if($showStepModal)
-        <div wire:key="step-editor-modal" class="admin-modal-backdrop" wire:click.self="closeStepModal">
+        <div wire:key="step-editor-modal-{{ $editingStepIndex !== null ? 'edit-'.$editingStepIndex : 'new' }}" class="admin-modal-backdrop">
             <div class="admin-modal" style="max-width: 780px;">
                 <div class="admin-modal-header">
                     <h3>{{ $editingStepIndex !== null ? '✏️ Configurar Paso ' . ($editingStepIndex + 1) : '➕ Agregar Nuevo Paso' }}</h3>
@@ -775,7 +775,11 @@
                     <div class="form-group">
                         <label class="form-label">{{ $isExample ? 'Desarrollo / Explicación del Paso' : 'Instrucción / Enunciado del Paso' }}</label>
                         <div class="form-hint">Puedes incluir fórmulas matemáticas (ej: <code>\[d = w - 2r\]</code>), procedimientos o texto explicativo:</div>
-                        <x-edu-wysiwyg wire:model="stepInstruction" id="step-instruction-wysiwyg" />
+                        <x-edu-wysiwyg 
+                            wire:model="stepInstruction" 
+                            id="step-instruction-wysiwyg-{{ $editingStepIndex !== null ? $editingStepIndex : 'new' }}" 
+                            wire:key="step-wysiwyg-{{ $editingStepIndex !== null ? $editingStepIndex : 'new' }}"
+                        />
                         @error('stepInstruction') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
 

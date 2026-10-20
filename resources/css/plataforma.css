@@ -1652,6 +1652,129 @@ th {
   border-radius: 0 0 16px 16px;
 }
 
+/* ==========================================================================
+   HTML CODE EDITOR (MODO AVANZADO)
+   ========================================================================== */
+.edu-wysiwyg-html-pane {
+  background: #0f172a;
+  border-radius: 0 0 16px 16px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.edu-html-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  padding: 10px 16px;
+}
+
+.edu-html-toolbar-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edu-html-badge {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  display: inline-flex;
+  align-items: center;
+}
+
+.edu-html-hint {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.edu-html-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edu-html-btn {
+  background: #334155;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edu-html-btn:hover {
+  background: #475569;
+  border-color: #64748b;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.edu-html-btn:active {
+  transform: translateY(0);
+}
+
+.edu-html-editor-wrapper {
+  padding: 14px 16px 18px 16px;
+  background: #0f172a;
+}
+
+.edu-html-textarea {
+  width: 100%;
+  min-height: 340px;
+  max-height: 580px;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-family: Consolas, "Fira Code", Monaco, "Courier New", monospace;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  outline: none;
+  resize: vertical;
+  tab-size: 4;
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #0f172a;
+}
+
+.edu-html-textarea::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.edu-html-textarea::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.edu-html-textarea::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.edu-html-textarea::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
 /* Modal interno del editor */
 .edu-modal-backdrop {
   position: fixed;
