@@ -15,6 +15,18 @@
         <link rel="stylesheet" href="{{ asset('vendor/katex/katex.min.css') }}">
         <script src="{{ asset('vendor/katex/katex.min.js') }}" data-navigate-once onload="if (typeof renderAllMath === 'function') renderAllMath();"></script>
 
+        <!-- CodeMirror for HTML Source Code Editor (Local / Offline) -->
+        <link rel="stylesheet" href="{{ asset('vendor/codemirror/codemirror.css') }}">
+        <link rel="stylesheet" href="{{ asset('vendor/codemirror/addon/foldgutter.css') }}">
+        <script src="{{ asset('vendor/codemirror/codemirror.js') }}" data-navigate-once></script>
+        <script src="{{ asset('vendor/codemirror/mode/xml.js') }}" data-navigate-once></script>
+        <script src="{{ asset('vendor/codemirror/mode/javascript.js') }}" data-navigate-once></script>
+        <script src="{{ asset('vendor/codemirror/mode/css.js') }}" data-navigate-once></script>
+        <script src="{{ asset('vendor/codemirror/mode/htmlmixed.js') }}" data-navigate-once></script>
+        <script src="{{ asset('vendor/codemirror/addon/foldcode.js') }}" data-navigate-once></script>
+        <script src="{{ asset('vendor/codemirror/addon/foldgutter.js') }}" data-navigate-once></script>
+        <script src="{{ asset('vendor/codemirror/addon/xml-fold.js') }}" data-navigate-once></script>
+
         <!-- Scripts -->
         
 <script data-navigate-once>
@@ -343,6 +355,8 @@
                 tagName: '',
             },
             
+            codeMirrorInstance: null,
+            
             // Modals state
             showFormulaModal: false,
             formulaInput: '',
@@ -506,7 +520,11 @@
                         this.value = el.innerHTML;
                     }
                 } else if (this.activeTab === 'html') {
-                    this.value = this.htmlCode || '';
+                    if (this.codeMirrorInstance) {
+                        this.value = this.codeMirrorInstance.getValue();
+                    } else {
+                        this.value = this.htmlCode || '';
+                    }
                     const el = document.getElementById(this.editorId + '-editable');
                     if (el) {
                         el.innerHTML = this.value;
@@ -518,6 +536,20 @@
                 // Sincronizar hacia la pestaña entrante
                 if (tab === 'html') {
                     this.htmlCode = this.formatHtml(this.value || '');
+                    this.$nextTick(() => {
+                        if (!this.codeMirrorInstance) {
+                            this.initCodeMirror();
+                        } else {
+                            this.codeMirrorInstance.setValue(this.htmlCode);
+                            this.codeMirrorInstance.refresh();
+                        }
+                        if (this.codeMirrorInstance) {
+                            setTimeout(() => {
+                                this.codeMirrorInstance.refresh();
+                                this.codeMirrorInstance.focus();
+                            }, 50);
+                        }
+                    });
                 } else if (tab === 'edit') {
                     const el = document.getElementById(this.editorId + '-editable');
                     if (el && el.innerHTML !== (this.value || '')) {
@@ -526,6 +558,33 @@
                 } else if (tab === 'preview') {
                     this.$nextTick(() => this.triggerKaTeX());
                 }
+            },
+
+            initCodeMirror() {
+                if (this.codeMirrorInstance) return;
+                const textarea = document.getElementById(this.editorId + '-html-textarea');
+                if (!textarea || typeof CodeMirror === 'undefined') return;
+
+                this.codeMirrorInstance = CodeMirror.fromTextArea(textarea, {
+                    mode: 'htmlmixed',
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    foldGutter: true,
+                    gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+                    tabSize: 4,
+                    indentUnit: 4,
+                    indentWithTabs: false
+                });
+
+                this.codeMirrorInstance.setValue(this.htmlCode || '');
+
+                this.codeMirrorInstance.on('change', (cm) => {
+                    const newVal = cm.getValue();
+                    if (this.htmlCode !== newVal) {
+                        this.htmlCode = newVal;
+                        this.onHtmlChange();
+                    }
+                });
             },
 
             onHtmlChange() {
@@ -545,7 +604,11 @@
             },
 
             formatHtmlCode() {
-                this.htmlCode = this.formatHtml(this.htmlCode || this.value || '');
+                const current = this.codeMirrorInstance ? this.codeMirrorInstance.getValue() : (this.htmlCode || this.value || '');
+                this.htmlCode = this.formatHtml(current);
+                if (this.codeMirrorInstance) {
+                    this.codeMirrorInstance.setValue(this.htmlCode);
+                }
                 this.onHtmlChange();
             },
 
@@ -611,11 +674,14 @@
                 });
 
                 this.htmlCode = this.formatHtml(doc.body.innerHTML);
+                if (this.codeMirrorInstance) {
+                    this.codeMirrorInstance.setValue(this.htmlCode);
+                }
                 this.onHtmlChange();
             },
 
             copyHtmlToClipboard() {
-                const textToCopy = this.htmlCode || this.value || '';
+                const textToCopy = this.codeMirrorInstance ? this.codeMirrorInstance.getValue() : (this.htmlCode || this.value || '');
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(textToCopy).then(() => {
                         this.copiedHtml = true;
