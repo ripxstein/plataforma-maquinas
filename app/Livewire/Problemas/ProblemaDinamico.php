@@ -86,6 +86,8 @@ class ProblemaDinamico extends Component
         } else {
             $this->currentStepIndex = max($this->currentStepIndex, $nextIndex);
         }
+
+        $this->dispatch('render-math');
     }
 
     public function approxEqual($userValue, $expected, $tolerance, $toleranceType = 'absolute'): bool
@@ -189,6 +191,8 @@ class ProblemaDinamico extends Component
                 $this->showTriggerImages[$stepId] = true;
             }
         }
+
+        $this->dispatch('render-math');
     }
 
     public function render()

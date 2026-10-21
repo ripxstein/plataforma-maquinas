@@ -174,7 +174,7 @@
                 { left: '\\begin{CD}', right: '\\end{CD}', display: true }
             ];
             optionsCopy.ignoredTags = optionsCopy.ignoredTags || ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'];
-            optionsCopy.ignoredClasses = optionsCopy.ignoredClasses || [];
+            optionsCopy.ignoredClasses = optionsCopy.ignoredClasses || ['katex', 'katex-html', 'katex-mathml', 'admin-input', 'admin-textarea', 'edu-html-textarea'];
             optionsCopy.macros = optionsCopy.macros || {};
 
             renderElem(elem, optionsCopy);
@@ -184,6 +184,17 @@
     // -----------------------------
     // UI: acordeones y KaTeX auto-render
     // -----------------------------
+    let mathRenderPending = false;
+    function scheduleMathRender(target = document.body) {
+        if (!mathRenderPending) {
+            mathRenderPending = true;
+            requestAnimationFrame(() => {
+                mathRenderPending = false;
+                renderAllMath(target);
+            });
+        }
+    }
+
     function renderAllMath(target = document.body) {
         if (!target) return;
 
@@ -197,6 +208,7 @@
                             {left: '\\(', right: '\\)', display: false},
                             {left: '$', right: '$', display: false}
                         ],
+                        ignoredClasses: ['katex', 'katex-html', 'katex-mathml', 'admin-input', 'admin-textarea', 'edu-html-textarea'],
                         throwOnError: false
                     });
                 } catch (err) {
@@ -221,30 +233,85 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => renderAllMath());
-    document.addEventListener('livewire:navigated', () => {
+    // Observer automático para contenido dinámico de Livewire y acordeones
+    const mathObserver = new MutationObserver((mutations) => {
+        let hasMath = false;
+        for (const m of mutations) {
+            // Ignorar mutaciones dentro de lo que KaTeX ya renderizó o dentro de editores de texto
+            if (m.target && (m.target.closest?.('.katex') || m.target.closest?.('.edu-wysiwyg-editable') || m.target.closest?.('textarea'))) {
+                continue;
+            }
+            for (const node of m.addedNodes) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    if (node.closest?.('.katex') || node.closest?.('.edu-wysiwyg-editable')) continue;
+                    const txt = node.textContent || '';
+                    if (txt.includes('\\(') || txt.includes('\\[') || txt.includes('$$')) {
+                        hasMath = true;
+                        break;
+                    }
+                } else if (node.nodeType === Node.TEXT_NODE) {
+                    const txt = node.textContent || '';
+                    if (txt.includes('\\(') || txt.includes('\\[') || txt.includes('$$')) {
+                        hasMath = true;
+                        break;
+                    }
+                }
+            }
+            if (hasMath) break;
+        }
+        if (hasMath) {
+            scheduleMathRender();
+        }
+    });
+
+    function setupMathListeners() {
         renderAllMath();
+
         document.querySelectorAll('.accordion-btn').forEach(btn => {
             if (!btn.dataset.accordionBound) {
                 btn.dataset.accordionBound = 'true';
                 btn.addEventListener('click', () => {
-                    btn.parentElement.classList.toggle('open');
+                    const parent = btn.parentElement;
+                    parent.classList.toggle('open');
+                    if (parent.classList.contains('open')) {
+                        scheduleMathRender(parent);
+                    }
                 });
             }
         });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setupMathListeners();
+        if (document.body) {
+            mathObserver.observe(document.body, { childList: true, subtree: true });
+        }
+    });
+
+    document.addEventListener('livewire:navigated', () => {
+        setupMathListeners();
+        if (document.body) {
+            mathObserver.disconnect();
+            mathObserver.observe(document.body, { childList: true, subtree: true });
+        }
     });
 
     document.addEventListener('livewire:init', () => {
         if (window.Livewire && typeof window.Livewire.hook === 'function') {
+            window.Livewire.hook('morph.added', ({ el }) => {
+                if (el) scheduleMathRender(el);
+            });
             window.Livewire.hook('morph.updated', ({ el }) => {
-                if (el) renderAllMath(el);
+                if (el) scheduleMathRender(el);
             });
             window.Livewire.hook('commit', ({ succeed }) => {
                 succeed(() => {
-                    setTimeout(() => renderAllMath(), 50);
+                    scheduleMathRender();
+                    setTimeout(() => renderAllMath(), 120);
                 });
             });
         }
+        window.addEventListener('render-math', () => scheduleMathRender());
     });
 
     // -----------------------------

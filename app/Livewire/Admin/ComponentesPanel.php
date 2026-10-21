@@ -703,6 +703,8 @@ class ComponentesPanel extends Component
         foreach ($this->stepsData as $idx => $step) {
             $this->previewAnswers[$idx] = '';
         }
+
+        $this->dispatch('render-math');
     }
 
     public function testPreviewStep(int $index)
@@ -788,6 +790,8 @@ class ComponentesPanel extends Component
                 $this->previewShowImages[$index] = true;
             }
         }
+
+        $this->dispatch('render-math');
     }
 
     public function testPreviewExampleStep(int $index)
@@ -804,6 +808,8 @@ class ComponentesPanel extends Component
         } else {
             $this->previewCurrentStep = max($this->previewCurrentStep, $index + 2);
         }
+
+        $this->dispatch('render-math');
     }
 
     public function render()
