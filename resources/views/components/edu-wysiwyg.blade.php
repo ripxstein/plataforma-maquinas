@@ -181,6 +181,25 @@
             </button>
         </div>
 
+        <!-- View Tools: Show Blocks -->
+        <div class="edu-toolbar-section">
+            <button 
+                type="button" 
+                class="edu-toolbar-btn" 
+                :class="{ 'is-active': showBlocks }" 
+                @mousedown.prevent 
+                @click="showBlocks = !showBlocks" 
+                title="Mostrar bloques (Show blocks)"
+            >
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" style="display:inline-block; vertical-align:middle;">
+                    <path d="M3 11V3h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M14 3h3v3 M17 9v3 M17 15v2h-2 M12 17H9 M6 17H3v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="2 2"/>
+                    <text x="10" y="13" font-size="7.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" fill="currentColor" text-anchor="middle">H1</text>
+                </svg>
+                <span>Bloques</span>
+            </button>
+        </div>
+
         <!-- Math & Media Insertion -->
         <div class="edu-toolbar-section">
             <button type="button" class="edu-toolbar-btn" @click="openFormulaModal()" style="background:#eef6ff; color:#1e40af; border-color:#bcdcff;">
@@ -228,10 +247,12 @@
     <div 
         x-show="activeTab === 'edit'" 
         class="edu-wysiwyg-editable" 
+        :class="{ 'show-blocks-mode': showBlocks }"
         id="{{ $id }}-editable"
         contenteditable="true"
         @input="onContentChange()"
         @blur="onContentChange()"
+        @contextmenu="openBlockContextMenu($event)"
         wire:ignore
     ></div>
 
@@ -585,6 +606,76 @@
                 <button type="button" class="btn-primary" @click="insertCard()">Insertar Card</button>
             </div>
         </div>
+    </div>
+
+    <!-- Context Menu for Block Tags (Click derecho en modo bloques) -->
+    <div 
+        x-show="blockContextMenu.visible" 
+        x-transition:enter="transition ease-out duration-100"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-75"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        @click.outside="closeBlockContextMenu()"
+        @keydown.escape.window="closeBlockContextMenu()"
+        @scroll.window="closeBlockContextMenu()"
+        class="edu-block-context-menu"
+        :style="`top: ${blockContextMenu.y}px; left: ${blockContextMenu.x}px;`"
+        style="display: none;"
+    >
+        <!-- Header con el tag detectado -->
+        <div class="edu-context-header">
+            <span>Bloque seleccionado</span>
+            <code class="edu-context-tag" x-text="'<' + blockContextMenu.tagName + '>'"></code>
+        </div>
+
+        <div class="edu-context-divider"></div>
+
+        <!-- Acciones de Espaciado -->
+        <div class="edu-context-section-title">Espaciado</div>
+        <button type="button" class="edu-context-item" @click="insertParagraphBeforeBlock()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            <span>Insertar espacio antes (arriba)</span>
+        </button>
+        <button type="button" class="edu-context-item" @click="insertParagraphAfterBlock()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+            <span>Insertar espacio después (abajo)</span>
+        </button>
+
+        <div class="edu-context-divider"></div>
+
+        <!-- Acciones de Etiqueta -->
+        <div class="edu-context-section-title">Modificar Etiqueta</div>
+        <button type="button" class="edu-context-item" @click="wrapBlockInDiv()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+            <span>Envolver en un &lt;div&gt;</span>
+        </button>
+
+        <div class="edu-context-change-tags">
+            <span class="edu-context-sublabel">Cambiar etiqueta a:</span>
+            <div class="edu-context-tag-buttons">
+                <button type="button" @click="changeBlockTag('p')" title="Párrafo normal">P</button>
+                <button type="button" @click="changeBlockTag('div')" title="Contenedor DIV">DIV</button>
+                <button type="button" @click="changeBlockTag('h1')" title="Título H1">H1</button>
+                <button type="button" @click="changeBlockTag('h2')" title="Subtítulo H2">H2</button>
+                <button type="button" @click="changeBlockTag('h3')" title="Encabezado H3">H3</button>
+                <button type="button" @click="changeBlockTag('blockquote')" title="Cita Blockquote">QUOTE</button>
+            </div>
+        </div>
+
+        <button type="button" class="edu-context-item edu-context-item-warning" @click="unwrapBlockTag()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <span>Quitar etiqueta (conservar texto)</span>
+        </button>
+
+        <div class="edu-context-divider"></div>
+
+        <!-- Eliminar Bloque -->
+        <button type="button" class="edu-context-item edu-context-item-danger" @click="removeEntireBlock()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            <span>Eliminar bloque completo</span>
+        </button>
     </div>
 </div>
 

@@ -1652,6 +1652,269 @@ th {
   border-radius: 0 0 16px 16px;
 }
 
+.edu-toolbar-btn.is-active {
+  background: #e0edfe !important;
+  color: #1d4ed8 !important;
+  border-color: #93c5fd !important;
+  box-shadow: inset 0 1px 2px rgba(29, 78, 216, 0.12) !important;
+}
+
+/* ==========================================================================
+   SHOW BLOCKS MODE (Modo Mostrar Bloques)
+   ========================================================================== */
+.edu-wysiwyg-editable.show-blocks-mode p,
+.edu-wysiwyg-editable.show-blocks-mode h1,
+.edu-wysiwyg-editable.show-blocks-mode h2,
+.edu-wysiwyg-editable.show-blocks-mode h3,
+.edu-wysiwyg-editable.show-blocks-mode h4,
+.edu-wysiwyg-editable.show-blocks-mode h5,
+.edu-wysiwyg-editable.show-blocks-mode h6,
+.edu-wysiwyg-editable.show-blocks-mode div:not(.katex):not(.katex *):not(.katex-html *),
+.edu-wysiwyg-editable.show-blocks-mode section,
+.edu-wysiwyg-editable.show-blocks-mode article,
+.edu-wysiwyg-editable.show-blocks-mode blockquote,
+.edu-wysiwyg-editable.show-blocks-mode ul,
+.edu-wysiwyg-editable.show-blocks-mode ol,
+.edu-wysiwyg-editable.show-blocks-mode table,
+.edu-wysiwyg-editable.show-blocks-mode pre,
+.edu-wysiwyg-editable.show-blocks-mode .edu-block,
+.edu-wysiwyg-editable.show-blocks-mode .tag,
+.edu-wysiwyg-editable.show-blocks-mode .footer-note,
+.edu-wysiwyg-editable.show-blocks-mode .card,
+.edu-wysiwyg-editable.show-blocks-mode .formula {
+  position: relative !important;
+  border: 1px dashed #94a3b8 !important;
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+  padding-top: 15px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  padding-bottom: 6px !important;
+  min-height: 28px;
+}
+
+.edu-wysiwyg-editable.show-blocks-mode p::before,
+.edu-wysiwyg-editable.show-blocks-mode h1::before,
+.edu-wysiwyg-editable.show-blocks-mode h2::before,
+.edu-wysiwyg-editable.show-blocks-mode h3::before,
+.edu-wysiwyg-editable.show-blocks-mode h4::before,
+.edu-wysiwyg-editable.show-blocks-mode h5::before,
+.edu-wysiwyg-editable.show-blocks-mode h6::before,
+.edu-wysiwyg-editable.show-blocks-mode div:not(.katex):not(.katex *):not(.katex-html *)::before,
+.edu-wysiwyg-editable.show-blocks-mode section::before,
+.edu-wysiwyg-editable.show-blocks-mode article::before,
+.edu-wysiwyg-editable.show-blocks-mode blockquote::before,
+.edu-wysiwyg-editable.show-blocks-mode ul::before,
+.edu-wysiwyg-editable.show-blocks-mode ol::before,
+.edu-wysiwyg-editable.show-blocks-mode table::before,
+.edu-wysiwyg-editable.show-blocks-mode pre::before,
+.edu-wysiwyg-editable.show-blocks-mode .formula::before,
+.edu-wysiwyg-editable.show-blocks-mode .edu-block::before,
+.edu-wysiwyg-editable.show-blocks-mode .tag::before,
+.edu-wysiwyg-editable.show-blocks-mode .footer-note::before,
+.edu-wysiwyg-editable.show-blocks-mode .card::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-block;
+  background: #f1f5f9;
+  color: #475569;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+  padding: 1px 4px;
+  border-bottom-right-radius: 3px;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+  pointer-events: none;
+  user-select: none;
+  z-index: 5;
+}
+
+.edu-wysiwyg-editable.show-blocks-mode p::before { content: "P"; }
+.edu-wysiwyg-editable.show-blocks-mode h1::before { content: "H1"; }
+.edu-wysiwyg-editable.show-blocks-mode h2::before { content: "H2"; }
+.edu-wysiwyg-editable.show-blocks-mode h3::before { content: "H3"; }
+.edu-wysiwyg-editable.show-blocks-mode h4::before { content: "H4"; }
+.edu-wysiwyg-editable.show-blocks-mode h5::before { content: "H5"; }
+.edu-wysiwyg-editable.show-blocks-mode h6::before { content: "H6"; }
+.edu-wysiwyg-editable.show-blocks-mode div::before { content: "DIV"; }
+.edu-wysiwyg-editable.show-blocks-mode section::before { content: "SECTION"; }
+.edu-wysiwyg-editable.show-blocks-mode article::before { content: "ARTICLE"; }
+.edu-wysiwyg-editable.show-blocks-mode blockquote::before { content: "BLOCKQUOTE"; }
+.edu-wysiwyg-editable.show-blocks-mode ul::before { content: "UL"; }
+.edu-wysiwyg-editable.show-blocks-mode ol::before { content: "OL"; }
+.edu-wysiwyg-editable.show-blocks-mode table::before { content: "TABLE"; }
+.edu-wysiwyg-editable.show-blocks-mode pre::before { content: "PRE"; }
+.edu-wysiwyg-editable.show-blocks-mode .formula::before { content: "FORMULA"; }
+.edu-wysiwyg-editable.show-blocks-mode .edu-block::before { content: "BLOQUE"; }
+.edu-wysiwyg-editable.show-blocks-mode .tag::before { content: "TAG"; }
+.edu-wysiwyg-editable.show-blocks-mode .footer-note::before { content: "NOTA"; }
+.edu-wysiwyg-editable.show-blocks-mode .card::before { content: "CARD"; }
+
+/* Excluir elementos internos de KaTeX o fórmulas para que no se deformen */
+.edu-wysiwyg-editable.show-blocks-mode .katex,
+.edu-wysiwyg-editable.show-blocks-mode .katex *,
+.edu-wysiwyg-editable.show-blocks-mode .katex-html * {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.edu-wysiwyg-editable.show-blocks-mode .katex::before,
+.edu-wysiwyg-editable.show-blocks-mode .katex *::before,
+.edu-wysiwyg-editable.show-blocks-mode .katex-html *::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* ==========================================================================
+   BLOCK CONTEXT MENU (Click derecho en tags)
+   ========================================================================== */
+.edu-block-context-menu {
+  position: fixed;
+  z-index: 999999;
+  background: #ffffff;
+  border: 1px solid #d5e4f7;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  padding: 8px;
+  width: 250px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  color: var(--texto);
+  user-select: none;
+}
+
+.edu-context-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 8px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.edu-context-tag {
+  background: #e0edfe;
+  color: #1d4ed8;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.edu-context-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0;
+}
+
+.edu-context-section-title {
+  padding: 6px 8px 2px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+}
+
+.edu-context-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.edu-context-item:hover {
+  background: #f0f7ff;
+  color: #0284c7;
+}
+
+.edu-context-item svg {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.edu-context-item:hover svg {
+  color: #0284c7;
+}
+
+.edu-context-item-warning {
+  color: #b45309;
+}
+
+.edu-context-item-warning:hover {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.edu-context-item-warning svg {
+  color: #d97706;
+}
+
+.edu-context-item-danger {
+  color: #dc2626;
+}
+
+.edu-context-item-danger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.edu-context-item-danger svg {
+  color: #ef4444;
+}
+
+.edu-context-change-tags {
+  padding: 6px 8px;
+}
+
+.edu-context-sublabel {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.edu-context-tag-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.edu-context-tag-buttons button {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.edu-context-tag-buttons button:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
 /* ==========================================================================
    HTML CODE EDITOR (MODO AVANZADO)
    ========================================================================== */

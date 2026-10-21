@@ -326,12 +326,22 @@
             editorId: config.editorId || 'edu-editor',
             hasUserEdited: false,
             activeTab: 'edit',
+            showBlocks: false,
             currentBlockTag: 'p',
             currentFontFamily: '',
             currentFontSize: '',
             savedSelection: null,
             htmlCode: config.value || '',
             copiedHtml: false,
+
+            // Context Menu State for Blocks
+            blockContextMenu: {
+                visible: false,
+                x: 0,
+                y: 0,
+                targetEl: null,
+                tagName: '',
+            },
             
             // Modals state
             showFormulaModal: false,
@@ -1300,6 +1310,138 @@ toggleTagBlock() {
 
     this.onContentChange();
 },
+
+            // Block Context Menu Actions
+            openBlockContextMenu(e) {
+                if (this.activeTab !== 'edit' || !this.showBlocks) return;
+
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return;
+
+                let target = e.target;
+                if (!target || target === editable) return;
+
+                const block = target.closest('p, h1, h2, h3, h4, h5, h6, div, section, article, blockquote, ul, ol, table, pre, .edu-block, .card, .formula');
+                if (!block || block === editable || !editable.contains(block)) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                this.blockContextMenu.targetEl = block;
+                this.blockContextMenu.tagName = block.tagName ? block.tagName.toLowerCase() : 'bloque';
+
+                const menuWidth = 240;
+                const menuHeight = 310;
+                let x = e.clientX;
+                let y = e.clientY;
+
+                if (x + menuWidth > window.innerWidth) {
+                    x = Math.max(10, window.innerWidth - menuWidth - 15);
+                }
+                if (y + menuHeight > window.innerHeight) {
+                    y = Math.max(10, window.innerHeight - menuHeight - 15);
+                }
+
+                this.blockContextMenu.x = x;
+                this.blockContextMenu.y = y;
+                this.blockContextMenu.visible = true;
+            },
+
+            closeBlockContextMenu() {
+                this.blockContextMenu.visible = false;
+                this.blockContextMenu.targetEl = null;
+            },
+
+            insertParagraphBeforeBlock() {
+                const el = this.blockContextMenu.targetEl;
+                if (!el || !el.parentNode) return;
+                const p = document.createElement('p');
+                p.innerHTML = '<br>';
+                el.parentNode.insertBefore(p, el);
+                this.closeBlockContextMenu();
+                this.onContentChange();
+                this.placeCursorIn(p);
+            },
+
+            insertParagraphAfterBlock() {
+                const el = this.blockContextMenu.targetEl;
+                if (!el || !el.parentNode) return;
+                const p = document.createElement('p');
+                p.innerHTML = '<br>';
+                el.parentNode.insertBefore(p, el.nextSibling);
+                this.closeBlockContextMenu();
+                this.onContentChange();
+                this.placeCursorIn(p);
+            },
+
+            unwrapBlockTag() {
+                const el = this.blockContextMenu.targetEl;
+                if (!el || !el.parentNode) return;
+                const parent = el.parentNode;
+
+                if (!el.hasChildNodes()) {
+                    parent.removeChild(el);
+                } else {
+                    while (el.firstChild) {
+                        parent.insertBefore(el.firstChild, el);
+                    }
+                    parent.removeChild(el);
+                }
+
+                this.closeBlockContextMenu();
+                this.onContentChange();
+            },
+
+            wrapBlockInDiv() {
+                const el = this.blockContextMenu.targetEl;
+                if (!el || !el.parentNode) return;
+                const div = document.createElement('div');
+                el.parentNode.insertBefore(div, el);
+                div.appendChild(el);
+                this.closeBlockContextMenu();
+                this.onContentChange();
+                this.placeCursorIn(div);
+            },
+
+            changeBlockTag(newTag) {
+                const el = this.blockContextMenu.targetEl;
+                if (!el || !el.parentNode) return;
+                const newEl = document.createElement(newTag);
+
+                Array.from(el.attributes).forEach(attr => {
+                    newEl.setAttribute(attr.name, attr.value);
+                });
+
+                while (el.firstChild) {
+                    newEl.appendChild(el.firstChild);
+                }
+
+                el.parentNode.replaceChild(newEl, el);
+                this.closeBlockContextMenu();
+                this.onContentChange();
+                this.placeCursorIn(newEl);
+            },
+
+            removeEntireBlock() {
+                const el = this.blockContextMenu.targetEl;
+                if (!el || !el.parentNode) return;
+                el.parentNode.removeChild(el);
+                this.closeBlockContextMenu();
+                this.onContentChange();
+            },
+
+            placeCursorIn(el) {
+                try {
+                    const sel = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(el);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    const editable = document.getElementById(this.editorId + '-editable');
+                    if (editable) editable.focus();
+                } catch (e) {}
+            },
 
 
 
