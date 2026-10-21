@@ -327,6 +327,8 @@
             hasUserEdited: false,
             activeTab: 'edit',
             currentBlockTag: 'p',
+            currentFontFamily: '',
+            currentFontSize: '',
             savedSelection: null,
             htmlCode: config.value || '',
             copiedHtml: false,
@@ -587,7 +589,6 @@
                                 !s.startsWith('--tw-') && 
                                 !s.includes('margin: -1px') && 
                                 !s.includes('margin:-1px') && 
-                                !s.startsWith('font-family') && 
                                 !s.startsWith('border-bottom: 0px rgb')
                             )
                             .join('; ');
@@ -702,6 +703,91 @@
                 this.saveSelection();
                 this.currentBlockTag = normalizedTag;
                 this.onContentChange();
+            },
+
+            applyFontFamily(font) {
+                if (!font) return;
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return;
+
+                this.restoreSelection();
+                editable.focus();
+
+                const sel = window.getSelection();
+                if (!sel || !sel.rangeCount) return;
+
+                const range = sel.getRangeAt(0);
+                if (!editable.contains(range.commonAncestorContainer)) return;
+
+                if (!sel.isCollapsed) {
+                    document.execCommand('styleWithCSS', false, true);
+                    document.execCommand('fontName', false, font);
+                } else {
+                    const span = document.createElement('span');
+                    span.style.fontFamily = font;
+                    span.innerHTML = '&#8203;';
+                    range.insertNode(span);
+                    const newRange = document.createRange();
+                    newRange.setStart(span.firstChild, 1);
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                }
+
+                this.saveSelection();
+                this.onContentChange();
+                this.$nextTick(() => {
+                    this.currentFontFamily = '';
+                });
+            },
+
+            applyFontSize(size) {
+                if (!size) return;
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return;
+
+                this.restoreSelection();
+                editable.focus();
+
+                const sel = window.getSelection();
+                if (!sel || !sel.rangeCount) return;
+
+                const range = sel.getRangeAt(0);
+                if (!editable.contains(range.commonAncestorContainer)) return;
+
+                if (!sel.isCollapsed) {
+                    document.execCommand('styleWithCSS', false, false);
+                    document.execCommand('fontSize', false, '7');
+
+                    const fonts = editable.querySelectorAll('font[size="7"]');
+                    fonts.forEach(fontEl => {
+                        const span = document.createElement('span');
+                        span.style.fontSize = size;
+                        span.innerHTML = fontEl.innerHTML;
+                        fontEl.parentNode.replaceChild(span, fontEl);
+                    });
+
+                    const spans = editable.querySelectorAll('span[style*="font-size: -webkit-xxx-large"], span[style*="font-size: xxx-large"]');
+                    spans.forEach(spanEl => {
+                        spanEl.style.fontSize = size;
+                    });
+                } else {
+                    const span = document.createElement('span');
+                    span.style.fontSize = size;
+                    span.innerHTML = '&#8203;';
+                    range.insertNode(span);
+                    const newRange = document.createRange();
+                    newRange.setStart(span.firstChild, 1);
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                }
+
+                this.saveSelection();
+                this.onContentChange();
+                this.$nextTick(() => {
+                    this.currentFontSize = '';
+                });
             },
 
             // Insert Educational Callout Blocks

@@ -71,6 +71,54 @@
             </select>
         </div>
 
+        <!-- Font Family & Font Size -->
+        <div class="edu-toolbar-section">
+            <select 
+                class="edu-toolbar-select" 
+                x-model="currentFontFamily" 
+                @focus="saveSelection()" 
+                @mousedown="saveSelection()" 
+                @change="applyFontFamily($event.target.value)"
+                title="Tipografía / Fuente (Font)"
+            >
+                <option value="">Font</option>
+                <option value="Arial, sans-serif" style="font-family: Arial, sans-serif;">Arial</option>
+                <option value="Calibri, sans-serif" style="font-family: Calibri, sans-serif;">Calibri</option>
+                <option value="Cambria, serif" style="font-family: Cambria, serif;">Cambria</option>
+                <option value="'Comic Sans MS', cursive" style="font-family: 'Comic Sans MS', cursive;">Comic Sans MS</option>
+                <option value="'Courier New', monospace" style="font-family: 'Courier New', monospace;">Courier New</option>
+                <option value="Georgia, serif" style="font-family: Georgia, serif;">Georgia</option>
+                <option value="Impact, sans-serif" style="font-family: Impact, sans-serif;">Impact</option>
+                <option value="'Segoe UI', sans-serif" style="font-family: 'Segoe UI', sans-serif;">Segoe UI</option>
+                <option value="Tahoma, sans-serif" style="font-family: Tahoma, sans-serif;">Tahoma</option>
+                <option value="'Times New Roman', serif" style="font-family: 'Times New Roman', serif;">Times New Roman</option>
+                <option value="'Trebuchet MS', sans-serif" style="font-family: 'Trebuchet MS', sans-serif;">Trebuchet MS</option>
+                <option value="Verdana, sans-serif" style="font-family: Verdana, sans-serif;">Verdana</option>
+            </select>
+
+            <select 
+                class="edu-toolbar-select" 
+                x-model="currentFontSize" 
+                @focus="saveSelection()" 
+                @mousedown="saveSelection()" 
+                @change="applyFontSize($event.target.value)"
+                title="Tamaño de fuente (Size)"
+            >
+                <option value="">Size</option>
+                <option value="10px">10px</option>
+                <option value="12px">12px</option>
+                <option value="14px">14px</option>
+                <option value="16px">16px (Normal)</option>
+                <option value="18px">18px</option>
+                <option value="20px">20px</option>
+                <option value="24px">24px</option>
+                <option value="28px">28px</option>
+                <option value="32px">32px</option>
+                <option value="36px">36px</option>
+                <option value="48px">48px</option>
+            </select>
+        </div>
+
         <!-- Inline formatting -->
         <div class="edu-toolbar-section">
             <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="format('bold')" title="Negrita">
