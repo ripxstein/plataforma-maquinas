@@ -1443,6 +1443,66 @@ toggleTagBlock() {
                 } catch (e) {}
             },
 
+            insertDivBlock() {
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return;
+
+                this.restoreSelection();
+                editable.focus();
+
+                const sel = window.getSelection();
+                if (!sel || !sel.rangeCount) {
+                    const div = document.createElement('div');
+                    div.innerHTML = '<p><br></p>';
+                    editable.appendChild(div);
+                    this.placeCursorIn(div.querySelector('p') || div);
+                    this.saveSelection();
+                    this.onContentChange();
+                    return;
+                }
+
+                const range = sel.getRangeAt(0);
+                if (!editable.contains(range.commonAncestorContainer)) {
+                    const div = document.createElement('div');
+                    div.innerHTML = '<p><br></p>';
+                    editable.appendChild(div);
+                    this.placeCursorIn(div.querySelector('p') || div);
+                    this.saveSelection();
+                    this.onContentChange();
+                    return;
+                }
+
+                if (!sel.isCollapsed) {
+                    try {
+                        const div = document.createElement('div');
+                        div.appendChild(range.extractContents());
+                        range.insertNode(div);
+                        this.placeCursorIn(div);
+                    } catch (e) {
+                        document.execCommand('formatBlock', false, '<div>');
+                    }
+                } else {
+                    const div = document.createElement('div');
+                    div.innerHTML = '<p><br></p>';
+                    
+                    range.deleteContents();
+                    range.insertNode(div);
+
+                    const trailingP = document.createElement('p');
+                    trailingP.innerHTML = '<br>';
+                    if (div.nextSibling) {
+                        div.parentNode.insertBefore(trailingP, div.nextSibling);
+                    } else {
+                        div.parentNode.appendChild(trailingP);
+                    }
+
+                    this.placeCursorIn(div.querySelector('p') || div);
+                }
+
+                this.saveSelection();
+                this.onContentChange();
+            },
+
 
 
             triggerKaTeX() {

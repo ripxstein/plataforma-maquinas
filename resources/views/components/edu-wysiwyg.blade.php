@@ -181,7 +181,7 @@
             </button>
         </div>
 
-        <!-- View Tools: Show Blocks -->
+        <!-- View Tools: Show Blocks & Insert Div -->
         <div class="edu-toolbar-section">
             <button 
                 type="button" 
@@ -197,6 +197,20 @@
                     <text x="10" y="13" font-size="7.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" fill="currentColor" text-anchor="middle">H1</text>
                 </svg>
                 <span>Bloques</span>
+            </button>
+            <button 
+                type="button" 
+                class="edu-toolbar-btn" 
+                @mousedown.prevent 
+                @click="insertDivBlock()" 
+                title="Insertar bloque contenedor <div>"
+            >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 3"/>
+                    <line x1="12" y1="8" x2="12" y2="16"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                <span>+ DIV</span>
             </button>
         </div>
 
