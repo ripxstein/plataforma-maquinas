@@ -814,11 +814,16 @@ class ComponentesPanel extends Component
 
     public function render()
     {
-        $modules = Module::with(['items.problems.steps'])
+        $modules = Module::with(['items' => fn ($q) => $q->select('id', 'module_id', 'title', 'order')])
             ->orderBy('order')
-            ->get();
+            ->get(['id', 'title', 'order']);
 
-        $query = Problem::with(['moduleItem.module', 'steps.options'])
+        $query = Problem::select('id', 'module_item_id', 'title', 'slug', 'component', 'order', 'is_example', 'is_active', 'created_at')
+            ->with([
+                'moduleItem' => fn ($q) => $q->select('id', 'module_id', 'title'),
+                'moduleItem.module' => fn ($q) => $q->select('id', 'title'),
+            ])
+            ->withCount('steps')
             ->orderBy('module_item_id')
             ->orderBy('order');
 

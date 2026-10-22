@@ -88,9 +88,12 @@ class ContenidoPanel extends Component
     #[Computed]
     public function modules()
     {
-        return Module::with(['items' => fn ($q) => $q->orderBy('order'), 'items.problems' => fn ($q) => $q->orderBy('order')])
+        return Module::with([
+            'items' => fn ($q) => $q->select('id', 'module_id', 'title', 'order', 'percentage')->orderBy('order'),
+            'items.problems' => fn ($q) => $q->select('id', 'module_item_id', 'title', 'component', 'order')->orderBy('order'),
+        ])
             ->orderBy('order')
-            ->get();
+            ->get(['id', 'title', 'slug', 'order']);
     }
 
     public function getSelectedModuleOrder(): int

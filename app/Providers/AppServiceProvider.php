@@ -44,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
             $moduleData = Cache::remember('sidebar_modules', 600, function () {
                 return Module::orderBy('order')
                     ->get(['id', 'title', 'slug', 'order'])
-                    ->map(fn ($m) => ['id' => $m->id, 'title' => $m->title, 'slug' => $m->slug])
+                    ->map(fn ($m) => ['id' => $m->id, 'title' => $m->title, 'slug' => $m->slug, 'order' => $m->order])
                     ->toArray();
             });
 

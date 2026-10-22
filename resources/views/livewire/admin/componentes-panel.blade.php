@@ -90,7 +90,7 @@
                             <tbody>
                                 @foreach($problemsList as $prob)
                                     @php
-                                        $stepsCount = $prob->steps->count();
+                                        $stepsCount = $prob->steps_count;
                                         $isDynamic = empty($prob->component) || $prob->component === 'problemas.problema-dinamico';
                                     @endphp
                                     <tr>

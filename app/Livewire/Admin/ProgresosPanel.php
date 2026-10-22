@@ -17,18 +17,25 @@ class ProgresosPanel extends Component
         $totalProblemasCatalogo = Problem::where('is_active', true)->count();
         $totalCatalogo = $totalLecturasCatalogo + $totalProblemasCatalogo;
 
+        $progressCounts = [
+            'readingProgress as lecturas_completadas' => fn ($q) => $q->where('completed', true),
+            'problemProgress as problemas_completados' => fn ($q) => $q->where('completed', true),
+        ];
+
+        if ($totalCatalogo === 0) {
+            $progressCounts[] = 'readingProgress as total_lecturas';
+            $progressCounts[] = 'problemProgress as total_problemas';
+        }
+
         $alumnos = User::query()
             ->where('role', 'user')
-            ->where(function ($query) {
-                $query->where('name', 'like', '%'.$this->search.'%')
-                    ->orWhere('email', 'like', '%'.$this->search.'%');
+            ->when($this->search !== '', function ($query) {
+                $query->where(function ($query) {
+                    $query->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('email', 'like', '%'.$this->search.'%');
+                });
             })
-            ->withCount([
-                'readingProgress as lecturas_completadas' => fn ($q) => $q->where('completed', true),
-                'problemProgress as problemas_completados' => fn ($q) => $q->where('completed', true),
-                'readingProgress as total_lecturas',
-                'problemProgress as total_problemas',
-            ])
+            ->withCount($progressCounts)
             ->orderBy('name')
             ->get()
             ->map(function ($alumno) use ($totalCatalogo) {
