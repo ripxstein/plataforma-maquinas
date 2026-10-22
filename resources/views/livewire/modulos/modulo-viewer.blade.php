@@ -14,6 +14,56 @@
         </p>
     </section>
 
+    {{-- MAPA CONCEPTUAL DEL MÓDULO (antes de la primera lectura) --}}
+    @if ($this->sitemap)
+        @php
+            $sitemapConfig = [
+                'mode' => 'view',
+                'nodes' => $this->sitemap['nodes'],
+                'edges' => $this->sitemap['edges'],
+                'readings' => (object) $items->pluck('title', 'id')->all(),
+                'unlockedItemIds' => $visibleItems->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+            ];
+        @endphp
+
+        <section
+            class="content-section sitemap-section"
+            id="mapa-conceptual"
+            wire:key="sitemap-{{ $module->id }}-{{ $visibleItems->count() }}"
+            x-data="{ open: true }"
+        >
+            <div class="section-header" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <h3>🗺️ Mapa conceptual del módulo</h3>
+                <button type="button" class="badge" style="cursor:pointer;" @click="open = !open" x-text="open ? 'Ocultar mapa' : 'Mostrar mapa'"></button>
+            </div>
+
+            <div class="section-body" x-show="open" x-transition.opacity>
+                <p class="sm-view-hint">
+                    Explora cómo se relacionan los conceptos de este módulo.
+                    <strong>Haz clic en un concepto</strong> para ir directamente al texto que lo explica.
+                </p>
+
+                <div class="sm-root" x-data="sitemapDiagram(@js($sitemapConfig))">
+                    @include('partials.sitemap-viewport')
+                </div>
+            </div>
+        </section>
+
+        {{-- Botón flotante para regresar al mapa después de navegar a una lectura --}}
+        <div
+            class="sm-back-fab"
+            x-data="{ show: false }"
+            @sitemap-navigated.window="show = true"
+            x-show="show"
+            x-cloak
+            x-transition.opacity
+        >
+            <button type="button" @click="document.getElementById('mapa-conceptual').scrollIntoView({ behavior: 'smooth', block: 'start' }); show = false;">
+                🗺️ Volver al mapa
+            </button>
+        </div>
+    @endif
+
     @foreach ($visibleItems as $item)
         <section class="content-section" id="lectura-{{ $item->id }}" style="counter-reset: mod-num {{ $module->order ?? 1 }} read-num {{ $item->order ?? 1 }} formula-idx 0;">
             <div class="section-header">

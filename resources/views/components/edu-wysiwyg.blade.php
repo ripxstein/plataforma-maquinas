@@ -139,6 +139,9 @@
             <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="toggleTagBlock()" title="Etiqueta">
                 🏷️ 
             </button>
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="openMarkerModal()" title="Crear o editar una marca de concepto (para el mapa conceptual del módulo). Selecciona un texto primero." style="background:#e8f6fd; color:#075985; border-color:#a5d8f3;">
+                🔖 Marca
+            </button>
         </div>
 
         <!-- Text Alignment -->
@@ -598,6 +601,53 @@
             </div>
         </div>
     </div>
+    <!-- MODAL: Concept Marker (mapa conceptual del módulo) -->
+    <div class="edu-modal-backdrop" x-show="showMarkerModal" style="display: none;" @keydown.escape.window="showMarkerModal = false">
+        <div class="edu-modal-dialog" style="max-width: 480px;">
+            <div class="admin-modal-header">
+                <h3 x-text="markerMode === 'edit' ? '🔖 Editar marca de concepto' : '🔖 Crear marca de concepto'"></h3>
+                <button type="button" class="modal-close-btn" @click="showMarkerModal = false">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <template x-if="markerError">
+                    <div class="footer-note" style="background:#fff4dc; border-color:#f3d38b; color:#7a5a06;" x-text="markerError"></div>
+                </template>
+
+                <template x-if="!markerError">
+                    <div>
+                        <div class="form-group">
+                            <label class="form-label">Nombre del concepto</label>
+                            <input
+                                class="admin-input"
+                                type="text"
+                                maxlength="120"
+                                x-ref="markerInput"
+                                x-model="markerTitle"
+                                placeholder="Ej.: Factor de concentración de esfuerzos Kt"
+                                @keydown.enter.prevent="saveMarker()"
+                            >
+                        </div>
+                        <div class="form-hint">
+                            Este nombre aparecerá en el panel del diseñador de mapas. Al hacer clic en el nodo del mapa,
+                            el estudiante será llevado exactamente a este fragmento de la lectura.
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="admin-modal-footer" style="justify-content: space-between;">
+                <div>
+                    <button type="button" class="btn-secondary btn-danger" x-show="markerMode === 'edit' && !markerError" @click="removeMarker()">
+                        🗑️ Quitar marca
+                    </button>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn-secondary" @click="showMarkerModal = false" x-text="markerError ? 'Entendido' : 'Cancelar'"></button>
+                    <button type="button" class="btn-primary" x-show="!markerError" @click="saveMarker()" x-text="markerMode === 'edit' ? 'Guardar cambios' : 'Crear marca'"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: Card Assistant -->
     <div class="edu-modal-backdrop" x-show="showCardModal" style="display: none;">
         <div class="edu-modal-dialog">

@@ -16,4 +16,9 @@ class Module extends Model
     {
         return $this->hasMany(ModuleItem::class)->orderBy('order');
     }
+
+    public function sitemap()
+    {
+        return $this->hasOne(ModuleSitemap::class);
+    }
 }

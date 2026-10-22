@@ -18,14 +18,29 @@
         <!-- CodeMirror for HTML Source Code Editor (Local / Offline) -->
         <link rel="stylesheet" href="{{ asset('vendor/codemirror/codemirror.css') }}">
         <link rel="stylesheet" href="{{ asset('vendor/codemirror/addon/foldgutter.css') }}">
-        <script src="{{ asset('vendor/codemirror/codemirror.js') }}" data-navigate-once></script>
-        <script src="{{ asset('vendor/codemirror/mode/xml.js') }}" data-navigate-once></script>
-        <script src="{{ asset('vendor/codemirror/mode/javascript.js') }}" data-navigate-once></script>
-        <script src="{{ asset('vendor/codemirror/mode/css.js') }}" data-navigate-once></script>
-        <script src="{{ asset('vendor/codemirror/mode/htmlmixed.js') }}" data-navigate-once></script>
-        <script src="{{ asset('vendor/codemirror/addon/foldcode.js') }}" data-navigate-once></script>
-        <script src="{{ asset('vendor/codemirror/addon/foldgutter.js') }}" data-navigate-once></script>
-        <script src="{{ asset('vendor/codemirror/addon/xml-fold.js') }}" data-navigate-once></script>
+        <script data-navigate-once>
+            // Carga secuencial: con wire:navigate los scripts se insertan async y podrían ejecutarse desordenados
+            (function () {
+                if (window.__cmLoader) return;
+                const base = @js(asset('vendor/codemirror'));
+                const files = [
+                    'codemirror.js', 'mode/xml.js', 'mode/javascript.js', 'mode/css.js', 'mode/htmlmixed.js',
+                    'addon/foldcode.js', 'addon/foldgutter.js', 'addon/xml-fold.js',
+                ];
+                window.__cmLoader = files.reduce((chain, file) => chain.then(() => new Promise((resolve) => {
+                    if (file === 'codemirror.js' && window.CodeMirror) return resolve();
+                    const s = document.createElement('script');
+                    s.src = base + '/' + file;
+                    s.async = false;
+                    s.onload = resolve;
+                    s.onerror = resolve;
+                    document.head.appendChild(s);
+                })), Promise.resolve());
+            })();
+        </script>
+
+        <!-- Mapa conceptual de módulos (diseñador admin + visor del estudiante) -->
+        <script src="{{ asset('js/sitemap-diagram.js') }}?v={{ @filemtime(public_path('js/sitemap-diagram.js')) }}" data-navigate-once></script>
 
         <!-- Scripts -->
         
@@ -376,6 +391,14 @@
             cursorRange: null,
 
             showCardModal: false,
+
+            // Marcas de concepto (mapa conceptual del módulo)
+            showMarkerModal: false,
+            markerMode: 'create',
+            markerTitle: '',
+            markerEditId: null,
+            markerRange: null,
+            markerError: '',
 
             showTableModal: false,
             tableRows: 3,
@@ -1377,6 +1400,145 @@ toggleTagBlock() {
     this.onContentChange();
 },
 
+            // Concept Markers (marcas para el mapa conceptual)
+            getMarkerAncestor(node) {
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!node || !editable) return null;
+                const el = node.nodeType === 1 ? node : node.parentElement;
+                const mark = el ? el.closest('mark.edu-concept-marker') : null;
+                return mark && editable.contains(mark) ? mark : null;
+            },
+
+            openMarkerModal() {
+                this.saveSelection();
+                const range = this.savedSelection;
+
+                this.markerError = '';
+                this.markerEditId = null;
+                this.markerRange = null;
+                this.markerTitle = '';
+
+                if (!range) {
+                    this.markerMode = 'create';
+                    this.markerError = 'Selecciona primero el fragmento de texto que quieres marcar como concepto.';
+                    this.showMarkerModal = true;
+                    return;
+                }
+
+                const existing = this.getMarkerAncestor(range.startContainer) || this.getMarkerAncestor(range.endContainer);
+
+                if (existing) {
+                    this.markerMode = 'edit';
+                    this.markerEditId = existing.dataset.conceptId;
+                    this.markerTitle = existing.dataset.conceptTitle || '';
+                } else if (!range.collapsed && range.toString().trim() !== '') {
+                    this.markerMode = 'create';
+                    this.markerRange = range.cloneRange();
+                    this.markerTitle = range.toString().replace(/\s+/g, ' ').trim().slice(0, 80);
+                } else {
+                    this.markerMode = 'create';
+                    this.markerError = 'Selecciona primero el fragmento de texto que quieres marcar como concepto.';
+                }
+
+                this.showMarkerModal = true;
+                this.$nextTick(() => {
+                    if (this.$refs.markerInput) {
+                        this.$refs.markerInput.focus();
+                        this.$refs.markerInput.select();
+                    }
+                });
+            },
+
+            saveMarker() {
+                const title = (this.markerTitle || '').replace(/\s+/g, ' ').trim();
+                if (!title) return;
+
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return;
+
+                if (this.markerMode === 'edit' && this.markerEditId) {
+                    editable.querySelectorAll('mark.edu-concept-marker').forEach((mark) => {
+                        if (mark.dataset.conceptId === this.markerEditId) {
+                            mark.setAttribute('data-concept-title', title);
+                        }
+                    });
+                } else if (this.markerRange) {
+                    const id = 'c' + Math.random().toString(36).slice(2, 10);
+                    const wrapped = this.wrapRangeInMarkers(this.markerRange, id, title);
+                    if (!wrapped) {
+                        this.markerError = 'No se pudo marcar ese fragmento. Intenta seleccionar solo texto normal (sin fórmulas ni texto ya marcado).';
+                        return;
+                    }
+                }
+
+                this.showMarkerModal = false;
+                this.markerRange = null;
+                this.onContentChange();
+            },
+
+            removeMarker() {
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable || !this.markerEditId) return;
+
+                editable.querySelectorAll('mark.edu-concept-marker').forEach((mark) => {
+                    if (mark.dataset.conceptId !== this.markerEditId) return;
+                    const parent = mark.parentNode;
+                    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+                    parent.removeChild(mark);
+                    parent.normalize();
+                });
+
+                this.showMarkerModal = false;
+                this.markerEditId = null;
+                this.onContentChange();
+            },
+
+            /**
+             * Envuelve el rango en uno o varios <mark> (uno por nodo de texto) con el mismo
+             * data-concept-id, de modo que las selecciones que cruzan párrafos o negritas
+             * siguen produciendo HTML válido.
+             */
+            wrapRangeInMarkers(range, conceptId, title) {
+                const root = range.commonAncestorContainer.nodeType === 1
+                    ? range.commonAncestorContainer
+                    : range.commonAncestorContainer.parentNode;
+
+                const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+                const slices = [];
+                let textNode;
+
+                while ((textNode = walker.nextNode())) {
+                    if (!range.intersectsNode(textNode)) continue;
+                    const parent = textNode.parentElement;
+                    if (parent && (parent.closest('.katex') || parent.closest('mark.edu-concept-marker'))) continue;
+
+                    const start = textNode === range.startContainer ? range.startOffset : 0;
+                    const end = textNode === range.endContainer ? range.endOffset : textNode.length;
+                    if (end <= start) continue;
+                    if (textNode.data.slice(start, end).trim() === '') continue;
+
+                    slices.push({ node: textNode, start, end });
+                }
+
+                slices.forEach((slice) => {
+                    const r = document.createRange();
+                    r.setStart(slice.node, slice.start);
+                    r.setEnd(slice.node, slice.end);
+                    const mark = document.createElement('mark');
+                    mark.className = 'edu-concept-marker';
+                    mark.setAttribute('data-concept-id', conceptId);
+                    mark.setAttribute('data-concept-title', title);
+                    r.surroundContents(mark);
+                });
+
+                if (slices.length) {
+                    window.getSelection().removeAllRanges();
+                    this.savedSelection = null;
+                }
+
+                return slices.length > 0;
+            },
+
             // Block Context Menu Actions
             openBlockContextMenu(e) {
                 if (this.activeTab !== 'edit' || !this.showBlocks) return;
@@ -1633,7 +1795,7 @@ toggleTagBlock() {
         registerEduWysiwygEditor();
     }
 </script>
-         @vite(['resources/css/app.css', 'resources/css/plataforma.css', 'resources/js/app.js'])
+         @vite(['resources/css/app.css', 'resources/css/plataforma.css', 'resources/css/sitemap.css', 'resources/js/app.js'])
     </head>
     <body class="body-app">
         <div class="min-h-screen body-app">

@@ -8,6 +8,7 @@ use App\Models\Problem;
 use App\Services\ModuleCacheService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -23,6 +24,9 @@ class ContenidoPanel extends Component
     public bool $showReadingModal = false;
 
     public bool $showProblemModal = false;
+
+    // Diseñador de mapa conceptual (sitemap) del módulo
+    public ?int $designerModuleId = null;
 
     // Form fields - Module
     public $moduleId = null;
@@ -117,6 +121,18 @@ class ContenidoPanel extends Component
     }
 
     // Modal Openers
+    public function openSitemapDesigner(int $id): void
+    {
+        $this->designerModuleId = Module::findOrFail($id)->id;
+    }
+
+    #[On('close-sitemap-designer')]
+    public function closeSitemapDesigner(): void
+    {
+        $this->designerModuleId = null;
+        unset($this->modules);
+    }
+
     public function openModuleModal($id = null)
     {
         $this->resetValidation();

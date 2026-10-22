@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Module;
 use App\Models\ModuleItem;
+use App\Models\ModuleSitemap;
 use App\Models\Problem;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -145,10 +146,36 @@ class ModuleCacheService
 
         if ($moduleId > 0) {
             Cache::forget('module_items_'.$moduleId);
+            self::forgetSitemap($moduleId);
         }
 
         if ($slug) {
             Cache::forget('module_slug_'.$slug);
         }
+    }
+
+    /**
+     * Obtiene el mapa conceptual de un módulo desde la cache.
+     * Siempre retorna un arreglo (nunca null) para que la cache funcione aunque no exista mapa.
+     *
+     * @return array{exists: bool, is_active: bool, nodes: array, edges: array}
+     */
+    public static function getSitemap(int $moduleId): array
+    {
+        return Cache::remember('module_sitemap_'.$moduleId, self::MODULE_TTL, function () use ($moduleId) {
+            $sitemap = ModuleSitemap::where('module_id', $moduleId)->first();
+
+            return [
+                'exists' => (bool) $sitemap,
+                'is_active' => (bool) $sitemap?->is_active,
+                'nodes' => $sitemap?->nodes ?? [],
+                'edges' => $sitemap?->edges ?? [],
+            ];
+        });
+    }
+
+    public static function forgetSitemap(int $moduleId): void
+    {
+        Cache::forget('module_sitemap_'.$moduleId);
     }
 }

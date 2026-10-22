@@ -52,6 +52,9 @@
                             <button class="btn-secondary btn-sm" wire:click="openReadingModal(null, {{ $module->id }})">
                                 ➕ Lectura
                             </button>
+                            <button class="btn-secondary btn-sm" wire:click="openSitemapDesigner({{ $module->id }})" title="Diseña el mapa conceptual que verán los estudiantes al inicio del módulo">
+                                🗺️ Diseñar Mapa
+                            </button>
                             <button class="btn-secondary btn-sm" wire:click="openModuleModal({{ $module->id }})">
                                 ✏️ Editar
                             </button>
@@ -322,5 +325,10 @@
                 </div>
             </div>
         </div>
+    @endif
+
+    {{-- Diseñador del mapa conceptual (pantalla completa) --}}
+    @if ($designerModuleId)
+        <livewire:admin.sitemap-designer :module-id="$designerModuleId" :key="'sitemap-designer-'.$designerModuleId" />
     @endif
 </div>

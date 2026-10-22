@@ -9,6 +9,7 @@ use App\Models\UserProblemProgress;
 use App\Services\ModuleCacheService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 class ModuloViewer extends Component
@@ -57,6 +58,22 @@ class ModuloViewer extends Component
         );
 
         $this->loadProgress();
+    }
+
+    /**
+     * Mapa conceptual del módulo (null si no existe, está oculto o no tiene nodos).
+     * Se obtiene desde cache y no se serializa en el payload de Livewire.
+     */
+    #[Computed]
+    public function sitemap(): ?array
+    {
+        $data = ModuleCacheService::getSitemap($this->module->id);
+
+        if (empty($data['is_active']) || empty($data['nodes'])) {
+            return null;
+        }
+
+        return $data;
     }
 
     /**
