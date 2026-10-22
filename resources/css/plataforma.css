@@ -2306,3 +2306,12 @@ th {
     padding: 16px 14px !important;
   }
 }
+
+/* Prevenir advertencia de scroll anchoring por micro-ajustes en elementos con fórmulas o dinámicos */
+.katex,
+.katex-display,
+.formula,
+.content-section,
+.section-body {
+  overflow-anchor: none;
+}

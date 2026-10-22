@@ -203,6 +203,8 @@
             optionsCopy.ignoredTags = optionsCopy.ignoredTags || ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'];
             optionsCopy.ignoredClasses = optionsCopy.ignoredClasses || ['katex', 'katex-html', 'katex-mathml', 'admin-input', 'admin-textarea', 'edu-html-textarea'];
             optionsCopy.macros = optionsCopy.macros || {};
+            // Forzar solo HTML para evitar errores de MathML (<msub>) con el morphdom de Livewire/navegador
+            optionsCopy.output = optionsCopy.output || 'html';
 
             renderElem(elem, optionsCopy);
         };
@@ -211,15 +213,13 @@
     // -----------------------------
     // UI: acordeones y KaTeX auto-render
     // -----------------------------
-    let mathRenderPending = false;
+    let mathRenderTimer = null;
     function scheduleMathRender(target = document.body) {
-        if (!mathRenderPending) {
-            mathRenderPending = true;
-            requestAnimationFrame(() => {
-                mathRenderPending = false;
-                renderAllMath(target);
-            });
-        }
+        if (mathRenderTimer) clearTimeout(mathRenderTimer);
+        mathRenderTimer = setTimeout(() => {
+            mathRenderTimer = null;
+            renderAllMath(target);
+        }, 50);
     }
 
     function renderAllMath(target = document.body) {
@@ -229,6 +229,7 @@
             if (typeof window.katex !== 'undefined' && typeof window.renderMathInElement === 'function') {
                 try {
                     window.renderMathInElement(target, {
+                        output: 'html',
                         delimiters: [
                             {left: '$$', right: '$$', display: true},
                             {left: '\\[', right: '\\]', display: true},
@@ -985,6 +986,7 @@
                     try {
                         katex.render(this.formulaInput || '\\text{Formula...}', container, {
                             displayMode: true,
+                            output: 'html',
                             throwOnError: false
                         });
                     } catch (e) {
