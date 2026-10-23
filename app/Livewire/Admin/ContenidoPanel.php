@@ -246,6 +246,8 @@ class ContenidoPanel extends Component
             'moduleOrder' => 'required|integer|min:1',
         ]);
 
+        $previousSlug = $this->moduleId ? Module::findOrFail($this->moduleId)->slug : null;
+
         $module = Module::updateOrCreate(
             ['id' => $this->moduleId],
             [
@@ -257,7 +259,7 @@ class ContenidoPanel extends Component
 
         $this->closeModuleModal();
         unset($this->modules);
-        ModuleCacheService::forgetModule($module->id, $module->slug);
+        ModuleCacheService::forgetModule($module->id, $module->slug, $previousSlug);
         session()->flash('message', 'Módulo guardado correctamente.');
     }
 
@@ -285,6 +287,9 @@ class ContenidoPanel extends Component
         $formattedContent = $this->sanitizeHtml($this->readingContent);
 
         $moduleId = $this->moduleIdForReading;
+        $previousModuleId = $this->readingId
+            ? ModuleItem::whereKey($this->readingId)->value('module_id')
+            : null;
 
         ModuleItem::updateOrCreate(
             ['id' => $this->readingId],
@@ -302,6 +307,9 @@ class ContenidoPanel extends Component
         $this->closeReadingModal();
         unset($this->modules);
         ModuleCacheService::forgetModule($moduleId);
+        if ($previousModuleId && $previousModuleId != $moduleId) {
+            ModuleCacheService::forgetModule($previousModuleId);
+        }
         session()->flash('message', 'Lectura guardada correctamente.');
     }
 
@@ -341,6 +349,9 @@ class ContenidoPanel extends Component
         $readingId = $this->readingIdForProblem;
         $reading = ModuleItem::find($readingId);
         $moduleId = $reading?->module_id;
+        $previousModuleId = $this->problemId
+            ? Problem::find($this->problemId)?->moduleItem?->module_id
+            : null;
 
         Problem::updateOrCreate(
             ['id' => $this->problemId],
@@ -361,6 +372,9 @@ class ContenidoPanel extends Component
 
         if ($moduleId) {
             ModuleCacheService::forgetModule($moduleId);
+        }
+        if ($previousModuleId && $previousModuleId != $moduleId) {
+            ModuleCacheService::forgetModule($previousModuleId);
         }
 
         session()->flash('message', 'Problema guardado correctamente.');

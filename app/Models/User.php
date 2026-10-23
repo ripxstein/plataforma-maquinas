@@ -7,11 +7,18 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected static function booted(): void
+    {
+        static::saved(fn (self $user) => Cache::forget('auth_user_'.$user->getKey()));
+        static::deleted(fn (self $user) => Cache::forget('auth_user_'.$user->getKey()));
+    }
 
     protected $fillable = [
         'name',

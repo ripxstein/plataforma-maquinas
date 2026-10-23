@@ -10,17 +10,16 @@ use App\Services\ModuleCacheService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class ModuloViewer extends Component
 {
-    public Module $module;
+    #[Locked]
+    public string $slug;
 
-    public $items;
-
-    public $visibleItems;
-
-    public UserModuleProgress $moduleProgress;
+    #[Locked]
+    public int $unlockedOrder = 1;
 
     public int $totalProgress = 0;
 
@@ -40,14 +39,9 @@ class ModuloViewer extends Component
 
     public function mount(string $slug)
     {
-        // Cargamos el módulo desde caché o BD (ahorra ~1.6s de round-trip en BD)
-        $this->module = ModuleCacheService::getModuleBySlug($slug)
-            ?? Module::where('slug', $slug)->firstOrFail();
+        $this->slug = $slug;
 
-        // Items y problems desde cache (evita 2 round-trips a BD remota)
-        $this->hydrateModuleRelations();
-
-        $this->moduleProgress = UserModuleProgress::firstOrCreate(
+        $moduleProgress = UserModuleProgress::firstOrCreate(
             [
                 'user_id' => auth()->id(),
                 'module_id' => $this->module->id,
@@ -57,7 +51,28 @@ class ModuloViewer extends Component
             ]
         );
 
+        $this->unlockedOrder = $moduleProgress->unlocked_order;
+
         $this->loadProgress();
+    }
+
+    #[Computed]
+    public function module(): Module
+    {
+        return ModuleCacheService::getModuleBySlug($this->slug)
+            ?? Module::where('slug', $this->slug)->firstOrFail();
+    }
+
+    #[Computed]
+    public function items()
+    {
+        return ModuleCacheService::getModuleItemsWithProblems($this->module->id);
+    }
+
+    #[Computed]
+    public function visibleItems()
+    {
+        return $this->items->where('order', '<=', $this->unlockedOrder);
     }
 
     /**
@@ -76,28 +91,8 @@ class ModuloViewer extends Component
         return $data;
     }
 
-    /**
-     * Carga items y problems desde cache mediante ModuleCacheService.
-     * Evita 2 queries lentas a BD remota en cada request/rehydration de Livewire.
-     */
-    private function hydrateModuleRelations(): void
-    {
-        $items = ModuleCacheService::getModuleItemsWithProblems($this->module->id);
-        $this->module->setRelation('items', $items);
-    }
-
     public function loadProgress()
     {
-        // En rehydrations de Livewire la relacion no persiste; la recargamos desde cache
-        if (! $this->module->relationLoaded('items')) {
-            $this->hydrateModuleRelations();
-        }
-
-        $this->items = $this->module->items;
-
-        $this->visibleItems = $this->items
-            ->where('order', '<=', $this->moduleProgress->unlocked_order);
-
         $userId = auth()->id();
         $itemIds = $this->items->pluck('id');
         $problemIds = $this->items->flatMap(fn ($item) => $item->problems)->pluck('id');
@@ -148,7 +143,7 @@ class ModuloViewer extends Component
             return;
         }
 
-        DB::transaction(function () use ($item) {
+        $this->unlockedOrder = DB::transaction(function () use ($item) {
             UserItemProgress::updateOrCreate(
                 [
                     'user_id' => auth()->id(),
@@ -162,14 +157,20 @@ class ModuloViewer extends Component
 
             $nextOrder = $item->order + 1;
 
-            if ($this->moduleProgress && $nextOrder > $this->moduleProgress->unlocked_order) {
-                $this->moduleProgress->update([
+            $moduleProgress = UserModuleProgress::where('user_id', auth()->id())
+                ->where('module_id', $this->module->id)
+                ->firstOrFail();
+
+            if ($nextOrder > $moduleProgress->unlocked_order) {
+                $moduleProgress->update([
                     'unlocked_order' => $nextOrder,
                 ]);
-
-                $this->moduleProgress->refresh();
             }
+
+            return $moduleProgress->unlocked_order;
         });
+
+        unset($this->visibleItems);
 
         // Invalidar cache de progreso para que el siguiente loadProgress sea fresco
         Cache::forget('user_progress_'.auth()->id().'_'.$this->module->id);
@@ -314,6 +315,10 @@ class ModuloViewer extends Component
 
     public function render()
     {
-        return view('livewire.modulos.modulo-viewer');
+        return view('livewire.modulos.modulo-viewer', [
+            'module' => $this->module,
+            'items' => $this->items,
+            'visibleItems' => $this->visibleItems,
+        ]);
     }
 }

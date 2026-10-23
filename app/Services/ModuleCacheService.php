@@ -140,7 +140,7 @@ class ModuleCacheService
     /**
      * Invalida la cache de un modulo especifico y del sidebar.
      */
-    public static function forgetModule(int $moduleId, ?string $slug = null): void
+    public static function forgetModule(int $moduleId, ?string $slug = null, ?string $previousSlug = null): void
     {
         Cache::forget('sidebar_modules');
 
@@ -151,6 +151,10 @@ class ModuleCacheService
 
         if ($slug) {
             Cache::forget('module_slug_'.$slug);
+        }
+
+        if ($previousSlug && $previousSlug !== $slug) {
+            Cache::forget('module_slug_'.$previousSlug);
         }
     }
 

@@ -234,6 +234,10 @@ class ComponentesPanel extends Component
             return;
         }
 
+        $previousModuleId = $this->problemId
+            ? Problem::find($this->problemId)?->moduleItem?->module_id
+            : null;
+
         DB::transaction(function () {
             // Save Problem
             $problem = Problem::updateOrCreate(
@@ -327,6 +331,9 @@ class ComponentesPanel extends Component
         $moduleId = ModuleItem::find($this->moduleItemId)?->module_id;
         if ($moduleId) {
             ModuleCacheService::forgetModule($moduleId);
+        }
+        if ($previousModuleId && $previousModuleId != $moduleId) {
+            ModuleCacheService::forgetModule($previousModuleId);
         }
 
         session()->flash('message', '¡Componente interactivo guardado exitosamente!');
