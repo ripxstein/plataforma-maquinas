@@ -814,41 +814,46 @@ class ComponentesPanel extends Component
 
     public function render()
     {
-        $modules = Module::with(['items' => fn ($q) => $q->select('id', 'module_id', 'title', 'order')])
+        $modules = Module::query()
+            ->when($this->viewMode === 'builder', fn ($q) => $q->with([
+                'items' => fn ($items) => $items->select('id', 'module_id', 'title', 'order'),
+            ]))
             ->orderBy('order')
             ->get(['id', 'title', 'order']);
 
-        $query = Problem::select('id', 'module_item_id', 'title', 'slug', 'component', 'order', 'is_example', 'is_active', 'created_at')
-            ->with([
-                'moduleItem' => fn ($q) => $q->select('id', 'module_id', 'title'),
-                'moduleItem.module' => fn ($q) => $q->select('id', 'title'),
-            ])
-            ->withCount('steps')
-            ->orderBy('module_item_id')
-            ->orderBy('order');
+        $problemsList = collect();
 
-        if (! empty($this->search)) {
-            $query->where(function ($q) {
-                $q->where('title', 'like', '%'.$this->search.'%')
-                    ->orWhere('slug', 'like', '%'.$this->search.'%');
-            });
-        }
+        if ($this->viewMode === 'list') {
+            $query = Problem::select('id', 'module_item_id', 'title', 'slug', 'component', 'order', 'is_example', 'is_active', 'created_at')
+                ->with([
+                    'moduleItem' => fn ($q) => $q->select('id', 'module_id', 'title'),
+                    'moduleItem.module' => fn ($q) => $q->select('id', 'title'),
+                ])
+                ->withCount('steps')
+                ->orderBy('module_item_id')
+                ->orderBy('order');
 
-        if (! empty($this->moduleFilter)) {
-            $query->whereHas('moduleItem', function ($q) {
-                $q->where('module_id', $this->moduleFilter);
-            });
-        }
+            if ($this->search !== '') {
+                $query->where(function ($q) {
+                    $q->where('title', 'like', '%'.$this->search.'%')
+                        ->orWhere('slug', 'like', '%'.$this->search.'%');
+                });
+            }
 
-        if (! empty($this->typeFilter)) {
+            if ($this->moduleFilter !== '') {
+                $query->whereHas('moduleItem', function ($q) {
+                    $q->where('module_id', $this->moduleFilter);
+                });
+            }
+
             if ($this->typeFilter === 'examples') {
                 $query->where('is_example', true);
             } elseif ($this->typeFilter === 'exercises') {
                 $query->where('is_example', false);
             }
-        }
 
-        $problemsList = $query->get();
+            $problemsList = $query->get();
+        }
 
         return view('livewire.admin.componentes-panel', [
             'modules' => $modules,

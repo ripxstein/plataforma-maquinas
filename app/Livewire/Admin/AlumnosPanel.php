@@ -29,10 +29,13 @@ class AlumnosPanel extends Component
     public function render()
     {
         $alumnos = User::query()
+            ->select('id', 'name', 'email')
             ->where('role', 'user')
-            ->where(function ($query) {
-                $query->where('name', 'like', '%'.$this->search.'%')
-                    ->orWhere('email', 'like', '%'.$this->search.'%');
+            ->when($this->search !== '', function ($query) {
+                $query->where(function ($query) {
+                    $query->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('email', 'like', '%'.$this->search.'%');
+                });
             })
             ->withCount([
                 'readingProgress as lecturas_completadas' => function ($query) {

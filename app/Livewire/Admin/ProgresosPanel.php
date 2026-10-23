@@ -28,6 +28,7 @@ class ProgresosPanel extends Component
         }
 
         $alumnos = User::query()
+            ->select('id', 'name', 'email')
             ->where('role', 'user')
             ->when($this->search !== '', function ($query) {
                 $query->where(function ($query) {

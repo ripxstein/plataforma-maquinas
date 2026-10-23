@@ -63,7 +63,7 @@
         <div class="section-body">
             <input
                 type="text"
-                wire:model.live="search"
+                wire:model.live.debounce.300ms="search"
                 placeholder="Buscar alumno..."
                 style="width:100%; padding:12px 14px; border:1px solid var(--borde); border-radius:12px; margin-bottom:18px;"
             >

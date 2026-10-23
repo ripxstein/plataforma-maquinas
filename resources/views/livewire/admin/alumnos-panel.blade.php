@@ -19,7 +19,7 @@
             <div style="margin-bottom:18px;">
                 <input
                     type="text"
-                    wire:model.live="search"
+                    wire:model.live.debounce.300ms="search"
                     placeholder="Buscar alumno por nombre o correo..."
                     style="width:100%; padding:12px 14px; border:1px solid var(--borde); border-radius:12px;"
                 >
