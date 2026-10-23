@@ -34,7 +34,12 @@ class ProblemaDinamico extends Component
     {
         $this->problem = Problem::with(['steps.options' => function ($query) {
             $query->orderBy('order');
-        }])->findOrFail($this->problemId);
+        }])->find($this->problemId);
+
+        if (! $this->problem) {
+            $this->steps = collect();
+            return;
+        }
 
         $this->steps = $this->problem->steps;
 
@@ -197,6 +202,12 @@ class ProblemaDinamico extends Component
 
     public function render()
     {
+        if (! $this->problem) {
+            return <<<'BLADE'
+            <div></div>
+            BLADE;
+        }
+
         return view('livewire.problemas.problema-dinamico');
     }
 }

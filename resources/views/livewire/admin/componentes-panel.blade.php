@@ -483,8 +483,8 @@
             </div>
 
             <!-- RIGHT COLUMN: REAL-TIME STUDENT PREVIEW SIMULATOR -->
-            <div style="position: sticky; top: 20px;">
-                <div class="card" style="background: #ffffff; padding: 20px; border-radius: 18px; border: 2px solid #bcdcff; box-shadow: 0 8px 24px rgba(30,90,168,0.1);">
+            <div style="position: sticky; top: 20px; min-width: 0; max-width: 100%;">
+                <div class="card preview-simulator" style="background: #ffffff; padding: 20px; border-radius: 18px; border: 2px solid #bcdcff; box-shadow: 0 8px 24px rgba(30,90,168,0.1); min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden;">
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--borde); padding-bottom: 10px;">
                         <div>
@@ -509,13 +509,13 @@
 
                     <!-- Problem Statement in Preview -->
                     @if($content)
-                        <div class="problema-enunciado" style="margin-bottom: 16px; font-size: 0.95rem; line-height: 1.6; color: var(--texto); background: #fbfdff; padding: 12px 14px; border-radius: 12px; border: 1px solid #e2effd;">
+                        <div class="problema-enunciado" style="margin-bottom: 16px; font-size: 0.95rem; line-height: 1.6; color: var(--texto); background: #fbfdff; padding: 12px 14px; border-radius: 12px; border: 1px solid #e2effd; min-width: 0; max-width: 100%; box-sizing: border-box; overflow-x: auto;">
                             {!! $content !!}
                         </div>
                     @endif
 
                     <!-- Interactive Steps Simulator Container -->
-                    <div class="steps" style="margin: 0; background: #e7f7ea; border: 1px solid #7bc28a; border-radius: 16px; padding: 16px;">
+                    <div class="steps" style="margin: 0; background: #e7f7ea; border: 1px solid #7bc28a; border-radius: 16px; padding: 16px; min-width: 0; max-width: 100%; box-sizing: border-box;">
                         <h5 style="margin: 0 0 10px; color: #25623b; font-size: 1.05rem;">
                             Resuelve paso a paso
                         </h5>
@@ -535,7 +535,7 @@
                             @endphp
 
                             @if($isUnlocked)
-                                <div class="pstep" style="margin-top: {{ $index > 0 ? '14px' : '4px' }}; background: {{ $isStepDone ? '#fafffa' : '#ffffff' }}; border: 1px solid {{ $isStepDone ? '#b2e2bd' : '#c7d9ee' }}; border-radius: 12px; padding: 14px;">
+                                <div class="pstep" style="margin-top: {{ $index > 0 ? '14px' : '4px' }}; background: {{ $isStepDone ? '#fafffa' : '#ffffff' }}; border: 1px solid {{ $isStepDone ? '#b2e2bd' : '#c7d9ee' }}; border-radius: 12px; padding: 14px; min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                         <div class="tag" style="background: {{ $isStepDone ? '#e7f7ea' : '#dcecff' }}; color: {{ $isStepDone ? '#1e7e34' : '#103b73' }}; margin: 0; font-size: 0.78rem;">
                                             {{ $isStepDone ? '✔ ' : '' }}Paso {{ $stepNum }}: {{ $step['title'] }}
@@ -546,7 +546,7 @@
                                     </div>
 
                                     @if(!empty($step['instruction']))
-                                        <div style="font-size: 0.92rem; line-height: 1.5; color: var(--texto); margin: 8px 0;">
+                                        <div style="font-size: 0.92rem; line-height: 1.5; color: var(--texto); margin: 8px 0; min-width: 0; max-width: 100%; box-sizing: border-box; overflow-x: auto;">
                                             {!! $step['instruction'] !!}
                                         </div>
                                     @endif

@@ -565,6 +565,7 @@ th {
   counter-increment: formula-idx;
   box-shadow: 0 2px 8px rgba(30, 90, 168, 0.04);
   max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -577,6 +578,7 @@ th {
   align-items: center !important;
   width: 100%;
   max-width: 100%;
+  min-width: 0 !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
   -webkit-overflow-scrolling: touch;
@@ -657,6 +659,70 @@ th {
 .formula[data-custom-number]::after,
 .formula-display[data-custom-number]::after {
   content: "(" attr(data-custom-number) ")" !important;
+}
+
+/* Contenedores con soporte para Container Queries */
+.pstep,
+.steps,
+.problema-enunciado,
+.preview-simulator,
+.card {
+  container-type: inline-size;
+}
+
+/* Fórmulas dentro de pasos de problemas, enunciados, simulador o contenedores estrechos */
+.pstep .formula,
+.steps .formula,
+.problema-enunciado .formula,
+.preview-simulator .formula {
+  padding: 14px 14px 44px 14px !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  font-size: 16px;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.pstep .formula::after,
+.steps .formula::after,
+.problema-enunciado .formula::after,
+.preview-simulator .formula::after {
+  top: auto !important;
+  bottom: 8px !important;
+  right: 14px !important;
+  transform: none !important;
+  font-size: 0.8rem !important;
+}
+
+.pstep .formula.no-number,
+.steps .formula.no-number,
+.problema-enunciado .formula.no-number,
+.preview-simulator .formula.no-number {
+  padding: 14px 14px 14px 14px !important;
+}
+
+@container (max-width: 720px) {
+  .formula,
+  .formula-display {
+    padding: 14px 14px 44px 14px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    font-size: 16px;
+  }
+
+  .formula::after,
+  .formula-display::after {
+    top: auto !important;
+    bottom: 8px !important;
+    right: 14px !important;
+    transform: none !important;
+    font-size: 0.8rem !important;
+  }
+
+  .formula.no-number,
+  .formula-display.no-number {
+    padding: 14px 14px 14px 14px !important;
+  }
 }
 
 @media (max-width: 820px) {
