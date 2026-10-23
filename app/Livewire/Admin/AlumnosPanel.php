@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\User;
+use App\Services\ProgressCalculator;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -28,7 +29,7 @@ class AlumnosPanel extends Component
 
     public function render()
     {
-        $alumnos = User::query()
+        $query = User::query()
             ->select('id', 'name', 'email')
             ->where('role', 'user')
             ->when($this->search !== '', function ($query) {
@@ -36,15 +37,9 @@ class AlumnosPanel extends Component
                     $query->where('name', 'like', '%'.$this->search.'%')
                         ->orWhere('email', 'like', '%'.$this->search.'%');
                 });
-            })
-            ->withCount([
-                'readingProgress as lecturas_completadas' => function ($query) {
-                    $query->where('completed', true);
-                },
-                'problemProgress as problemas_completados' => function ($query) {
-                    $query->where('completed', true);
-                },
-            ])
+            });
+
+        $alumnos = app(ProgressCalculator::class)->withUserProgress($query, includeWeights: false)
             ->orderBy('name')
             ->paginate(10);
 

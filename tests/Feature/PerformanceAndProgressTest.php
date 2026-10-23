@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserItemProgress;
 use App\Models\UserModuleProgress;
 use App\Models\UserProblemProgress;
+use App\Observers\ContentCacheObserver;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -132,42 +133,33 @@ test('ProgresosPanel renders with aggregated queries and no N+1 per student', fu
 
 test('saveComponent rolls back all changes if an exception occurs during the transaction', function () {
     $slug = 'problema-transaccion-'.uniqid();
-
-    // Mock/simulate failure by inserting invalid step data that will cause an SQL or type error
-    // For example, ProblemStep with a null non-nullable title when forced or intercepting DB
-    try {
-        DB::transaction(function () {
-            // Inside a test transaction we can verify that rollback restores state
-        });
-    } catch (Throwable $e) {
-    }
-
     $component = Livewire::actingAs($this->admin)
         ->test(ComponentesPanel::class)
         ->call('createComponent')
         ->set('title', 'Problema Fallido')
         ->set('slug', $slug)
         ->set('moduleItemId', $this->item1->id)
-        ->set('percentage', 30);
+        ->call('openAddStepModal')
+        ->set('stepTitle', 'Paso con fallo simulado')
+        ->set('stepCorrectAnswer', '10')
+        ->call('saveStepModal');
 
-    // Corrupt one step in stepsData to cause an exception on ProblemStep::updateOrCreate
-    // ProblemStep requires title (NOT NULL)
-    $steps = $component->get('stepsData');
-    $steps[0]['title'] = null; // Will trigger database NOT NULL integrity violation
-    $component->set('stepsData', $steps);
+    ProblemStep::creating(function ($step) {
+        if ($step->title === 'Paso con fallo simulado') {
+            throw new RuntimeException('Fallo simulado al guardar un paso');
+        }
+    });
 
     try {
-        $component->call('saveComponent');
-    } catch (Throwable $e) {
-        // Exception expected
+        expect(fn () => $component->call('saveComponent'))
+            ->toThrow(RuntimeException::class, 'Fallo simulado al guardar un paso');
+        $this->assertDatabaseMissing('problems', ['slug' => $slug]);
+        expect($component->get('problemId'))->toBeNull();
+    } finally {
+        ProblemStep::flushEventListeners();
+        ProblemStep::observe(ContentCacheObserver::class);
     }
-
-    // Because of DB::transaction, the problem itself should NOT exist in the database!
-    $this->assertDatabaseMissing('problems', [
-        'slug' => $slug,
-    ]);
 });
-
 test('completeReading rolls back all changes if an exception occurs during the transaction', function () {
     try {
         UserModuleProgress::updating(function () {

@@ -3,12 +3,14 @@
 namespace App\Livewire\Modulos;
 
 use App\Models\Module;
+use App\Models\Problem;
 use App\Models\UserItemProgress;
 use App\Models\UserModuleProgress;
 use App\Models\UserProblemProgress;
+use App\Services\LearningProgressService;
 use App\Services\ModuleCacheService;
+use App\Services\ProgressCalculator;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -28,9 +30,11 @@ class ModuloViewer extends Component
     public int $problemProgress = 0;
 
     /** @var array<int> */
+    #[Locked]
     public array $completedItemIds = [];
 
     /** @var array<int> */
+    #[Locked]
     public array $completedProblemIds = [];
 
     protected $listeners = [
@@ -100,7 +104,7 @@ class ModuloViewer extends Component
         // Cache de progreso por usuario+modulo (30s).
         // Elimina 2 queries (~580ms) en cada interaccion Livewire.
         // Se invalida inmediatamente al completar una lectura o problema.
-        $progressKey = "user_progress_{$userId}_{$this->module->id}";
+        $progressKey = ModuleCacheService::progressKey($userId, $this->module->id);
 
         $progress = Cache::remember($progressKey, 30, function () use ($userId, $itemIds, $problemIds) {
             return [
@@ -135,105 +139,33 @@ class ModuloViewer extends Component
         return in_array((int) $problemId, $this->completedProblemIds, true);
     }
 
-    public function completeReading($itemId)
+    public function completeReading(int $itemId)
     {
-        $item = $this->items->firstWhere('id', $itemId);
-
-        if (! $item) {
-            return;
-        }
-
-        $this->unlockedOrder = DB::transaction(function () use ($item) {
-            UserItemProgress::updateOrCreate(
-                [
-                    'user_id' => auth()->id(),
-                    'module_item_id' => $item->id,
-                ],
-                [
-                    'completed' => true,
-                    'completed_at' => now(),
-                ]
-            );
-
-            $nextOrder = $item->order + 1;
-
-            $moduleProgress = UserModuleProgress::where('user_id', auth()->id())
-                ->where('module_id', $this->module->id)
-                ->firstOrFail();
-
-            if ($nextOrder > $moduleProgress->unlocked_order) {
-                $moduleProgress->update([
-                    'unlocked_order' => $nextOrder,
-                ]);
-            }
-
-            return $moduleProgress->unlocked_order;
-        });
-
+        abort_unless(auth()->check(), 403);
+        $this->unlockedOrder = app(LearningProgressService::class)
+            ->completeReading(auth()->id(), $this->module->id, $itemId);
         unset($this->visibleItems);
-
-        // Invalidar cache de progreso para que el siguiente loadProgress sea fresco
-        Cache::forget('user_progress_'.auth()->id().'_'.$this->module->id);
-
         $this->loadProgress();
     }
 
-    public function completeProblem($problemId)
+    // El evento solo refresca la vista; jamás acredita una resolución.
+    public function completeProblem(int $problemId)
     {
-        UserProblemProgress::updateOrCreate(
-            [
-                'user_id' => auth()->id(),
-                'problem_id' => $problemId,
-            ],
-            [
-                'completed' => true,
-                'score' => 100,
-                'completed_at' => now(),
-            ]
-        );
-
-        // Invalidar cache de progreso
-        Cache::forget('user_progress_'.auth()->id().'_'.$this->module->id);
-
+        abort_unless(auth()->check(), 403);
+        $problem = Problem::whereHas('moduleItem', fn ($query) => $query->where('module_id', $this->module->id))
+            ->where('is_active', true)->findOrFail($problemId);
+        abort_unless(UserProblemProgress::where('user_id', auth()->id())
+            ->where('problem_id', $problem->id)->where('completed', true)->exists(), 403);
+        app(LearningProgressService::class)->forgetProgress(auth()->id(), $this->module->id);
         $this->loadProgress();
     }
 
     private function calculateProgress()
     {
-        $this->totalProgress = 0;
-        $readingCompleted = 0;
-        $problemCompleted = 0;
-
-        $readingTotal = $this->items->sum('percentage');
-
-        // Solo los problemas evaluados (is_example == false) cuentan para el porcentaje del módulo
-        $evalProblems = $this->items->flatMap(function ($item) {
-            return $item->problems->where('is_active', true)->where('is_example', false);
-        });
-
-        $problemTotal = $evalProblems->sum('percentage');
-
-        foreach ($this->items as $item) {
-            if ($this->isReadingCompleted($item->id)) {
-                $this->totalProgress += $item->percentage;
-                $readingCompleted += $item->percentage;
-            }
-
-            foreach ($item->problems->where('is_active', true)->where('is_example', false) as $problem) {
-                if ($this->isProblemCompleted($problem->id)) {
-                    $this->totalProgress += $problem->percentage;
-                    $problemCompleted += $problem->percentage;
-                }
-            }
-        }
-
-        $this->readingProgress = $readingTotal > 0
-            ? round(($readingCompleted / $readingTotal) * 100)
-            : 100;
-
-        $this->problemProgress = $problemTotal > 0
-            ? round(($problemCompleted / $problemTotal) * 100)
-            : 100;
+        $progress = app(ProgressCalculator::class)->module($this->items, $this->completedItemIds, $this->completedProblemIds);
+        $this->totalProgress = $progress['total'];
+        $this->readingProgress = $progress['readings'];
+        $this->problemProgress = $progress['problems'];
     }
 
     public function areExamplesCompleted($moduleItemId): bool
@@ -259,58 +191,10 @@ class ModuloViewer extends Component
 
     public function isProblemUnlocked($problem, $moduleItemId): bool
     {
-        // 1. Si el problema es un ejemplo demostrativo:
-        if ($problem->is_example) {
-            $examples = $this->items
-                ->firstWhere('id', $moduleItemId)
-                ?->problems
-                ?->where('is_active', true)
-                ->where('is_example', true)
-                ->sortBy('order');
+        $item = $this->items->firstWhere('id', $moduleItemId);
 
-            if (! $examples) {
-                return true;
-            }
-
-            foreach ($examples as $ex) {
-                if ($ex->id === $problem->id) {
-                    return true;
-                }
-                if (! $this->isProblemCompleted($ex->id)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        // 2. Si es un problema evaluado: requiere que TODOS los ejemplos de la lectura estén completados primero
-        if (! $this->areExamplesCompleted($moduleItemId)) {
-            return false;
-        }
-
-        // Y dentro de los ejercicios evaluados, se desbloquean en orden secuencial
-        $exercises = $this->items
-            ->firstWhere('id', $moduleItemId)
-            ?->problems
-            ?->where('is_active', true)
-            ->where('is_example', false)
-            ->sortBy('order');
-
-        if (! $exercises) {
-            return true;
-        }
-
-        foreach ($exercises as $ex) {
-            if ($ex->id === $problem->id) {
-                return true;
-            }
-            if (! $this->isProblemCompleted($ex->id)) {
-                return false;
-            }
-        }
-
-        return true;
+        return $item && $item->order <= $this->unlockedOrder && $this->isReadingCompleted($item->id)
+            && app(LearningProgressService::class)->isProblemUnlocked($problem, $item->problems, $this->completedProblemIds);
     }
 
     public function render()

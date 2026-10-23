@@ -9,6 +9,7 @@ use App\Models\Problem;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class ModuleCacheService
 {
@@ -146,6 +147,7 @@ class ModuleCacheService
 
         if ($moduleId > 0) {
             Cache::forget('module_items_'.$moduleId);
+            Cache::forget('module_progress_version_'.$moduleId);
             self::forgetSitemap($moduleId);
         }
 
@@ -181,5 +183,12 @@ class ModuleCacheService
     public static function forgetSitemap(int $moduleId): void
     {
         Cache::forget('module_sitemap_'.$moduleId);
+    }
+
+    public static function progressKey(int $userId, int $moduleId): string
+    {
+        $version = Cache::rememberForever('module_progress_version_'.$moduleId, fn () => (string) Str::uuid());
+
+        return "user_progress_{$userId}_{$moduleId}_{$version}";
     }
 }

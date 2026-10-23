@@ -2,9 +2,8 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\ModuleItem;
-use App\Models\Problem;
 use App\Models\User;
+use App\Services\ProgressCalculator;
 use Livewire\Component;
 
 class ProgresosPanel extends Component
@@ -13,21 +12,9 @@ class ProgresosPanel extends Component
 
     public function render()
     {
-        $totalLecturasCatalogo = ModuleItem::count();
-        $totalProblemasCatalogo = Problem::where('is_active', true)->count();
-        $totalCatalogo = $totalLecturasCatalogo + $totalProblemasCatalogo;
-
-        $progressCounts = [
-            'readingProgress as lecturas_completadas' => fn ($q) => $q->where('completed', true),
-            'problemProgress as problemas_completados' => fn ($q) => $q->where('completed', true),
-        ];
-
-        if ($totalCatalogo === 0) {
-            $progressCounts[] = 'readingProgress as total_lecturas';
-            $progressCounts[] = 'problemProgress as total_problemas';
-        }
-
-        $alumnos = User::query()
+        $calculator = app(ProgressCalculator::class);
+        $totalWeight = $calculator->catalogWeight();
+        $alumnos = $calculator->withUserProgress(User::query()
             ->select('id', 'name', 'email')
             ->where('role', 'user')
             ->when($this->search !== '', function ($query) {
@@ -36,16 +23,11 @@ class ProgresosPanel extends Component
                         ->orWhere('email', 'like', '%'.$this->search.'%');
                 });
             })
-            ->withCount($progressCounts)
+        )
             ->orderBy('name')
             ->get()
-            ->map(function ($alumno) use ($totalCatalogo) {
-                $completadas = $alumno->lecturas_completadas + $alumno->problemas_completados;
-                $total = $totalCatalogo > 0
-                    ? $totalCatalogo
-                    : max($alumno->total_lecturas + $alumno->total_problemas, 1);
-
-                $alumno->avance_total = min(round(($completadas / $total) * 100), 100);
+            ->map(function ($alumno) use ($calculator, $totalWeight) {
+                $alumno->avance_total = $calculator->percentage($alumno->reading_weight + $alumno->problem_weight, $totalWeight);
 
                 return $alumno;
             });

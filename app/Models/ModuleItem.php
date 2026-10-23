@@ -23,12 +23,12 @@ class ModuleItem extends Model
 
     public function problems()
     {
-        return $this->hasMany(Problem::class)->orderBy('order');
+        return $this->hasMany(Problem::class)->orderBy('order')->orderBy('id');
     }
 
     public function activeProblems()
     {
-        return $this->hasMany(Problem::class)->where('is_active', true)->orderBy('order');
+        return $this->hasMany(Problem::class)->where('is_active', true)->orderBy('order')->orderBy('id');
     }
 
     public function progress()

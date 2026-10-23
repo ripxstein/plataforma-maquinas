@@ -204,6 +204,10 @@ test('problema dinamico validates step responses and emits completion event on f
         'order' => 2,
     ]);
 
+    Livewire::actingAs($this->student)
+        ->test(ModuloViewer::class, ['slug' => $this->module->slug])
+        ->call('completeReading', $this->reading->id);
+
     $lw = Livewire::actingAs($this->student)
         ->test(ProblemaDinamico::class, ['problemId' => $problem->id]);
 

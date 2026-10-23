@@ -72,7 +72,12 @@ plataforma-maquinas/
 │   │   └── ModuleSitemap.php      # Mapa conceptual de un módulo
 │   ├── Services/
 │   │   ├── ModuleCacheService.php # Caché de módulos, items, problemas y mapas
+│   │   ├── LearningProgressService.php # Prerrequisitos y persistencia del avance
+│   │   ├── ProgressCalculator.php # Porcentajes ponderados para alumno y admin
+│   │   ├── AnswerEvaluator.php    # Evaluación compartida con el simulador
+│   │   ├── ProblemWriter.php      # Guardado transaccional y duplicación de problemas
 │   │   └── SitemapService.php     # Marcas de conceptos y saneamiento del mapa
+│   ├── Observers/ContentCacheObserver.php # Invalidación en escrituras Eloquent
 │   ├── Providers/
 │   └── View/
 │       └── Components/
@@ -124,6 +129,8 @@ plataforma-maquinas/
 - **No usa controladores REST tradicionales** para la lógica de negocio. Toda la interactividad se maneja con **componentes Livewire full-class** (`app/Livewire/`).
 - Las rutas de autenticación usan **Livewire Volt** (single-file components en `resources/views/livewire/pages/auth/`).
 - Las páginas Blade de administración montan componentes Livewire. `/alumno/modulo/{slug}` devuelve `student.modulo`, que monta `Modulos\ModuloViewer`; no apunta directamente a la clase Livewire.
+- Livewire coordina formularios y presentación. `ProblemWriter` guarda y duplica problemas con sus pasos y opciones en una transacción; ambos paneles usan su guardado de metadatos. Los IDs de pasos y opciones se buscan dentro de su padre para evitar reasignaciones accidentales.
+- `AnswerEvaluator` comparte criterios numéricos, booleanos, de texto y selección entre el alumno y la vista previa. Los problemas legacy conservan sus fórmulas y ayudas, pero usan el mismo evaluador numérico y las protecciones de `ValidatesLegacyProgress`. Mantener las tolerancias existentes al refactorizar; el texto booleano desconocido se rechaza.
 - El mapa conceptual se edita con `Admin\SitemapDesigner`, se guarda en `ModuleSitemap` y se presenta al inicio del visor. La interacción del lienzo usa Alpine y `public/js/sitemap-diagram.js`; las marcas de conceptos se extraen del HTML de las lecturas mediante `SitemapService`.
 
 ### Roles y autenticación
@@ -154,15 +161,19 @@ Module (1) ──► (N) ModuleItem (1) ──► (N) Problem (1) ──► (N) 
 
 ### Progreso del alumno
 - `UserItemProgress`: rastrea qué items ha leído/completado cada usuario.
-- `UserModuleProgress`: progreso agregado por módulo.
+- `UserModuleProgress`: orden de lectura desbloqueado por módulo; los porcentajes se calculan con `ProgressCalculator`.
 - `UserProblemProgress`: estado de resolución de problemas.
-- `ModuloViewer` desbloquea lecturas según `UserModuleProgress.unlocked_order`. Los ejemplos y los problemas evaluados se presentan en secuencia; al completarse un problema, el componente hijo emite `problema-completado`.
-- El progreso de lectura y problemas se consulta por lotes y se guarda en `user_progress_{userId}_{moduleId}` durante 30 segundos; se invalida al completar contenido.
+- `LearningProgressService` valida contra la BD la pertenencia y el desbloqueo de cada lectura. Para resolver un problema exige que esté activo, que su lectura esté completada y desbloqueada, y que se hayan completado los ejemplos y ejercicios previos correspondientes. Los empates en `order` se resuelven por ID.
+- Los componentes de problemas mantienen identificador y paso actual con `#[Locked]`. El dinámico exige el paso esperado y el modo correcto (ejemplo o ejercicio); si cambia la definición mientras se resuelve, devuelve 409 y requiere recargar. Su problema y pasos son propiedades computadas.
+- La resolución se persiste desde el último paso validado mediante `LearningProgressService::completeProblem()`. El evento `problema-completado` **solo refresca** el visor y exige que ya exista una finalización del usuario para un problema activo de ese módulo. Todo componente nuevo o personalizado debe implementar este contrato; emitir el evento por sí solo no otorga progreso.
+- `ProgressCalculator` calcula `100 × peso completado / peso disponible`, redondeado y limitado a 0–100. Incluye lecturas y ejercicios activos; excluye ejemplos y problemas inactivos. El visor usa el catálogo de su módulo y administración usa todo el catálogo. Con peso total cero, el total es 0; las subsecciones del visor sin peso muestran 100, conservando su comportamiento previo. Si los pesos suman 100, se conserva el resultado anterior del visor.
+- El progreso se consulta por lotes y se guarda en `user_progress_{userId}_{moduleId}_{version}` durante 30 segundos. `ModuleCacheService::progressKey()` obtiene la versión de contenido del módulo; cambia al invalidar contenido, evitando resultados antiguos después de mover lecturas o problemas. Se invalida al completar contenido.
 
 ### Caché y rendimiento
 - `ModuleCacheService` mantiene `sidebar_modules`, `module_slug_{slug}`, `module_items_{moduleId}` y `module_sitemap_{moduleId}`. El contenido del módulo y el mapa tienen TTL de una hora. `php artisan modules:cache` precarga sidebar, módulos, lecturas y problemas activos.
 - En `ModuloViewer`, `module`, `items` y `visibleItems` son propiedades `#[Computed]`; `slug` y `unlockedOrder` son escalares `#[Locked]`. **No volver a poner colecciones de modelos Eloquent en propiedades públicas del visor**: Livewire puede restaurar cada modelo con consultas por elemento durante la hidratación.
-- Al cambiar el slug de un módulo, invalidar el slug anterior y el nuevo. Al mover una lectura o problema, invalidar la caché del módulo origen y del destino. `ContenidoPanel` y `ComponentesPanel` ya siguen esta regla; aplicarla también a nuevos puntos de escritura.
+- `ContentCacheObserver`, registrado en `AppServiceProvider`, invalida al guardar/eliminar módulos, lecturas, problemas, pasos, opciones y mapas con Eloquent. Captura slug anterior/nuevo y módulo origen/destino, invalida inmediatamente y repite al confirmar una transacción para retirar datos que otra petición haya cacheado antes del commit. Los paneles ya no gestionan esta invalidación de contenido.
+- `DatabaseSeeder` conserva los eventos Eloquent, de forma que sembrar contenido también invalida caché. Las escrituras masivas por query builder, SQL directo y `withoutEvents()` no disparan observers: evitarlas para este dominio o invalidar explícitamente todos los módulos afectados después de confirmar la transacción. No precargar caché desde dentro de una transacción de escritura.
 - Los listados de administración usan columnas seleccionadas, conteos agregados y búsquedas con debounce. Mantener las relaciones cargadas solo donde la vista las necesita; comprobar el número de consultas en una petición Livewire real antes de añadir nuevas capas de caché.
 
 ---
@@ -229,7 +240,7 @@ php artisan test
 ./vendor/bin/pint
 ```
 
-Las pruebas automatizadas usan SQLite en memoria (`phpunit.xml`); la aplicación local usa MySQL. Los casos de `tests/Feature/CacheConsistencyTest.php` comprueban invalidación de usuarios y contenido, y que la hidratación del visor no vuelva a consultar cada lectura. Al 22-10-2026, la suite completa tenía tres fallos conocidos en `Feature/ExampleTest`, `Feature/ProfileTest` y el caso de rollback de `Feature/PerformanceAndProgressTest`; distinguirlos de regresiones nuevas y actualizar esta nota cuando se corrijan.
+Las pruebas automatizadas usan SQLite en memoria (`phpunit.xml`); la aplicación local usa MySQL. `tests/Feature/CacheConsistencyTest.php` comprueba invalidación y consultas de hidratación. `LearningArchitectureTest.php` cubre intentos de saltar prerrequisitos, estado bloqueado, resolución dinámica y legacy, cálculo ponderado y escrituras fuera de los paneles. `PerformanceAndProgressTest.php` comprueba consultas agregadas y rollback mediante una excepción real durante el guardado. Al 22-10-2026 quedan dos fallos conocidos ajenos a estas correcciones: `Feature/ExampleTest` espera 200 donde `/` redirige con 302; `Feature/ProfileTest` espera el formulario de eliminación que la página no monta. Distinguirlos de regresiones nuevas. SQLite no verifica la concurrencia ni los bloqueos de MySQL.
 
 ---
 
@@ -280,13 +291,12 @@ Las pruebas automatizadas usan SQLite en memoria (`phpunit.xml`); la aplicación
 9. **Tests**: usar **Pest** para escribir tests. Ejecutar `php artisan test` para verificar antes de dar por terminado.
 10. **No modificar** archivos de configuración estándar de Laravel (`config/`) sin razón justificada.
 11. **Caché de usuarios**: toda nueva operación que guarde o elimine un `User` debe preservar los eventos Eloquent de invalidación de `auth_user_{id}`. Si se usa una actualización masiva por query builder, invalidar las claves afectadas explícitamente.
-12. **Caché de contenido**: usar `ModuleCacheService::forgetModule()` al modificar módulos, lecturas o problemas. Incluir slug anterior/nuevo y módulo origen/destino cuando cambien. El mapa usa `forgetSitemap()`.
+12. **Caché de contenido**: preservar `ContentCacheObserver` y los eventos Eloquent. No duplicar invalidaciones en cada panel. Para una escritura masiva que omita eventos, usar `ModuleCacheService::forgetModule()` incluyendo slug anterior/nuevo y módulos origen/destino; cubrirla con pruebas.
 13. **Estado Livewire**: conservar colecciones de módulos, lecturas y problemas en propiedades computadas o variables de render, no en propiedades públicas persistentes. Proteger los identificadores y estados que el cliente no debe alterar con `#[Locked]` o volver a consultarlos en el servidor.
-14. **Progreso**: cualquier acción pública que escriba avance debe validar en servidor usuario, pertenencia del item o problema, estado activo y reglas de desbloqueo. No confiar en botones deshabilitados ni en el orden mostrado en Blade.
+14. **Progreso**: usar `LearningProgressService` para verificar prerrequisitos y persistir; solo el último paso validado puede registrar un problema resuelto. Nunca acreditar progreso a partir de un evento del navegador. Reutilizar `ProgressCalculator` y `AnswerEvaluator` al añadir pantallas o evaluadores.
 15. **Verificación**: para cambios en caché o consultas, añadir pruebas Pest que comprueben comportamiento y, cuando proceda, consultas en una segunda petición Livewire. Revisar el diff y ejecutar la suite completa; reportar con precisión fallos existentes y nuevos.
 
 ## Riesgos pendientes identificados
 
-- `ModuloViewer::completeReading()` y `completeProblem()` aún necesitan validaciones de desbloqueo y pertenencia en el servidor. `ProblemaDinamico::nextExampleStep()` y `checkStep()` deben exigir el paso esperado antes de registrar finalización. Estas reglas visuales no son controles de autorización.
 - `DatabaseSeeder` crea un administrador con credenciales fijas. No usar ese seeder en un entorno expuesto sin sustituir ese mecanismo de provisión.
 - La limpieza de HTML de `ContenidoPanel` usa expresiones regulares; revisar el tratamiento de contenido rico antes de aceptar autores no confiables o ampliar permisos de edición.

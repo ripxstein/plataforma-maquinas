@@ -4,7 +4,6 @@ namespace App\Livewire\Admin;
 
 use App\Models\Module;
 use App\Models\ModuleSitemap;
-use App\Services\ModuleCacheService;
 use App\Services\SitemapService;
 use Livewire\Component;
 
@@ -44,8 +43,6 @@ class SitemapDesigner extends Component
                 'is_active' => $isActive,
             ]
         );
-
-        ModuleCacheService::forgetSitemap($this->moduleId);
 
         return [
             'ok' => true,

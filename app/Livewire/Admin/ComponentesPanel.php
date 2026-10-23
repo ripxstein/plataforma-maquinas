@@ -5,10 +5,8 @@ namespace App\Livewire\Admin;
 use App\Models\Module;
 use App\Models\ModuleItem;
 use App\Models\Problem;
-use App\Models\ProblemStep;
-use App\Models\ProblemStepOption;
-use App\Services\ModuleCacheService;
-use Illuminate\Support\Facades\DB;
+use App\Services\AnswerEvaluator;
+use App\Services\ProblemWriter;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -149,7 +147,7 @@ class ComponentesPanel extends Component
 
         // Initialize with 2 default sample steps
         $this->stepsData = [
-           
+
         ];
 
         $this->resetPreviewSimulator();
@@ -234,108 +232,19 @@ class ComponentesPanel extends Component
             return;
         }
 
-        $previousModuleId = $this->problemId
-            ? Problem::find($this->problemId)?->moduleItem?->module_id
-            : null;
-
-        DB::transaction(function () {
-            // Save Problem
-            $problem = Problem::updateOrCreate(
-                ['id' => $this->problemId],
-                [
-                    'module_item_id' => $this->moduleItemId,
-                    'title' => $this->title,
-                    'slug' => $this->slug,
-                    'content' => $this->content,
-                    'component' => $this->component ?: 'problemas.problema-dinamico',
-                    'order' => $this->order,
-                    'percentage' => $this->percentage,
-                    'is_active' => $this->isActive,
-                    'is_example' => $this->isExample,
-                ]
-            );
-
-            $this->problemId = $problem->id;
-
-            // Keep track of existing step IDs to delete removed steps
-            $keptStepIds = [];
-
-            foreach ($this->stepsData as $index => $stepData) {
-                $step = ProblemStep::updateOrCreate(
-                    ['id' => $stepData['id'] ?? null],
-                    [
-                        'problem_id' => $problem->id,
-                        'step_number' => $index + 1,
-                        'title' => $stepData['title'],
-                        'instruction' => $stepData['instruction'],
-                        'answer_type' => $stepData['answer_type'],
-                        'correct_answer' => $stepData['correct_answer'],
-                        'tolerance' => $stepData['tolerance'],
-                        'tolerance_type' => $stepData['tolerance_type'] ?? 'absolute',
-                        'unit' => $stepData['unit'] ?? '',
-                        'success_message' => $stepData['success_message'],
-                        'error_message' => $stepData['error_message'],
-                        'reminder_message' => $stepData['reminder_message'],
-                        'image_url' => $stepData['image_url'] ?? null,
-                        'image_alt' => $stepData['image_alt'] ?? null,
-                        'image_caption' => $stepData['image_caption'] ?? null,
-                        'image_source' => $stepData['image_source'] ?? null,
-                        'image_align' => $stepData['image_align'] ?? 'align-center',
-                        'image_max_width' => $stepData['image_max_width'] ?? '75%',
-                        'image_trigger' => $stepData['image_trigger'] ?? 'always',
-                    ]
-                );
-
-                $keptStepIds[] = $step->id;
-                $this->stepsData[$index]['id'] = $step->id;
-
-                // Handle options for multiple choice
-                $keptOptionIds = [];
-                if ($stepData['answer_type'] === 'multiple_choice' && ! empty($stepData['options'])) {
-                    foreach ($stepData['options'] as $optIdx => $optData) {
-                        if (empty(trim($optData['option_text'] ?? ''))) {
-                            continue;
-                        }
-
-                        $option = ProblemStepOption::updateOrCreate(
-                            ['id' => $optData['id'] ?? null],
-                            [
-                                'problem_step_id' => $step->id,
-                                'option_text' => $optData['option_text'],
-                                'is_correct' => (bool) ($optData['is_correct'] ?? false),
-                                'order' => $optIdx + 1,
-                            ]
-                        );
-                        $keptOptionIds[] = $option->id;
-                        $this->stepsData[$index]['options'][$optIdx]['id'] = $option->id;
-                    }
-                }
-
-                // Remove deleted options for this step
-                ProblemStepOption::where('problem_step_id', $step->id)
-                    ->whereNotIn('id', $keptOptionIds)
-                    ->delete();
-            }
-
-            // Remove deleted steps (and their options)
-            $stepsToDelete = ProblemStep::where('problem_id', $problem->id)
-                ->whereNotIn('id', $keptStepIds)
-                ->get();
-
-            foreach ($stepsToDelete as $st) {
-                ProblemStepOption::where('problem_step_id', $st->id)->delete();
-                $st->delete();
-            }
-        });
-
-        $moduleId = ModuleItem::find($this->moduleItemId)?->module_id;
-        if ($moduleId) {
-            ModuleCacheService::forgetModule($moduleId);
-        }
-        if ($previousModuleId && $previousModuleId != $moduleId) {
-            ModuleCacheService::forgetModule($previousModuleId);
-        }
-
+        $saved = app(ProblemWriter::class)->save($this->problemId, [
+            'module_item_id' => $this->moduleItemId,
+            'title' => $this->title,
+            'slug' => $this->slug,
+            'content' => $this->content,
+            'component' => $this->component ?: 'problemas.problema-dinamico',
+            'order' => $this->order,
+            'percentage' => $this->percentage,
+            'is_active' => $this->isActive,
+            'is_example' => $this->isExample,
+        ], $this->stepsData);
+        $this->problemId = $saved['problem']->id;
+        $this->stepsData = $saved['steps'];
         session()->flash('message', '¡Componente interactivo guardado exitosamente!');
         $this->resetPreviewSimulator();
     }
@@ -349,63 +258,8 @@ class ComponentesPanel extends Component
 
     public function duplicateComponent(int $id)
     {
-        $original = Problem::with('steps.options')->findOrFail($id);
-
-        DB::transaction(function () use ($original) {
-            $newTitle = 'Copia de '.$original->title;
-            $newSlug = Str::slug($newTitle).'-'.rand(100, 999);
-
-            $newProblem = Problem::create([
-                'module_item_id' => $original->module_item_id,
-                'title' => $newTitle,
-                'slug' => $newSlug,
-                'content' => $original->content,
-                'component' => $original->component ?: 'problemas.problema-dinamico',
-                'order' => (Problem::where('module_item_id', $original->module_item_id)->max('order') ?? 0) + 1,
-                'percentage' => $original->percentage,
-                'is_active' => $original->is_active ?? true,
-                'is_example' => $original->is_example ?? false,
-            ]);
-
-            foreach ($original->steps as $step) {
-                $newStep = ProblemStep::create([
-                    'problem_id' => $newProblem->id,
-                    'step_number' => $step->step_number,
-                    'title' => $step->title,
-                    'instruction' => $step->instruction,
-                    'answer_type' => $step->answer_type,
-                    'correct_answer' => $step->correct_answer,
-                    'tolerance' => $step->tolerance,
-                    'tolerance_type' => $step->tolerance_type,
-                    'unit' => $step->unit,
-                    'success_message' => $step->success_message,
-                    'error_message' => $step->error_message,
-                    'reminder_message' => $step->reminder_message,
-                    'image_url' => $step->image_url,
-                    'image_alt' => $step->image_alt,
-                    'image_caption' => $step->image_caption,
-                    'image_source' => $step->image_source,
-                    'image_align' => $step->image_align,
-                    'image_max_width' => $step->image_max_width,
-                    'image_trigger' => $step->image_trigger,
-                ]);
-
-                foreach ($step->options as $opt) {
-                    ProblemStepOption::create([
-                        'problem_step_id' => $newStep->id,
-                        'option_text' => $opt->option_text,
-                        'is_correct' => $opt->is_correct,
-                        'order' => $opt->order,
-                    ]);
-                }
-            }
-        });
-
-        $moduleId = ModuleItem::find($original->module_item_id)?->module_id;
-        if ($moduleId) {
-            ModuleCacheService::forgetModule($moduleId);
-        }
-
+        $original = Problem::findOrFail($id);
+        app(ProblemWriter::class)->duplicate($id);
         session()->flash('message', 'Componente «'.$original->title.'» duplicado con éxito.');
     }
 
@@ -413,12 +267,8 @@ class ComponentesPanel extends Component
     {
         $problem = Problem::findOrFail($id);
         $title = $problem->title;
-        $moduleId = ModuleItem::find($problem->module_item_id)?->module_id;
-        $problem->delete();
 
-        if ($moduleId) {
-            ModuleCacheService::forgetModule($moduleId);
-        }
+        $problem->delete();
 
         session()->flash('message', 'Componente «'.$title.'» eliminado.');
     }
@@ -722,51 +572,7 @@ class ComponentesPanel extends Component
 
         $step = $this->stepsData[$index];
         $userAnswer = $this->previewAnswers[$index] ?? null;
-        $isOk = false;
-
-        switch ($step['answer_type']) {
-            case 'numeric':
-                $userVal = (float) $userAnswer;
-                $expVal = (float) $step['correct_answer'];
-                $tol = (float) ($step['tolerance'] ?? 0.01);
-
-                if ($userAnswer !== null && $userAnswer !== '' && is_numeric($userAnswer)) {
-                    if (($step['tolerance_type'] ?? 'absolute') === 'percentage') {
-                        $pct = $tol > 1 ? ($tol / 100) : $tol;
-                        $isOk = abs($userVal - $expVal) <= (abs($expVal) * $pct) || abs($userVal - $expVal) <= 0.0001;
-                    } else {
-                        $isOk = abs($userVal - $expVal) <= $tol || abs($userVal - $expVal) <= (abs($expVal) * 0.02);
-                    }
-                }
-                break;
-
-            case 'multiple_choice':
-                if (! empty($step['options'])) {
-                    foreach ($step['options'] as $optIdx => $opt) {
-                        if ($opt['is_correct'] && (string) $optIdx === (string) $userAnswer) {
-                            $isOk = true;
-                            break;
-                        }
-                    }
-                }
-                break;
-
-            case 'true_false':
-                $userNorm = strtolower(trim((string) $userAnswer));
-                $expNorm = strtolower(trim((string) $step['correct_answer']));
-                $userBool = in_array($userNorm, ['1', 'true', 'verdadero', 'v', 't']);
-                $expBool = in_array($expNorm, ['1', 'true', 'verdadero', 'v', 't']);
-                $isOk = ($userBool === $expBool) && ($userNorm !== '');
-                break;
-
-            case 'text':
-            default:
-                $userNorm = mb_strtolower(trim((string) $userAnswer));
-                $expNorm = mb_strtolower(trim((string) $step['correct_answer']));
-                $isOk = ($userNorm !== '' && $userNorm === $expNorm);
-                break;
-        }
-
+        $isOk = app(AnswerEvaluator::class)->evaluate($step, $userAnswer, $step['options'] ?? []);
         if ($isOk) {
             $this->previewMessages[$index] = [
                 'ok' => true,

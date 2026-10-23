@@ -2,10 +2,14 @@
 
 namespace App\Livewire\Problemas;
 
+use App\Livewire\Problemas\Concerns\ValidatesLegacyProgress;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Problema2 extends Component
 {
+    use ValidatesLegacyProgress;
+
     public $areaA;
 
     public $sigmaNomA;
@@ -34,14 +38,18 @@ class Problema2 extends Component
 
     public $showImageStep9 = false;
 
+    #[Locked]
     public $problemId;
 
+    #[Locked]
     public int $currentStep = 1;
 
+    #[Locked]
     public bool $askNextStep = false;
 
     public $nextStepAnswer = null;
 
+    #[Locked]
     public $nextStepFor = null;
 
     public array $messages = [];
@@ -87,18 +95,6 @@ class Problema2 extends Component
         10 => 'Después de calcular ambos esfuerzos máximos, debes comparar las opciones y elegir la de menor esfuerzo máximo.',
     ];
 
-    private function approxEqual($userValue, $expected, $tolAbs, $tolPct): bool
-    {
-        if ($userValue === null || ! is_numeric($userValue)) {
-            return false;
-        }
-
-        $userValue = (float) $userValue;
-
-        return abs($userValue - $expected) <= $tolAbs
-            || abs($userValue - $expected) <= abs($expected) * $tolPct;
-    }
-
     private function setMessage(int $step, bool $ok, string $text): void
     {
         $this->messages[$step] = [
@@ -117,7 +113,7 @@ class Problema2 extends Component
 
     public function checkNextStep()
     {
-        if (! $this->nextStepFor) {
+        if (! $this->askNextStep || ! $this->nextStepFor || $this->nextStepFor !== $this->currentStep) {
             return;
         }
 
@@ -143,6 +139,8 @@ class Problema2 extends Component
 
     public function checkStep1()
     {
+        $this->assertCurrentStep(1);
+
         $ok = $this->approxEqual($this->areaA, $this->expected['areaA'], 2, 0.02);
 
         if ($ok) {
@@ -155,6 +153,8 @@ class Problema2 extends Component
 
     public function checkStep2()
     {
+        $this->assertCurrentStep(2);
+
         $ok = $this->approxEqual($this->sigmaNomA, $this->expected['sigmaNomA'], 1, 0.03);
 
         if ($ok) {
@@ -167,6 +167,8 @@ class Problema2 extends Component
 
     public function checkStep3()
     {
+        $this->assertCurrentStep(3);
+
         $ok = $this->approxEqual($this->relacionA, $this->expected['relacionA'], 0.01, 0.05);
 
         if ($ok) {
@@ -179,6 +181,8 @@ class Problema2 extends Component
 
     public function checkStep4()
     {
+        $this->assertCurrentStep(4);
+
         $ok = $this->approxEqual($this->ktA, $this->expected['ktA'], 0.08, 0.05);
 
         if ($ok) {
@@ -195,6 +199,8 @@ class Problema2 extends Component
 
     public function checkStep5()
     {
+        $this->assertCurrentStep(5);
+
         $ok = $this->approxEqual($this->sigmaMaxA, $this->expected['sigmaMaxA'], 2, 0.03);
 
         if ($ok) {
@@ -207,6 +213,8 @@ class Problema2 extends Component
 
     public function checkStep6()
     {
+        $this->assertCurrentStep(6);
+
         $ok = $this->approxEqual($this->areaB, $this->expected['areaB'], 2, 0.02);
 
         if ($ok) {
@@ -219,6 +227,8 @@ class Problema2 extends Component
 
     public function checkStep7()
     {
+        $this->assertCurrentStep(7);
+
         $ok = $this->approxEqual($this->sigmaNomB, $this->expected['sigmaNomB'], 1, 0.03);
 
         if ($ok) {
@@ -231,6 +241,8 @@ class Problema2 extends Component
 
     public function checkStep8()
     {
+        $this->assertCurrentStep(8);
+
         $ok1 = $this->approxEqual($this->rdB, $this->expected['rdB'], 0.01, 0.05);
         $ok2 = $this->approxEqual($this->DdB, $this->expected['DdB'], 0.03, 0.05);
 
@@ -244,6 +256,8 @@ class Problema2 extends Component
 
     public function checkStep9()
     {
+        $this->assertCurrentStep(9);
+
         $ok = $this->approxEqual($this->ktB, $this->expected['ktB'], 0.08, 0.05);
 
         if ($ok) {
@@ -258,6 +272,8 @@ class Problema2 extends Component
 
     public function checkStep10()
     {
+        $this->assertCurrentStep(10);
+
         $ok = $this->approxEqual($this->sigmaMaxB, $this->expected['sigmaMaxB'], 2, 0.03);
 
         if ($ok) {
@@ -270,10 +286,12 @@ class Problema2 extends Component
 
     public function checkStep11()
     {
+        $this->assertCurrentStep(11);
+
         if ($this->seleccion === 'B') {
             $this->setMessage(11, true, 'Correcto. La opción B es preferible porque genera menor esfuerzo máximo.');
             $this->currentStep = 12;
-            $this->dispatch('problema-completado', problemId: $this->problemId);
+            $this->completeValidatedProblem();
         } else {
             $this->setMessage(11, false, 'Revisa la comparación: 109.375 MPa es menor que 156.25 MPa.');
         }

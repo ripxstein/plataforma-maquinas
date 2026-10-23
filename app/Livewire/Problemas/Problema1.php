@@ -2,10 +2,14 @@
 
 namespace App\Livewire\Problemas;
 
+use App\Livewire\Problemas\Concerns\ValidatesLegacyProgress;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Problema1 extends Component
 {
+    use ValidatesLegacyProgress;
+
     public $d;
 
     public $A;
@@ -16,16 +20,20 @@ class Problema1 extends Component
 
     public $smax;
 
+    #[Locked]
     public $problemId;
 
     public $showImageStep4 = false;
 
+    #[Locked]
     public int $currentStep = 1;
 
+    #[Locked]
     public bool $askNextStep = false;
 
     public $nextStepAnswer = null;
 
+    #[Locked]
     public $nextStepFor = null;
 
     public array $messages = [];
@@ -52,20 +60,6 @@ class Problema1 extends Component
         4 => 'Después de Kt, debes calcular σmax = Kt · σnom.',
     ];
 
-    public function approxEqual($userValue, $expected, $tolAbs, $tolPct): bool
-    {
-        if ($userValue === null || ! is_numeric($userValue)) {
-            return false;
-        }
-
-        $userValue = (float) $userValue;
-
-        $absOk = abs($userValue - $expected) <= $tolAbs;
-        $pctOk = abs($userValue - $expected) <= abs($expected) * $tolPct;
-
-        return $absOk || $pctOk;
-    }
-
     private function askWhatIsNext(int $step): void
     {
         $this->askNextStep = true;
@@ -75,7 +69,7 @@ class Problema1 extends Component
 
     public function checkNextStep()
     {
-        if (! $this->nextStepFor) {
+        if (! $this->askNextStep || ! $this->nextStepFor || $this->nextStepFor !== $this->currentStep) {
             return;
         }
 
@@ -101,6 +95,8 @@ class Problema1 extends Component
 
     public function checkStep1()
     {
+        $this->assertCurrentStep(1);
+
         if ($this->approxEqual($this->d, $this->expected['d'], 0.01, 0.02)) {
             $this->messages[1] = [
                 'ok' => true,
@@ -118,6 +114,8 @@ class Problema1 extends Component
 
     public function checkStep2()
     {
+        $this->assertCurrentStep(2);
+
         if ($this->approxEqual($this->A, $this->expected['A'], 0.01, 0.02)) {
             $this->messages[2] = [
                 'ok' => true,
@@ -135,6 +133,8 @@ class Problema1 extends Component
 
     public function checkStep3()
     {
+        $this->assertCurrentStep(3);
+
         if ($this->approxEqual($this->snom, $this->expected['snom'], 100, 0.02)) {
             $this->messages[3] = [
                 'ok' => true,
@@ -152,6 +152,8 @@ class Problema1 extends Component
 
     public function checkStep4()
     {
+        $this->assertCurrentStep(4);
+
         if ($this->approxEqual($this->kt, $this->expected['kt'], 0.05, 0.03)) {
             $this->messages[4] = [
                 'ok' => true,
@@ -172,6 +174,8 @@ class Problema1 extends Component
 
     public function checkStep5()
     {
+        $this->assertCurrentStep(5);
+
         if ($this->approxEqual($this->smax, $this->expected['smax'], 200, 0.02)) {
             $this->messages[5] = [
                 'ok' => true,
@@ -180,7 +184,7 @@ class Problema1 extends Component
 
             $this->currentStep = 6;
 
-            $this->dispatch('problema-completado', problemId: $this->problemId);
+            $this->completeValidatedProblem();
         } else {
             $this->messages[5] = [
                 'ok' => false,

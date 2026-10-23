@@ -40,6 +40,6 @@ class Problem extends Model
 
     public function steps()
     {
-        return $this->hasMany(ProblemStep::class)->orderBy('step_number');
+        return $this->hasMany(ProblemStep::class)->orderBy('step_number')->orderBy('id');
     }
 }

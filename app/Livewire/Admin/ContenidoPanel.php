@@ -5,7 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Module;
 use App\Models\ModuleItem;
 use App\Models\Problem;
-use App\Services\ModuleCacheService;
+use App\Services\ProblemWriter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -246,9 +246,7 @@ class ContenidoPanel extends Component
             'moduleOrder' => 'required|integer|min:1',
         ]);
 
-        $previousSlug = $this->moduleId ? Module::findOrFail($this->moduleId)->slug : null;
-
-        $module = Module::updateOrCreate(
+        Module::updateOrCreate(
             ['id' => $this->moduleId],
             [
                 'title' => $this->moduleTitle,
@@ -259,17 +257,15 @@ class ContenidoPanel extends Component
 
         $this->closeModuleModal();
         unset($this->modules);
-        ModuleCacheService::forgetModule($module->id, $module->slug, $previousSlug);
         session()->flash('message', 'Módulo guardado correctamente.');
     }
 
     public function deleteModule($id)
     {
         $module = Module::findOrFail($id);
-        $slug = $module->slug;
+
         $module->delete();
         unset($this->modules);
-        ModuleCacheService::forgetModule($id, $slug);
         session()->flash('message', 'Módulo eliminado.');
     }
 
@@ -287,9 +283,6 @@ class ContenidoPanel extends Component
         $formattedContent = $this->sanitizeHtml($this->readingContent);
 
         $moduleId = $this->moduleIdForReading;
-        $previousModuleId = $this->readingId
-            ? ModuleItem::whereKey($this->readingId)->value('module_id')
-            : null;
 
         ModuleItem::updateOrCreate(
             ['id' => $this->readingId],
@@ -306,20 +299,15 @@ class ContenidoPanel extends Component
 
         $this->closeReadingModal();
         unset($this->modules);
-        ModuleCacheService::forgetModule($moduleId);
-        if ($previousModuleId && $previousModuleId != $moduleId) {
-            ModuleCacheService::forgetModule($previousModuleId);
-        }
         session()->flash('message', 'Lectura guardada correctamente.');
     }
 
     public function deleteReading($id)
     {
         $reading = ModuleItem::findOrFail($id);
-        $moduleId = $reading->module_id;
+
         $reading->delete();
         unset($this->modules);
-        ModuleCacheService::forgetModule($moduleId);
         session()->flash('message', 'Lectura eliminada.');
     }
 
@@ -347,14 +335,9 @@ class ContenidoPanel extends Component
         $formattedContent = $this->sanitizeHtml($this->problemContent);
 
         $readingId = $this->readingIdForProblem;
-        $reading = ModuleItem::find($readingId);
-        $moduleId = $reading?->module_id;
-        $previousModuleId = $this->problemId
-            ? Problem::find($this->problemId)?->moduleItem?->module_id
-            : null;
 
-        Problem::updateOrCreate(
-            ['id' => $this->problemId],
+        app(ProblemWriter::class)->saveDetails(
+            $this->problemId,
             [
                 'module_item_id' => $readingId,
                 'title' => $this->problemTitle,
@@ -370,26 +353,15 @@ class ContenidoPanel extends Component
         $this->closeProblemModal();
         unset($this->modules);
 
-        if ($moduleId) {
-            ModuleCacheService::forgetModule($moduleId);
-        }
-        if ($previousModuleId && $previousModuleId != $moduleId) {
-            ModuleCacheService::forgetModule($previousModuleId);
-        }
-
         session()->flash('message', 'Problema guardado correctamente.');
     }
 
     public function deleteProblem($id)
     {
         $problem = Problem::findOrFail($id);
-        $moduleId = ModuleItem::find($problem->module_item_id)?->module_id;
+
         $problem->delete();
         unset($this->modules);
-
-        if ($moduleId) {
-            ModuleCacheService::forgetModule($moduleId);
-        }
 
         session()->flash('message', 'Problema eliminado.');
     }
