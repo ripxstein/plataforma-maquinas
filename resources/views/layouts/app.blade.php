@@ -361,9 +361,6 @@
     function registerEduWysiwygEditor() {
         if (typeof Alpine === 'undefined') return;
 
-        // CodeMirror conserva referencias internas por identidad; Alpine no debe envolver su instancia.
-        const codeMirrorInstances = new WeakMap();
-
         Alpine.data('eduWysiwygEditor', (config = {}) => ({
             value: config.value || '',
             modelName: config.modelName || '',
@@ -386,6 +383,8 @@
                 targetEl: null,
                 tagName: '',
             },
+            
+            codeMirrorInstance: null,
             
             // Modals state
             showFormulaModal: false,
@@ -490,20 +489,6 @@
                 });
             },
 
-            getCodeMirror() {
-                const textarea = this.$el.querySelector('.edu-html-textarea');
-                return textarea ? codeMirrorInstances.get(textarea) || null : null;
-            },
-
-            destroy() {
-                const textarea = this.$el.querySelector('.edu-html-textarea');
-                const editor = textarea ? codeMirrorInstances.get(textarea) : null;
-                if (editor) {
-                    editor.toTextArea();
-                    codeMirrorInstances.delete(textarea);
-                }
-            },
-
             isRangeInEditor(range, editable) {
                 return !!(range && editable && editable.isConnected &&
                     range.startContainer.isConnected && range.endContainer.isConnected &&
@@ -579,9 +564,8 @@
                         this.value = el.innerHTML;
                     }
                 } else if (this.activeTab === 'html') {
-                    const editor = this.getCodeMirror();
-                    if (editor) {
-                        this.value = editor.getValue();
+                    if (this.codeMirrorInstance) {
+                        this.value = this.codeMirrorInstance.getValue();
                     } else {
                         this.value = this.htmlCode || '';
                     }
@@ -599,18 +583,18 @@
                 if (tab === 'html') {
                     this.htmlCode = this.formatHtml(this.value || '');
                     this.$nextTick(() => {
-                        Promise.resolve(window.__cmLoader).then(() => {
-                            requestAnimationFrame(() => {
-                                if (this.activeTab !== 'html') return;
-                                const editor = this.initCodeMirror();
-                                if (!editor) return;
-                                if (editor.getValue() !== this.htmlCode) {
-                                    editor.setValue(this.htmlCode);
-                                }
-                                editor.refresh();
-                                editor.focus();
-                            });
-                        });
+                        if (!this.codeMirrorInstance) {
+                            this.initCodeMirror();
+                        } else {
+                            this.codeMirrorInstance.setValue(this.htmlCode);
+                            this.codeMirrorInstance.refresh();
+                        }
+                        if (this.codeMirrorInstance) {
+                            setTimeout(() => {
+                                this.codeMirrorInstance.refresh();
+                                this.codeMirrorInstance.focus();
+                            }, 50);
+                        }
                     });
                 } else if (tab === 'edit') {
                     const el = document.getElementById(this.editorId + '-editable');
@@ -625,12 +609,11 @@
             },
 
             initCodeMirror() {
-                const existing = this.getCodeMirror();
-                if (existing) return existing;
-                const textarea = this.$el.querySelector('.edu-html-textarea');
-                if (!textarea || typeof CodeMirror === 'undefined') return null;
+                if (this.codeMirrorInstance) return;
+                const textarea = document.getElementById(this.editorId + '-html-textarea');
+                if (!textarea || typeof CodeMirror === 'undefined') return;
 
-                const editor = CodeMirror.fromTextArea(textarea, {
+                this.codeMirrorInstance = CodeMirror.fromTextArea(textarea, {
                     mode: 'htmlmixed',
                     lineNumbers: true,
                     lineWrapping: true,
@@ -641,17 +624,15 @@
                     indentWithTabs: false
                 });
 
-                codeMirrorInstances.set(textarea, editor);
-                editor.setValue(this.htmlCode || '');
+                this.codeMirrorInstance.setValue(this.htmlCode || '');
 
-                editor.on('change', (cm) => {
+                this.codeMirrorInstance.on('change', (cm) => {
                     const newVal = cm.getValue();
                     if (this.htmlCode !== newVal) {
                         this.htmlCode = newVal;
                         this.onHtmlChange();
                     }
                 });
-                return editor;
             },
 
             onHtmlChange() {
@@ -673,11 +654,10 @@
             },
 
             formatHtmlCode() {
-                const editor = this.getCodeMirror();
-                const current = editor ? editor.getValue() : (this.htmlCode || this.value || '');
+                const current = this.codeMirrorInstance ? this.codeMirrorInstance.getValue() : (this.htmlCode || this.value || '');
                 this.htmlCode = this.formatHtml(current);
-                if (editor) {
-                    editor.setValue(this.htmlCode);
+                if (this.codeMirrorInstance) {
+                    this.codeMirrorInstance.setValue(this.htmlCode);
                 }
                 this.onHtmlChange();
             },
@@ -744,16 +724,14 @@
                 });
 
                 this.htmlCode = this.formatHtml(doc.body.innerHTML);
-                const editor = this.getCodeMirror();
-                if (editor) {
-                    editor.setValue(this.htmlCode);
+                if (this.codeMirrorInstance) {
+                    this.codeMirrorInstance.setValue(this.htmlCode);
                 }
                 this.onHtmlChange();
             },
 
             copyHtmlToClipboard() {
-                const editor = this.getCodeMirror();
-                const textToCopy = editor ? editor.getValue() : (this.htmlCode || this.value || '');
+                const textToCopy = this.codeMirrorInstance ? this.codeMirrorInstance.getValue() : (this.htmlCode || this.value || '');
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(textToCopy).then(() => {
                         this.copiedHtml = true;
