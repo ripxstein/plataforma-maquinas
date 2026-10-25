@@ -265,6 +265,13 @@ mark.edu-concept-marker.edu-concept-flash {
   cursor: default;
 }
 
+/* Vista del alumno: fondo blanco puro y sin rejilla de puntos */
+.sm-viewport:not(.is-edit),
+#mapa-conceptual .sm-viewport {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
 .sm-viewport.is-edit {
   height: 100%;
   min-height: 420px;

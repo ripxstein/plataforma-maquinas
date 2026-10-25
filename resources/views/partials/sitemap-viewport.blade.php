@@ -8,7 +8,7 @@
     class="sm-viewport"
     :class="{ 'is-edit': isEdit, 'is-panning': panning }"
     x-ref="viewport"
-    :style="`${isEdit ? '' : 'height:' + vpHeight + 'px;'} touch-action:${isEdit || zoomed ? 'none' : 'pan-y'}; background-size:${24 * scale}px ${24 * scale}px; background-position:${tx}px ${ty}px;`"
+    :style="`${isEdit ? '' : 'height:' + vpHeight + 'px;'} touch-action:${isEdit || zoomed ? 'none' : 'pan-y'}; ${isEdit ? 'background-size:' + (24 * scale) + 'px ' + (24 * scale) + 'px; background-position:' + tx + 'px ' + ty + 'px;' : ''}`"
     @pointerdown="onViewportDown($event)"
     @wheel="onWheel($event)"
     @dragover.prevent
