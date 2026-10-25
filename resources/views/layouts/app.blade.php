@@ -78,24 +78,29 @@
         const splitAtDelimiters = function (text, delimiters) {
             let index;
             const data = [];
+            let plainText = '';
             const regexLeft = new RegExp('(' + delimiters.map(x => escapeRegex(x.left)).join('|') + ')');
 
             while (true) {
                 index = text.search(regexLeft);
                 if (index === -1) break;
 
-                if (index > 0) {
-                    data.push({
-                        type: 'text',
-                        data: text.slice(0, index)
-                    });
-                    text = text.slice(index);
-                }
+                plainText += text.slice(0, index);
+                text = text.slice(index);
 
                 const i = delimiters.findIndex(delim => text.startsWith(delim.left));
                 index = findEndOfMath(delimiters[i].right, text, delimiters[i].left.length);
-                if (index === -1) break;
+                if (index === -1) {
+                    // Conservar el delimitador incompleto y buscar fórmulas válidas posteriores.
+                    plainText += delimiters[i].left;
+                    text = text.slice(delimiters[i].left.length);
+                    continue;
+                }
 
+                if (plainText !== '') {
+                    data.push({ type: 'text', data: plainText });
+                    plainText = '';
+                }
                 const rawData = text.slice(0, index + delimiters[i].right.length);
                 const math = amsRegex.test(rawData) ? rawData : text.slice(delimiters[i].left.length, index);
                 data.push({
@@ -107,15 +112,17 @@
                 text = text.slice(index + delimiters[i].right.length);
             }
 
-            if (text !== '') {
-                data.push({ type: 'text', data: text });
+            plainText += text;
+            if (plainText !== '') {
+                data.push({ type: 'text', data: plainText });
             }
             return data;
         };
 
         const renderMathInText = function (text, optionsCopy) {
             const data = splitAtDelimiters(text, optionsCopy.delimiters);
-            if (data.length === 1 && data[0].type === 'text') {
+            // Un delimitador sin cierre no debe sustituir el nodo que contiene el cursor.
+            if (!data.some(part => part.type === 'math')) {
                 return null;
             }
 
@@ -152,6 +159,12 @@
         };
 
         const renderElem = function (elem, optionsCopy) {
+            // El contenido editable debe conservar sus nodos de texto y la selección del usuario.
+            if (elem.nodeType === Node.ELEMENT_NODE &&
+                (elem.isContentEditable || elem.closest?.('.edu-wysiwyg-editable'))) {
+                return;
+            }
+
             for (let i = 0; i < elem.childNodes.length; i++) {
                 const childNode = elem.childNodes[i];
                 if (childNode.nodeType === 3) {
@@ -201,7 +214,7 @@
                 { left: '\\begin{CD}', right: '\\end{CD}', display: true }
             ];
             optionsCopy.ignoredTags = optionsCopy.ignoredTags || ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'];
-            optionsCopy.ignoredClasses = optionsCopy.ignoredClasses || ['katex', 'katex-html', 'katex-mathml', 'admin-input', 'admin-textarea', 'edu-html-textarea'];
+            optionsCopy.ignoredClasses = optionsCopy.ignoredClasses || ['katex', 'katex-html', 'katex-mathml', 'admin-input', 'admin-textarea', 'edu-html-textarea', 'edu-wysiwyg-editable'];
             optionsCopy.macros = optionsCopy.macros || {};
             // Forzar solo HTML para evitar errores de MathML (<msub>) con el morphdom de Livewire/navegador
             optionsCopy.output = optionsCopy.output || 'html';
@@ -236,7 +249,7 @@
                             {left: '\\(', right: '\\)', display: false},
                             {left: '$', right: '$', display: false}
                         ],
-                        ignoredClasses: ['katex', 'katex-html', 'katex-mathml', 'admin-input', 'admin-textarea', 'edu-html-textarea'],
+                        ignoredClasses: ['katex', 'katex-html', 'katex-mathml', 'admin-input', 'admin-textarea', 'edu-html-textarea', 'edu-wysiwyg-editable'],
                         throwOnError: false
                     });
                 } catch (err) {
