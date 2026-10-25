@@ -382,6 +382,21 @@
                 y: 0,
                 targetEl: null,
                 tagName: '',
+                hasConceptMarker: false,
+                markerConceptId: null,
+                markerConceptTitle: '',
+            },
+            
+            // Floating Popover for Concept Marker (click sobre marca)
+            markerPopover: {
+                visible: false,
+                conceptId: null,
+                conceptTitle: '',
+                x: 0,
+                y: 0,
+                placement: 'top',
+                arrowOffset: 0,
+                targetEl: null,
             },
             
             codeMirrorInstance: null,
@@ -577,6 +592,8 @@
                     }
                 }
 
+                this.closeMarkerPopover();
+                this.closeBlockContextMenu();
                 this.activeTab = tab;
 
                 // Sincronizar hacia la pestaña entrante
@@ -1528,9 +1545,97 @@ toggleTagBlock() {
                 return slices.length > 0;
             },
 
+            // Concept Marker Popover (acciones directas al hacer click sobre una marca)
+            handleEditableClick(e) {
+                const target = e.target && e.target.nodeType === 1 ? e.target : e.target?.parentElement;
+                const mark = target ? target.closest('mark.edu-concept-marker') : null;
+                if (mark) {
+                    e.stopPropagation();
+                    this.openMarkerPopover(mark);
+                } else {
+                    this.closeMarkerPopover();
+                }
+            },
+
+            openMarkerPopover(mark) {
+                if (!mark) return;
+                const rect = mark.getBoundingClientRect();
+                const popoverWidth = 260;
+                const popoverHeight = 70;
+
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (editable) {
+                    editable.querySelectorAll('mark.edu-concept-marker.is-active-marker').forEach(m => m.classList.remove('is-active-marker'));
+                }
+                mark.classList.add('is-active-marker');
+                this.closeBlockContextMenu();
+
+                const markCenterX = rect.left + (rect.width / 2);
+                const minX = (popoverWidth / 2) + 12;
+                const maxX = window.innerWidth - (popoverWidth / 2) - 12;
+                const popoverX = Math.max(minX, Math.min(markCenterX, maxX));
+
+                let arrowOffset = markCenterX - popoverX;
+                arrowOffset = Math.max(-95, Math.min(95, arrowOffset));
+
+                let y = rect.top - 8;
+                let placement = 'top';
+
+                if (rect.top < popoverHeight + 60) {
+                    y = rect.bottom + 8;
+                    placement = 'bottom';
+                }
+
+                this.markerPopover = {
+                    visible: true,
+                    conceptId: mark.dataset.conceptId,
+                    conceptTitle: mark.dataset.conceptTitle || '',
+                    x: Math.round(popoverX),
+                    y: Math.round(y),
+                    placement: placement,
+                    arrowOffset: Math.round(arrowOffset),
+                    targetEl: mark,
+                };
+            },
+
+            closeMarkerPopover() {
+                if (!this.markerPopover.visible) return;
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (editable) {
+                    editable.querySelectorAll('mark.edu-concept-marker.is-active-marker').forEach(m => m.classList.remove('is-active-marker'));
+                }
+                this.markerPopover.visible = false;
+                this.markerPopover.conceptId = null;
+                this.markerPopover.conceptTitle = '';
+                this.markerPopover.arrowOffset = 0;
+                this.markerPopover.targetEl = null;
+            },
+
+            removeActiveMarker() {
+                const conceptId = this.markerPopover.conceptId;
+                if (!conceptId) return;
+
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (editable) {
+                    editable.querySelectorAll('mark.edu-concept-marker').forEach((mark) => {
+                        if (mark.dataset.conceptId === conceptId) {
+                            const parent = mark.parentNode;
+                            while (mark.firstChild) {
+                                parent.insertBefore(mark.firstChild, mark);
+                            }
+                            parent.removeChild(mark);
+                            parent.normalize();
+                        }
+                    });
+                }
+
+                this.closeMarkerPopover();
+                this.onContentChange();
+            },
+
             // Block Context Menu Actions
             openBlockContextMenu(e) {
-                if (this.activeTab !== 'edit' || !this.showBlocks) return;
+                if (this.activeTab !== 'edit') return;
 
                 const editable = document.getElementById(this.editorId + '-editable');
                 if (!editable) return;
@@ -1538,17 +1643,32 @@ toggleTagBlock() {
                 let target = e.target;
                 if (!target || target === editable) return;
 
+                const conceptMark = target.closest('mark.edu-concept-marker');
                 const block = target.closest('p, h1, h2, h3, h4, h5, h6, div, section, article, blockquote, ul, ol, table, pre, .edu-block, .card, .formula');
-                if (!block || block === editable || !editable.contains(block)) return;
+
+                if (!conceptMark && (!this.showBlocks || !block || block === editable || !editable.contains(block))) return;
 
                 e.preventDefault();
                 e.stopPropagation();
+                this.closeMarkerPopover();
 
-                this.blockContextMenu.targetEl = block;
-                this.blockContextMenu.tagName = block.tagName ? block.tagName.toLowerCase() : 'bloque';
+                this.blockContextMenu.targetEl = block || conceptMark;
+                this.blockContextMenu.tagName = block && block.tagName ? block.tagName.toLowerCase() : (conceptMark ? 'mark' : 'bloque');
+
+                if (conceptMark && editable.contains(conceptMark)) {
+                    this.blockContextMenu.hasConceptMarker = true;
+                    this.blockContextMenu.markerConceptId = conceptMark.dataset.conceptId;
+                    this.blockContextMenu.markerConceptTitle = conceptMark.dataset.conceptTitle || '';
+                } else {
+                    this.blockContextMenu.hasConceptMarker = false;
+                    this.blockContextMenu.markerConceptId = null;
+                    this.blockContextMenu.markerConceptTitle = '';
+                }
 
                 const menuWidth = 240;
-                const menuHeight = 310;
+                let menuHeight = this.showBlocks ? 310 : 120;
+                if (this.blockContextMenu.hasConceptMarker && this.showBlocks) menuHeight += 90;
+
                 let x = e.clientX;
                 let y = e.clientY;
 
@@ -1567,6 +1687,31 @@ toggleTagBlock() {
             closeBlockContextMenu() {
                 this.blockContextMenu.visible = false;
                 this.blockContextMenu.targetEl = null;
+                this.blockContextMenu.hasConceptMarker = false;
+                this.blockContextMenu.markerConceptId = null;
+                this.blockContextMenu.markerConceptTitle = '';
+            },
+
+            removeMarkerFromContext() {
+                const conceptId = this.blockContextMenu.markerConceptId;
+                if (!conceptId) return;
+
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (editable) {
+                    editable.querySelectorAll('mark.edu-concept-marker').forEach((mark) => {
+                        if (mark.dataset.conceptId === conceptId) {
+                            const parent = mark.parentNode;
+                            while (mark.firstChild) {
+                                parent.insertBefore(mark.firstChild, mark);
+                            }
+                            parent.removeChild(mark);
+                            parent.normalize();
+                        }
+                    });
+                }
+
+                this.closeBlockContextMenu();
+                this.onContentChange();
             },
 
             insertParagraphBeforeBlock() {

@@ -24,6 +24,17 @@ mark.edu-concept-marker {
 .edu-wysiwyg-editable mark.edu-concept-marker {
   position: relative;
   cursor: pointer;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.edu-wysiwyg-editable mark.edu-concept-marker:hover {
+  background: rgba(14, 165, 233, 0.3);
+}
+
+.edu-wysiwyg-editable mark.edu-concept-marker.is-active-marker {
+  background: rgba(14, 165, 233, 0.35) !important;
+  outline: 2px solid #0284c7;
+  outline-offset: 1px;
 }
 
 .edu-wysiwyg-editable mark.edu-concept-marker:hover::after {
@@ -46,6 +57,166 @@ mark.edu-concept-marker {
   z-index: 30;
   pointer-events: none;
   box-shadow: 0 4px 10px rgba(16, 59, 115, 0.3);
+}
+
+.edu-wysiwyg-editable mark.edu-concept-marker.is-active-marker::after {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Popover flotante de acciones para marcas en el editor WYSIWYG
+   -------------------------------------------------------------------------- */
+.edu-marker-popover {
+  position: fixed;
+  z-index: 999999;
+  font-family: inherit;
+  user-select: none;
+  filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.18)) drop-shadow(0 3px 6px rgba(15, 23, 42, 0.1));
+}
+
+.edu-marker-popover.placement-top {
+  transform: translate(-50%, -100%);
+  margin-top: -6px;
+}
+
+.edu-marker-popover.placement-bottom {
+  transform: translate(-50%, 0);
+  margin-top: 6px;
+}
+
+.edu-marker-popover-content {
+  background: #ffffff;
+  border: 1px solid #c7d9f2;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 250px;
+  max-width: 340px;
+}
+
+.edu-marker-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.edu-marker-popover-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.edu-marker-popover-icon {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.edu-marker-popover-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0c4a6e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edu-marker-popover-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.edu-marker-popover-close:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
+.edu-marker-popover-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-marker-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-marker-delete {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+  flex: 1;
+  justify-content: center;
+}
+
+.btn-marker-delete:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+}
+
+.btn-marker-edit {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.btn-marker-edit:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+/* Flecha apuntando a la marca */
+.edu-marker-popover-arrow {
+  position: absolute;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  transform: translateX(-50%) rotate(45deg);
+  border: 1px solid #c7d9f2;
+  pointer-events: none;
+}
+
+.edu-marker-popover.placement-top .edu-marker-popover-arrow {
+  bottom: -5px;
+  border-top: none;
+  border-left: none;
+}
+
+.edu-marker-popover.placement-bottom .edu-marker-popover-arrow {
+  top: -5px;
+  border-bottom: none;
+  border-right: none;
 }
 
 @keyframes eduConceptFlash {

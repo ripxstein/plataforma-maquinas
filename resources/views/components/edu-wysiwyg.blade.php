@@ -269,6 +269,8 @@
         contenteditable="true"
         @input="onContentChange()"
         @blur="onContentChange()"
+        @click="handleEditableClick($event)"
+        @scroll="closeMarkerPopover()"
         @contextmenu="openBlockContextMenu($event)"
         wire:ignore
     ></div>
@@ -648,6 +650,46 @@
         </div>
     </div>
 
+    <!-- Floating Popover for Concept Marker (aparece al hacer click sobre una marca) -->
+    <div
+        x-show="markerPopover.visible"
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        @click.outside="closeMarkerPopover()"
+        @keydown.escape.window="closeMarkerPopover()"
+        @scroll.window="closeMarkerPopover()"
+        class="edu-marker-popover"
+        :class="'placement-' + markerPopover.placement"
+        :style="`top: ${markerPopover.y}px; left: ${markerPopover.x}px;`"
+        style="display: none;"
+    >
+        <div class="edu-marker-popover-content">
+            <div class="edu-marker-popover-header">
+                <div class="edu-marker-popover-tag" :title="markerPopover.conceptTitle">
+                    <span class="edu-marker-popover-icon">🔖</span>
+                    <span class="edu-marker-popover-title" x-text="markerPopover.conceptTitle || 'Concepto marcado'"></span>
+                </div>
+                <button type="button" class="edu-marker-popover-close" @click="closeMarkerPopover()" title="Cerrar ventana">&times;</button>
+            </div>
+            <div class="edu-marker-popover-actions">
+                <button type="button" class="btn-marker-action btn-marker-delete" @click="removeActiveMarker()" title="Quitar la marca y conservar el texto original">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    <span>Eliminar marca</span>
+                </button>
+            </div>
+        </div>
+        <div class="edu-marker-popover-arrow" :style="`left: calc(50% + ${(markerPopover.arrowOffset || 0)}px);`"></div>
+    </div>
+
     <!-- MODAL: Card Assistant -->
     <div class="edu-modal-backdrop" x-show="showCardModal" style="display: none;">
         <div class="edu-modal-dialog">
@@ -690,56 +732,77 @@
     >
         <!-- Header con el tag detectado -->
         <div class="edu-context-header">
-            <span>Bloque seleccionado</span>
+            <span>Elemento seleccionado</span>
             <code class="edu-context-tag" x-text="'<' + blockContextMenu.tagName + '>'"></code>
         </div>
 
-        <div class="edu-context-divider"></div>
-
-        <!-- Acciones de Espaciado -->
-        <div class="edu-context-section-title">Espaciado</div>
-        <button type="button" class="edu-context-item" @click="insertParagraphBeforeBlock()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-            <span>Insertar espacio antes (arriba)</span>
-        </button>
-        <button type="button" class="edu-context-item" @click="insertParagraphAfterBlock()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
-            <span>Insertar espacio después (abajo)</span>
-        </button>
-
-        <div class="edu-context-divider"></div>
-
-        <!-- Acciones de Etiqueta -->
-        <div class="edu-context-section-title">Modificar Etiqueta</div>
-        <button type="button" class="edu-context-item" @click="wrapBlockInDiv()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
-            <span>Envolver en un &lt;div&gt;</span>
-        </button>
-
-        <div class="edu-context-change-tags">
-            <span class="edu-context-sublabel">Cambiar etiqueta a:</span>
-            <div class="edu-context-tag-buttons">
-                <button type="button" @click="changeBlockTag('p')" title="Párrafo normal">P</button>
-                <button type="button" @click="changeBlockTag('div')" title="Contenedor DIV">DIV</button>
-                <button type="button" @click="changeBlockTag('h1')" title="Título H1">H1</button>
-                <button type="button" @click="changeBlockTag('h2')" title="Subtítulo H2">H2</button>
-                <button type="button" @click="changeBlockTag('h3')" title="Encabezado H3">H3</button>
-                <button type="button" @click="changeBlockTag('blockquote')" title="Cita Blockquote">QUOTE</button>
+        <!-- Acciones de Marca de Concepto (si se hizo click en un mark) -->
+        <template x-if="blockContextMenu.hasConceptMarker">
+            <div>
+                <div class="edu-context-divider"></div>
+                <div class="edu-context-section-title" style="color: #0284c7;">Marca de Concepto</div>
+                <div style="padding: 2px 8px 6px 8px; font-size: 0.78rem; font-weight: 700; color: #0369a1; display:flex; align-items:center; gap:5px;">
+                    <span>🔖</span>
+                    <span x-text="blockContextMenu.markerConceptTitle || 'Concepto'" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+                </div>
+                <button type="button" class="edu-context-item edu-context-item-danger" @click="removeMarkerFromContext()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <span>Eliminar marca (conservar texto)</span>
+                </button>
             </div>
-        </div>
+        </template>
 
-        <button type="button" class="edu-context-item edu-context-item-warning" @click="unwrapBlockTag()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            <span>Quitar etiqueta (conservar texto)</span>
-        </button>
+        <!-- Acciones de Bloque (cuando está activo el modo bloques) -->
+        <template x-if="showBlocks && blockContextMenu.targetEl && blockContextMenu.targetEl.tagName !== 'MARK'">
+            <div>
+                <div class="edu-context-divider"></div>
 
-        <div class="edu-context-divider"></div>
+                <!-- Acciones de Espaciado -->
+                <div class="edu-context-section-title">Espaciado</div>
+                <button type="button" class="edu-context-item" @click="insertParagraphBeforeBlock()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                    <span>Insertar espacio antes (arriba)</span>
+                </button>
+                <button type="button" class="edu-context-item" @click="insertParagraphAfterBlock()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                    <span>Insertar espacio después (abajo)</span>
+                </button>
 
-        <!-- Eliminar Bloque -->
-        <button type="button" class="edu-context-item edu-context-item-danger" @click="removeEntireBlock()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-            <span>Eliminar bloque completo</span>
-        </button>
+                <div class="edu-context-divider"></div>
+
+                <!-- Acciones de Etiqueta -->
+                <div class="edu-context-section-title">Modificar Etiqueta</div>
+                <button type="button" class="edu-context-item" @click="wrapBlockInDiv()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+                    <span>Envolver en un &lt;div&gt;</span>
+                </button>
+
+                <div class="edu-context-change-tags">
+                    <span class="edu-context-sublabel">Cambiar etiqueta a:</span>
+                    <div class="edu-context-tag-buttons">
+                        <button type="button" @click="changeBlockTag('p')" title="Párrafo normal">P</button>
+                        <button type="button" @click="changeBlockTag('div')" title="Contenedor DIV">DIV</button>
+                        <button type="button" @click="changeBlockTag('h1')" title="Título H1">H1</button>
+                        <button type="button" @click="changeBlockTag('h2')" title="Subtítulo H2">H2</button>
+                        <button type="button" @click="changeBlockTag('h3')" title="Encabezado H3">H3</button>
+                        <button type="button" @click="changeBlockTag('blockquote')" title="Cita Blockquote">QUOTE</button>
+                    </div>
+                </div>
+
+                <button type="button" class="edu-context-item edu-context-item-warning" @click="unwrapBlockTag()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    <span>Quitar etiqueta (conservar texto)</span>
+                </button>
+
+                <div class="edu-context-divider"></div>
+
+                <!-- Eliminar Bloque -->
+                <button type="button" class="edu-context-item edu-context-item-danger" @click="removeEntireBlock()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <span>Eliminar bloque completo</span>
+                </button>
+            </div>
+        </template>
     </div>
 </div>
 
