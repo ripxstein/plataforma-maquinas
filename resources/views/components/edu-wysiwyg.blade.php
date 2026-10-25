@@ -219,41 +219,41 @@
 
         <!-- Math & Media Insertion -->
         <div class="edu-toolbar-section">
-            <button type="button" class="edu-toolbar-btn" @click="openFormulaModal()" style="background:#eef6ff; color:#1e40af; border-color:#bcdcff;">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="openFormulaModal()" style="background:#eef6ff; color:#1e40af; border-color:#bcdcff;">
                 🧮 Fórmula
             </button>
-            <button type="button" class="edu-toolbar-btn" @click="openImageModal()" style="background:#f0fdf4; color:#166534; border-color:#bbf7d0;">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="openImageModal()" style="background:#f0fdf4; color:#166534; border-color:#bbf7d0;">
                 🖼️ Imagen
             </button>
-            <button type="button" class="edu-toolbar-btn" @click="openTableModal()" style="background:#fefce8; color:#854d0e; border-color:#fef08a;">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="openTableModal()" style="background:#fefce8; color:#854d0e; border-color:#fef08a;">
                 📊 Tabla
             </button>
-            <button type="button" class="edu-toolbar-btn" @click="openCardModal()" style="background:#fefce8; color:#854d0e; border-color:#fef08a;">
+            <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="openCardModal()" style="background:#fefce8; color:#854d0e; border-color:#fef08a;">
                 📊 Card
             </button>   
         </div>
 
         <!-- Educational Callout Blocks -->
         <div class="edu-toolbar-section">
-            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlock('definition')">
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @mousedown.prevent @click="insertEducationalBlock('definition')">
                 🏷️ Definición
             </button>
-            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlock('important')">
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @mousedown.prevent @click="insertEducationalBlock('important')">
                 💡 Importante
             </button>
-            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlock('warning')">
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @mousedown.prevent @click="insertEducationalBlock('warning')">
                 ⚠️ Advertencia
             </button>
-            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlock('example')">
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @mousedown.prevent @click="insertEducationalBlock('example')">
                 📐 Ejemplo
             </button>
-            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlock('note')">
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @mousedown.prevent @click="insertEducationalBlock('note')">
                 📝 Nota
             </button>
-            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlockNote('footnote')">
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @mousedown.prevent @click="insertEducationalBlockNote('footnote')">
                 📝 Nota al pie
             </button>
-            <button type="button" class="edu-toolbar-btn btn-edu-block" @click="insertEducationalBlockCard('card')">
+            <button type="button" class="edu-toolbar-btn btn-edu-block" @mousedown.prevent @click="insertEducationalBlockCard('card')">
                 🖼️ Card
             </button>
 

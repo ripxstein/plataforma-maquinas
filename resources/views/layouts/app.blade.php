@@ -348,6 +348,9 @@
     function registerEduWysiwygEditor() {
         if (typeof Alpine === 'undefined') return;
 
+        // CodeMirror conserva referencias internas por identidad; Alpine no debe envolver su instancia.
+        const codeMirrorInstances = new WeakMap();
+
         Alpine.data('eduWysiwygEditor', (config = {}) => ({
             value: config.value || '',
             modelName: config.modelName || '',
@@ -370,8 +373,6 @@
                 targetEl: null,
                 tagName: '',
             },
-            
-            codeMirrorInstance: null,
             
             // Modals state
             showFormulaModal: false,
@@ -463,6 +464,8 @@
                         }
                         if (el.innerHTML !== (newValue || '')) {
                             el.innerHTML = newValue || '';
+                            this.savedSelection = null;
+                            this.cursorRange = null;
                         }
                     }
                     if (this.activeTab !== 'html') {
@@ -474,12 +477,32 @@
                 });
             },
 
+            getCodeMirror() {
+                const textarea = this.$el.querySelector('.edu-html-textarea');
+                return textarea ? codeMirrorInstances.get(textarea) || null : null;
+            },
+
+            destroy() {
+                const textarea = this.$el.querySelector('.edu-html-textarea');
+                const editor = textarea ? codeMirrorInstances.get(textarea) : null;
+                if (editor) {
+                    editor.toTextArea();
+                    codeMirrorInstances.delete(textarea);
+                }
+            },
+
+            isRangeInEditor(range, editable) {
+                return !!(range && editable && editable.isConnected &&
+                    range.startContainer.isConnected && range.endContainer.isConnected &&
+                    editable.contains(range.startContainer) && editable.contains(range.endContainer));
+            },
+
             saveSelection() {
                 const editable = document.getElementById(this.editorId + '-editable');
                 const sel = window.getSelection();
                 if (sel && sel.rangeCount > 0 && editable) {
                     const range = sel.getRangeAt(0);
-                    if (editable.contains(range.commonAncestorContainer)) {
+                    if (this.isRangeInEditor(range, editable)) {
                         this.savedSelection = range.cloneRange();
                     }
                 }
@@ -489,16 +512,15 @@
                 const editable = document.getElementById(this.editorId + '-editable');
                 if (!editable) return;
 
+                const range = this.isRangeInEditor(this.savedSelection, editable)
+                    ? this.savedSelection.cloneRange()
+                    : this.getElementAtCursor();
+                editable.focus();
                 const sel = window.getSelection();
-                if (this.savedSelection && editable.contains(this.savedSelection.commonAncestorContainer)) {
-                    sel.removeAllRanges();
-                    sel.addRange(this.savedSelection);
-                } else {
-                    const range = document.createRange();
-                    range.selectNodeContents(editable);
-                    range.collapse(false);
+                if (sel && range) {
                     sel.removeAllRanges();
                     sel.addRange(range);
+                    this.savedSelection = range.cloneRange();
                 }
             },
 
@@ -544,14 +566,17 @@
                         this.value = el.innerHTML;
                     }
                 } else if (this.activeTab === 'html') {
-                    if (this.codeMirrorInstance) {
-                        this.value = this.codeMirrorInstance.getValue();
+                    const editor = this.getCodeMirror();
+                    if (editor) {
+                        this.value = editor.getValue();
                     } else {
                         this.value = this.htmlCode || '';
                     }
                     const el = document.getElementById(this.editorId + '-editable');
                     if (el) {
                         el.innerHTML = this.value;
+                        this.savedSelection = null;
+                        this.cursorRange = null;
                     }
                 }
 
@@ -561,23 +586,25 @@
                 if (tab === 'html') {
                     this.htmlCode = this.formatHtml(this.value || '');
                     this.$nextTick(() => {
-                        if (!this.codeMirrorInstance) {
-                            this.initCodeMirror();
-                        } else {
-                            this.codeMirrorInstance.setValue(this.htmlCode);
-                            this.codeMirrorInstance.refresh();
-                        }
-                        if (this.codeMirrorInstance) {
-                            setTimeout(() => {
-                                this.codeMirrorInstance.refresh();
-                                this.codeMirrorInstance.focus();
-                            }, 50);
-                        }
+                        Promise.resolve(window.__cmLoader).then(() => {
+                            requestAnimationFrame(() => {
+                                if (this.activeTab !== 'html') return;
+                                const editor = this.initCodeMirror();
+                                if (!editor) return;
+                                if (editor.getValue() !== this.htmlCode) {
+                                    editor.setValue(this.htmlCode);
+                                }
+                                editor.refresh();
+                                editor.focus();
+                            });
+                        });
                     });
                 } else if (tab === 'edit') {
                     const el = document.getElementById(this.editorId + '-editable');
                     if (el && el.innerHTML !== (this.value || '')) {
                         el.innerHTML = this.value || '';
+                        this.savedSelection = null;
+                        this.cursorRange = null;
                     }
                 } else if (tab === 'preview') {
                     this.$nextTick(() => this.triggerKaTeX());
@@ -585,11 +612,12 @@
             },
 
             initCodeMirror() {
-                if (this.codeMirrorInstance) return;
-                const textarea = document.getElementById(this.editorId + '-html-textarea');
-                if (!textarea || typeof CodeMirror === 'undefined') return;
+                const existing = this.getCodeMirror();
+                if (existing) return existing;
+                const textarea = this.$el.querySelector('.edu-html-textarea');
+                if (!textarea || typeof CodeMirror === 'undefined') return null;
 
-                this.codeMirrorInstance = CodeMirror.fromTextArea(textarea, {
+                const editor = CodeMirror.fromTextArea(textarea, {
                     mode: 'htmlmixed',
                     lineNumbers: true,
                     lineWrapping: true,
@@ -600,15 +628,17 @@
                     indentWithTabs: false
                 });
 
-                this.codeMirrorInstance.setValue(this.htmlCode || '');
+                codeMirrorInstances.set(textarea, editor);
+                editor.setValue(this.htmlCode || '');
 
-                this.codeMirrorInstance.on('change', (cm) => {
+                editor.on('change', (cm) => {
                     const newVal = cm.getValue();
                     if (this.htmlCode !== newVal) {
                         this.htmlCode = newVal;
                         this.onHtmlChange();
                     }
                 });
+                return editor;
             },
 
             onHtmlChange() {
@@ -617,6 +647,8 @@
                 const el = document.getElementById(this.editorId + '-editable');
                 if (el && el !== document.activeElement) {
                     el.innerHTML = this.value;
+                    this.savedSelection = null;
+                    this.cursorRange = null;
                 }
                 if (this.$wire && this.modelName) {
                     try {
@@ -628,10 +660,11 @@
             },
 
             formatHtmlCode() {
-                const current = this.codeMirrorInstance ? this.codeMirrorInstance.getValue() : (this.htmlCode || this.value || '');
+                const editor = this.getCodeMirror();
+                const current = editor ? editor.getValue() : (this.htmlCode || this.value || '');
                 this.htmlCode = this.formatHtml(current);
-                if (this.codeMirrorInstance) {
-                    this.codeMirrorInstance.setValue(this.htmlCode);
+                if (editor) {
+                    editor.setValue(this.htmlCode);
                 }
                 this.onHtmlChange();
             },
@@ -698,14 +731,16 @@
                 });
 
                 this.htmlCode = this.formatHtml(doc.body.innerHTML);
-                if (this.codeMirrorInstance) {
-                    this.codeMirrorInstance.setValue(this.htmlCode);
+                const editor = this.getCodeMirror();
+                if (editor) {
+                    editor.setValue(this.htmlCode);
                 }
                 this.onHtmlChange();
             },
 
             copyHtmlToClipboard() {
-                const textToCopy = this.codeMirrorInstance ? this.codeMirrorInstance.getValue() : (this.htmlCode || this.value || '');
+                const editor = this.getCodeMirror();
+                const textToCopy = editor ? editor.getValue() : (this.htmlCode || this.value || '');
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(textToCopy).then(() => {
                         this.copiedHtml = true;
@@ -967,12 +1002,12 @@
 
             // Formula Modal Logic
             openFormulaModal() {
+                this.cursorRange = this.getElementAtCursor();
                 this.formulaInput = '\\sigma_{max} = K_t \\cdot \\sigma_{nom}';
                 this.formulaNumberMode = 'auto';
                 this.formulaCustomNumber = '';
                 this.showFormulaModal = true;
                 this.$nextTick(() => this.updateFormulaPreview());
-                this.cursorRange = this.getElementAtCursor();
             },
 
             addSymbol(symbol) {
@@ -1014,6 +1049,7 @@
 
             // Image Modal Logic
             openImageModal() {
+                this.cursorRange = this.getElementAtCursor();
                 this.imageUrl = '';
                 this.imageAlt = '';
                 this.imageCaption = '';
@@ -1024,7 +1060,6 @@
                 this.isUploadingImage = false;
                 this.uploadError = '';
                 this.showImageModal = true;
-                this.cursorRange = this.getElementAtCursor();
             },
 
             uploadImageFile(event) {
@@ -1138,6 +1173,7 @@
 
             // Table Modal Logic
             openTableModal() {
+                this.cursorRange = this.getElementAtCursor();
                 this.tableRows = 3;
                 this.tableCols = 3;
                 this.showTableModal = true;
@@ -1145,6 +1181,7 @@
 
              // Card Modal Logic
             openCardModal() {
+                this.cursorRange = this.getElementAtCursor();
                 this.showCardModal = true;
                 this.tableCols = 2;
             },
@@ -1160,7 +1197,7 @@
                             </div></div>`;
                 }
                 cardHtml += '</div><p><br></p>';
-                this.insertHtmlAtCursor(cardHtml);
+                this.insertHtmlInElementAtCursor(cardHtml);
                 this.showCardModal = false;
             },
 
@@ -1180,116 +1217,75 @@
                 }
 
                 tableHtml += '</tbody></table></div><p><br></p>';
-                this.insertHtmlAtCursor(tableHtml);
+                this.insertHtmlInElementAtCursor(tableHtml);
                 this.showTableModal = false;
             },
 
             insertHtmlAtCursor(html) {
-                const editable = document.getElementById(this.editorId + '-editable');
-                if (!editable) return;
-                editable.focus();
-
-                const sel = window.getSelection();
-                if (sel.getRangeAt && sel.rangeCount) {
-                    let range = sel.getRangeAt(0);
-                    if (!editable.contains(range.commonAncestorContainer)) {
-                        range = document.createRange();
-                        range.selectNodeContents(editable);
-                        range.collapse(false);
-                    }
-
-                    range.deleteContents();
-                    const el = document.createElement('div');
-                    el.innerHTML = html;
-                    let frag = document.createDocumentFragment(), node, lastNode;
-                    while ((node = el.firstChild)) {
-                        lastNode = frag.appendChild(node);
-                    }
-                    range.insertNode(frag);
-
-                    if (lastNode) {
-                        range = range.cloneRange();
-                        range.setStartAfter(lastNode);
-                        range.collapse(true);
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                    }
-                } else {
-                    editable.innerHTML += html;
-                }
-
-                this.onContentChange();
+                return this.insertHtmlInElementAtCursor(html, this.getElementAtCursor());
             },
 
-          
-getElementAtCursor() {
-    const editable = document.getElementById(this.editorId + '-editable');
+            getElementAtCursor() {
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return null;
 
-    if (!editable) return null;
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount && this.isRangeInEditor(sel.getRangeAt(0), editable)) {
+                    return sel.getRangeAt(0).cloneRange();
+                }
+                if (this.isRangeInEditor(this.savedSelection, editable)) {
+                    return this.savedSelection.cloneRange();
+                }
 
-    editable.focus();
+                // Si nunca hubo selección en este editor, insertar al final.
+                const range = document.createRange();
+                range.selectNodeContents(editable);
+                range.collapse(false);
+                return range;
+            },
 
-    const sel = window.getSelection();
+            insertHtmlInElementAtCursor(html, requestedRange = null) {
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!editable) return false;
 
-    if (!sel || !sel.rangeCount) {
-        return null;
-    }
+                // El diálogo conserva la selección aunque sus controles reciban el foco.
+                const candidate = requestedRange || this.cursorRange;
+                const range = this.isRangeInEditor(candidate, editable)
+                    ? candidate.cloneRange()
+                    : this.getElementAtCursor();
+                if (!range) return false;
 
-    let range = sel.getRangeAt(0);
+                const container = document.createElement('div');
+                container.innerHTML = html;
+                const fragment = document.createDocumentFragment();
+                let lastNode;
+                while (container.firstChild) {
+                    lastNode = fragment.appendChild(container.firstChild);
+                }
+                if (!lastNode) return false;
 
-    // Verificar que el cursor esté dentro del editor
-    if (!editable.contains(range.commonAncestorContainer)) {
-        range = document.createRange();
-        range.selectNodeContents(editable);
-        range.collapse(false);
-    }
+                editable.focus();
+                const sel = window.getSelection();
+                if (sel) {
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
 
-    return range;
-},
+                range.deleteContents();
+                range.insertNode(fragment);
 
-insertHtmlInElementAtCursor(html) {
-    const editable = document.getElementById(this.editorId + '-editable');
-
-    if (!editable) return;
-
-    this.cursorRange = this.cursorRange || this.getElementAtCursor();
-
-    if (!this.cursorRange) return;
-
-    const sel = window.getSelection();
-
-    // Eliminar el contenido seleccionado
-    this.cursorRange.deleteContents();
-
-    // Crear los elementos HTML
-    const el = document.createElement('div');
-    el.innerHTML = html;
-
-    const frag = document.createDocumentFragment();
-
-    let node;
-    let lastNode;
-
-    while ((node = el.firstChild)) {
-        lastNode = frag.appendChild(node);
-    }
-
-    // Insertar EXACTAMENTE en la posición del cursor
-    this.cursorRange.insertNode(frag);
-
-    // Colocar el cursor después del elemento insertado
-    if (lastNode) {
-        const newRange = this.cursorRange.cloneRange();
-
-        newRange.setStartAfter(lastNode);
-        newRange.collapse(true);
-
-        sel.removeAllRanges();
-        sel.addRange(newRange);
-    }
-
-    this.onContentChange();
-},
+                const nextRange = document.createRange();
+                nextRange.setStartAfter(lastNode);
+                nextRange.collapse(true);
+                if (sel) {
+                    sel.removeAllRanges();
+                    sel.addRange(nextRange);
+                }
+                this.savedSelection = nextRange.cloneRange();
+                this.cursorRange = null;
+                this.onContentChange();
+                return true;
+            },
 
 
 toggleTagBlock() {
