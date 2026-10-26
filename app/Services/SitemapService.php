@@ -91,6 +91,7 @@ class SitemapService
                 : ($type === 'marker' ? 'blue' : 'teal');
 
             $itemId = isset($node['item_id']) && is_numeric($node['item_id']) ? (int) $node['item_id'] : null;
+            $problemId = isset($node['problem_id']) && is_numeric($node['problem_id']) ? (int) $node['problem_id'] : null;
 
             $ids[$id] = true;
             $cleanNodes[] = [
@@ -101,6 +102,7 @@ class SitemapService
                 'y' => self::cleanCoordinate($node['y'] ?? 0),
                 'color' => $color,
                 'item_id' => $type === 'marker' ? $itemId : null,
+                'problem_id' => $type === 'marker' ? $problemId : null,
                 'marker_id' => $markerId,
             ];
         }

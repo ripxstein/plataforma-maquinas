@@ -53,7 +53,7 @@ class SitemapDesigner extends Component
 
     public function render()
     {
-        $module = Module::with(['items' => fn ($q) => $q->orderBy('order'), 'sitemap'])
+        $module = Module::with(['items' => fn ($q) => $q->orderBy('order'), 'items.problems' => fn ($q) => $q->orderBy('order'), 'sitemap'])
             ->findOrFail($this->moduleId);
 
         $readings = [];
@@ -68,6 +68,17 @@ class SitemapDesigner extends Component
                     'item_title' => $item->title,
                     'item_order' => $item->order,
                 ];
+            }
+
+            foreach ($item->problems as $problem) {
+                foreach (SitemapService::extractMarkers($problem->content) as $marker) {
+                    $markers[] = $marker + [
+                        'item_id' => $item->id,
+                        'problem_id' => $problem->id,
+                        'item_title' => ($problem->is_example ? 'Ejemplo: ' : 'Ejercicio: ').$problem->title,
+                        'item_order' => $item->order,
+                    ];
+                }
             }
         }
 

@@ -28,7 +28,13 @@
             edges: [],
             markers: config.markers || [],
             readings: config.readings || {},
+            problems: config.problems || {},
             unlockedItemIds: Array.isArray(config.unlockedItemIds) ? config.unlockedItemIds : null,
+            completedItemIds: Array.isArray(config.completedItemIds) ? config.completedItemIds.map(Number) : [],
+            completedProblemIds: Array.isArray(config.completedProblemIds) ? config.completedProblemIds.map(Number) : [],
+            justUnlockedNodeIds: [],
+            _celebrateHandler: null,
+            _confettiAnimId: null,
             isActive: !!config.isActive,
 
             uid: uid('sm'),
@@ -86,10 +92,18 @@
                     });
                     this._resizeObserver.observe(this.$refs.viewport);
                 }
+
+                this._celebrateHandler = (e) => {
+                    const nodeIds = e.detail?.nodeIds || [];
+                    this.celebrateUnlock(nodeIds);
+                };
+                window.addEventListener('celebrate-sitemap-unlock', this._celebrateHandler);
             },
 
             destroy() {
                 if (this._resizeObserver) this._resizeObserver.disconnect();
+                if (this._celebrateHandler) window.removeEventListener('celebrate-sitemap-unlock', this._celebrateHandler);
+                if (this._confettiAnimId) cancelAnimationFrame(this._confettiAnimId);
             },
 
             // ------------------------------------------------------------------
@@ -143,17 +157,41 @@
                 return this.isEdit && n.type === 'marker' && !this.markers.some((m) => m.marker_id === n.marker_id);
             },
 
+            isNodeUnlocked(n) {
+                if (this.isEdit) return true;
+                if (!n) return false;
+                if (n.type === 'free') return true;
+                if (n.type !== 'marker') return true;
+
+                if (n.problem_id) {
+                    return this.completedProblemIds.includes(Number(n.problem_id));
+                }
+
+                if (n.item_id) {
+                    return this.completedItemIds.includes(Number(n.item_id));
+                }
+
+                return true;
+            },
+
+            isEdgeUnlocked(e) {
+                if (this.isEdit) return true;
+                if (!e) return false;
+                const a = this.nodeById(e.from);
+                const b = this.nodeById(e.to);
+                if (!a || !b) return false;
+                return this.isNodeUnlocked(a) && this.isNodeUnlocked(b);
+            },
+
             isLocked(n) {
-                return (
-                    !this.isEdit &&
-                    n.type === 'marker' &&
-                    this.unlockedItemIds !== null &&
-                    !this.unlockedItemIds.includes(Number(n.item_id))
-                );
+                return !this.isNodeUnlocked(n);
             },
 
             subtitle(n) {
                 if (n.type !== 'marker') return '';
+                if (n.problem_id && this.problems && this.problems[n.problem_id]) {
+                    return this.problems[n.problem_id];
+                }
                 const t = this.readings[n.item_id];
                 return t ? '📖 ' + t : '';
             },
@@ -163,8 +201,8 @@
                 classes.push(n.type === 'free' ? 'sm-node-free' : 'sm-node-marker');
                 if (this.selected && this.selected.type === 'node' && this.selected.id === n.id) classes.push('is-selected');
                 if (this.isOrphan(n)) classes.push('is-orphan');
-                if (this.isLocked(n)) classes.push('is-locked');
                 if (!this.isEdit && n.type === 'marker') classes.push('is-clickable');
+                if (this.justUnlockedNodeIds.includes(n.id)) classes.push('sm-node-just-unlocked');
                 if (this.linkFrom === n.id) classes.push('is-link-source');
                 if (this.linkHover === n.id) classes.push('is-link-target');
                 if (this.isDimmed(n.id)) classes.push('is-dim');
@@ -541,6 +579,7 @@
                     y: spot.y,
                     color: 'blue',
                     item_id: marker.item_id,
+                    problem_id: marker.problem_id || null,
                     marker_id: marker.marker_id,
                 };
                 this.nodes.push(node);
@@ -742,14 +781,22 @@
                 if (this.isEdit || n.type !== 'marker' || !n.marker_id) return;
 
                 if (this.isLocked(n)) {
-                    this.showToast('🔒 Esa lectura aún está bloqueada. Completa las lecturas anteriores para acceder.', 'warn');
+                    const msg = n.problem_id
+                        ? '🔒 Este problema o ejemplo aún no ha sido completado.'
+                        : '🔒 Esta lectura aún está bloqueada. Completa las lecturas anteriores para acceder.';
+                    this.showToast(msg, 'warn');
                     return;
                 }
 
                 const targets = document.querySelectorAll('[data-concept-id="' + window.CSS.escape(n.marker_id) + '"]');
                 if (!targets.length) {
-                    this.showToast('Este concepto aún no está disponible en la lectura.', 'warn');
+                    this.showToast('Este concepto aún no está disponible en el contenido.', 'warn');
                     return;
+                }
+
+                const accordion = targets[0].closest('.accordion-item');
+                if (accordion && !accordion.classList.contains('open')) {
+                    accordion.classList.add('open');
                 }
 
                 targets[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -768,6 +815,105 @@
                 this.toastKind = kind;
                 clearTimeout(this.toastTimer);
                 this.toastTimer = setTimeout(() => (this.toast = ''), 3200);
+            },
+
+            celebrateUnlock(nodeIds) {
+                if (nodeIds && nodeIds.length) {
+                    this.justUnlockedNodeIds = [...new Set([...this.justUnlockedNodeIds, ...nodeIds])];
+                    const firstNode = this.nodeById(nodeIds[0]);
+                    if (firstNode) {
+                        this.centerOnNode(firstNode);
+                    }
+                    setTimeout(() => {
+                        this.justUnlockedNodeIds = this.justUnlockedNodeIds.filter(id => !nodeIds.includes(id));
+                    }, 14000);
+                }
+                setTimeout(() => {
+                    this.launchConfetti();
+                }, 400);
+            },
+
+            centerOnNode(n) {
+                const vp = this.$refs.viewport;
+                if (!vp) return;
+                const rect = vp.getBoundingClientRect();
+                const s = this.sizeOf(n);
+                const nodeCenterX = n.x + (s.w / 2);
+                const nodeCenterY = n.y + (s.h / 2);
+                this.tx = Math.round((rect.width / 2) - (nodeCenterX * this.scale));
+                this.ty = Math.round((rect.height / 2) - (nodeCenterY * this.scale));
+                this.userMoved = true;
+            },
+
+            launchConfetti() {
+                const canvas = this.$refs.confettiCanvas;
+                if (!canvas) return;
+                const vp = this.$refs.viewport;
+                if (!vp) return;
+
+                const rect = vp.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                canvas.style.display = 'block';
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+
+                const colors = ['#2563eb', '#0d9488', '#f59e0b', '#10b981', '#6366f1', '#ec4899', '#ffffff'];
+                const particles = [];
+                const count = 48;
+
+                for (let i = 0; i < count; i++) {
+                    particles.push({
+                        x: rect.width / 2 + (Math.random() - 0.5) * 160,
+                        y: rect.height / 2 + (Math.random() - 0.5) * 60,
+                        w: Math.random() * 8 + 6,
+                        h: Math.random() * 6 + 4,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: -Math.random() * 9 - 4,
+                        rot: Math.random() * 360,
+                        rotSpeed: (Math.random() - 0.5) * 12,
+                        alpha: 1,
+                    });
+                }
+
+                const startTime = performance.now();
+                const duration = 2400;
+
+                const frame = (now) => {
+                    const elapsed = now - startTime;
+                    if (elapsed > duration) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        canvas.style.display = 'none';
+                        return;
+                    }
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const progress = elapsed / duration;
+                    const fade = progress > 0.65 ? (1 - progress) / 0.35 : 1;
+
+                    particles.forEach((p) => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.35;
+                        p.vx *= 0.98;
+                        p.rot += p.rotSpeed;
+
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rot * Math.PI) / 180);
+                        ctx.globalAlpha = Math.max(0, p.alpha * fade);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                        ctx.restore();
+                    });
+
+                    this._confettiAnimId = requestAnimationFrame(frame);
+                };
+
+                if (this._confettiAnimId) cancelAnimationFrame(this._confettiAnimId);
+                this._confettiAnimId = requestAnimationFrame(frame);
             },
         }));
     }

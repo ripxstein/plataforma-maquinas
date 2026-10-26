@@ -29,10 +29,13 @@
         </defs>
     </svg>
 
+    {{-- Canvas de confeti para celebración de desbloqueo --}}
+    <canvas class="sm-confetti-canvas" x-ref="confettiCanvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40; display:none;"></canvas>
+
     <div class="sm-world" x-ref="world" :style="`transform: translate(${tx}px, ${ty}px) scale(${scale});`">
         {{-- Conexiones --}}
         <template x-for="e in edges" :key="e.id">
-            <div class="sm-edge">
+            <div class="sm-edge" x-show="isEdgeUnlocked(e)">
                 <svg class="sm-edge-svg" aria-hidden="true">
                     <path class="sm-edge-hit" :d="geom(e).d" @pointerdown.stop="selectEdge(e.id)" />
                     <path
@@ -64,20 +67,21 @@
                 class="sm-node"
                 :class="nodeClasses(n)"
                 :data-node-id="n.id"
+                x-show="isNodeUnlocked(n)"
                 :style="`left:${n.x}px; top:${n.y}px;`"
-                :title="isOrphan(n) ? 'La marca de esta lectura ya no existe' : (isLocked(n) ? 'Lectura bloqueada' : '')"
+                :title="isOrphan(n) ? 'La marca de esta lectura ya no existe' : ''"
                 @pointerdown="onNodeDown($event, n)"
                 @click="goTo(n)"
                 @mouseenter="hoverId = n.id"
                 @mouseleave="hoverId = null"
             >
                 <div class="sm-node-body">
-                    <span class="sm-node-icon" x-show="n.type === 'marker'" x-text="isLocked(n) ? '🔒' : (isOrphan(n) ? '⚠️' : '🔖')"></span>
+                    <span class="sm-node-icon" x-show="n.type === 'marker'" x-text="isOrphan(n) ? '⚠️' : '🔖'"></span>
                     <div class="sm-node-text">
                         <div class="sm-node-label" x-text="n.label"></div>
                         <div class="sm-node-sub" x-show="subtitle(n)" x-text="subtitle(n)"></div>
                     </div>
-                    <span class="sm-node-go" x-show="!isEdit && n.type === 'marker' && !isLocked(n)" aria-hidden="true">→</span>
+                    <span class="sm-node-go" x-show="!isEdit && n.type === 'marker'" aria-hidden="true">→</span>
                 </div>
                 <span
                     class="sm-handle"

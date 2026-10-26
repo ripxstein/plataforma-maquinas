@@ -10,6 +10,7 @@ use App\Models\UserProblemProgress;
 use App\Services\LearningProgressService;
 use App\Services\ModuleCacheService;
 use App\Services\ProgressCalculator;
+use App\Services\SitemapService;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -92,6 +93,27 @@ class ModuloViewer extends Component
             return null;
         }
 
+        $markerProblemMap = [];
+        foreach ($this->items as $item) {
+            foreach ($item->problems as $problem) {
+                foreach (SitemapService::extractMarkers($problem->content) as $m) {
+                    $markerProblemMap[$m['marker_id']] = (int) $problem->id;
+                }
+            }
+        }
+
+        if (! empty($markerProblemMap)) {
+            $data['nodes'] = array_map(function ($node) use ($markerProblemMap) {
+                if (($node['type'] ?? '') === 'marker' && ! empty($node['marker_id'])) {
+                    if (isset($markerProblemMap[$node['marker_id']])) {
+                        $node['problem_id'] = $markerProblemMap[$node['marker_id']];
+                    }
+                }
+
+                return $node;
+            }, $data['nodes']);
+        }
+
         return $data;
     }
 
@@ -142,10 +164,26 @@ class ModuloViewer extends Component
     public function completeReading(int $itemId)
     {
         abort_unless(auth()->check(), 403);
+        $wasCompleted = in_array($itemId, $this->completedItemIds, true);
         $this->unlockedOrder = app(LearningProgressService::class)
             ->completeReading(auth()->id(), $this->module->id, $itemId);
         unset($this->visibleItems);
         $this->loadProgress();
+
+        if (! $wasCompleted && ! empty($this->sitemap['nodes'])) {
+            $unlockedNodes = collect($this->sitemap['nodes'])
+                ->filter(fn ($n) => ($n['type'] ?? '') === 'marker' && (int) ($n['item_id'] ?? 0) === $itemId && empty($n['problem_id']));
+
+            $unlockedConcepts = $unlockedNodes->pluck('label')->values()->all();
+            $unlockedNodeIds = $unlockedNodes->pluck('id')->values()->all();
+
+            if (! empty($unlockedConcepts)) {
+                $this->dispatch('concept-unlocked', [
+                    'concepts' => $unlockedConcepts,
+                    'nodeIds' => $unlockedNodeIds,
+                ]);
+            }
+        }
     }
 
     // El evento solo refresca la vista; jamás acredita una resolución.
@@ -156,8 +194,24 @@ class ModuloViewer extends Component
             ->where('is_active', true)->findOrFail($problemId);
         abort_unless(UserProblemProgress::where('user_id', auth()->id())
             ->where('problem_id', $problem->id)->where('completed', true)->exists(), 403);
+        $wasCompleted = in_array($problemId, $this->completedProblemIds, true);
         app(LearningProgressService::class)->forgetProgress(auth()->id(), $this->module->id);
         $this->loadProgress();
+
+        if (! $wasCompleted && ! empty($this->sitemap['nodes'])) {
+            $unlockedNodes = collect($this->sitemap['nodes'])
+                ->filter(fn ($n) => ($n['type'] ?? '') === 'marker' && (int) ($n['problem_id'] ?? 0) === $problemId);
+
+            $unlockedConcepts = $unlockedNodes->pluck('label')->values()->all();
+            $unlockedNodeIds = $unlockedNodes->pluck('id')->values()->all();
+
+            if (! empty($unlockedConcepts)) {
+                $this->dispatch('concept-unlocked', [
+                    'concepts' => $unlockedConcepts,
+                    'nodeIds' => $unlockedNodeIds,
+                ]);
+            }
+        }
     }
 
     private function calculateProgress()

@@ -17,19 +17,30 @@
     {{-- MAPA CONCEPTUAL DEL MÓDULO (antes de la primera lectura) --}}
     @if ($this->sitemap)
         @php
+            $problemsMap = [];
+            foreach ($items as $item) {
+                foreach ($item->problems as $p) {
+                    $prefix = $p->is_example ? '📘 Ejemplo: ' : '✏️ Problema: ';
+                    $problemsMap[$p->id] = $prefix . ($p->title ?: '#' . $p->id);
+                }
+            }
+
             $sitemapConfig = [
                 'mode' => 'view',
                 'nodes' => $this->sitemap['nodes'],
                 'edges' => $this->sitemap['edges'],
                 'readings' => (object) $items->pluck('title', 'id')->all(),
+                'problems' => (object) $problemsMap,
                 'unlockedItemIds' => $visibleItems->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+                'completedItemIds' => array_values($completedItemIds),
+                'completedProblemIds' => array_values($completedProblemIds),
             ];
         @endphp
 
         <section
             class="content-section sitemap-section"
             id="mapa-conceptual"
-            wire:key="sitemap-{{ $module->id }}-{{ $visibleItems->count() }}"
+            wire:key="sitemap-{{ $module->id }}-{{ count($completedItemIds) }}-{{ count($completedProblemIds) }}"
             x-data="{ open: true }"
         >
             <div class="section-header" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
@@ -48,6 +59,53 @@
                 </div>
             </div>
         </section>
+
+        {{-- Banner de celebración de nuevo concepto desbloqueado --}}
+        <div
+            class="sm-unlocked-banner"
+            x-data="{
+                show: false,
+                conceptNames: '',
+                nodeIds: [],
+                init() {
+                    window.addEventListener('concept-unlocked', (e) => {
+                        const d = e.detail || {};
+                        const names = d.concepts || [];
+                        this.conceptNames = names.join(', ');
+                        this.nodeIds = d.nodeIds || [];
+                        this.show = true;
+                    });
+                },
+                viewInMap() {
+                    this.show = false;
+                    const mapEl = document.getElementById('mapa-conceptual');
+                    if (mapEl) {
+                        mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    window.dispatchEvent(new CustomEvent('celebrate-sitemap-unlock', {
+                        detail: { nodeIds: this.nodeIds }
+                    }));
+                }
+            }"
+            x-show="show"
+            x-cloak
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 translate-y-8 scale-95"
+        >
+            <div class="sm-unlocked-banner-icon">🎉</div>
+            <div class="sm-unlocked-banner-body">
+                <span class="sm-unlocked-banner-title">¡Nuevo concepto desbloqueado!</span>
+                <span class="sm-unlocked-banner-concept" x-text="conceptNames"></span>
+            </div>
+            <button type="button" class="sm-unlocked-banner-btn" @click="viewInMap()">
+                🗺️ Ver en el mapa
+            </button>
+            <button type="button" class="sm-unlocked-banner-close" @click="show = false" title="Cerrar">&times;</button>
+        </div>
 
         {{-- Botón flotante para regresar al mapa después de navegar a una lectura --}}
         <div

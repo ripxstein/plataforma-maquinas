@@ -3,7 +3,7 @@
 use App\Services\SitemapService;
 
 test('extractMarkers finds concept markers from html', function () {
-    $html = <<<HTML
+    $html = <<<'HTML'
 <p>Texto previo</p>
 <mark class="edu-concept-marker" data-concept-id="c123" data-concept-title="Fatiga de materiales">fatiga</mark>
 <p>Otro texto con la misma marca fragmentada</p>
