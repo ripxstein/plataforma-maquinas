@@ -307,20 +307,27 @@
 
     function setupMathListeners() {
         renderAllMath();
-
-        document.querySelectorAll('.accordion-btn').forEach(btn => {
-            if (!btn.dataset.accordionBound) {
-                btn.dataset.accordionBound = 'true';
-                btn.addEventListener('click', () => {
-                    const parent = btn.parentElement;
-                    parent.classList.toggle('open');
-                    if (parent.classList.contains('open')) {
-                        scheduleMathRender(parent);
-                    }
-                });
-            }
-        });
     }
+
+    // Livewire puede crear o reemplazar botones después de cargar la página.
+    // Delegar el clic evita perder el acordeón y registrar listeners duplicados.
+    if (window.__eduAccordionClickHandler) {
+        document.removeEventListener('click', window.__eduAccordionClickHandler);
+    }
+    window.__eduAccordionClickHandler = (event) => {
+        const target = event.target.nodeType === Node.ELEMENT_NODE
+            ? event.target
+            : event.target.parentElement;
+        const button = target?.closest('.accordion-btn');
+        const item = button?.parentElement;
+        if (!item?.classList.contains('accordion-item') || button.disabled) return;
+
+        item.classList.toggle('open');
+        if (item.classList.contains('open')) {
+            scheduleMathRender(item);
+        }
+    };
+    document.addEventListener('click', window.__eduAccordionClickHandler);
 
     document.addEventListener('DOMContentLoaded', () => {
         setupMathListeners();
