@@ -20,15 +20,14 @@ class LearningProgressService
                 ->where('module_id', $moduleId)->lockForUpdate()->firstOrFail();
             $item = ModuleItem::where('module_id', $moduleId)->findOrFail($itemId);
             abort_unless($item->order <= $progress->unlocked_order, 403);
+            $this->assertPreviousReadingsCompleted($userId, $item);
 
             UserItemProgress::updateOrCreate(
                 ['user_id' => $userId, 'module_item_id' => $item->id],
                 ['completed' => true, 'completed_at' => now()]
             );
 
-            if ($item->order + 1 > $progress->unlocked_order) {
-                $progress->update(['unlocked_order' => $item->order + 1]);
-            }
+            $this->unlockNextReadingIfReady($userId, $progress, $item);
 
             return (int) $progress->unlocked_order;
         });
@@ -49,6 +48,7 @@ class LearningProgressService
                 ->whereColumn('unlocked_order', '>=', 'module_items.order'))
             ->first(['id', 'module_id', 'order']);
         abort_unless($item, 403);
+        $this->assertPreviousReadingsCompleted($userId, $item);
 
         $siblings = $item->activeProblems()->select('id', 'order', 'is_active', 'is_example')
             ->addSelect(['completed_by_user' => UserProblemProgress::selectRaw('1')
@@ -82,14 +82,52 @@ class LearningProgressService
             $problem = Problem::lockForUpdate()->findOrFail($problemId);
             abort_unless(($problem->component ?: 'problemas.problema-dinamico') === $component, 403);
             $moduleId = $this->assertProblemAvailable($userId, $problem);
+            $item = ModuleItem::findOrFail($problem->module_item_id);
+            $moduleProgress = UserModuleProgress::where('user_id', $userId)
+                ->where('module_id', $moduleId)->lockForUpdate()->firstOrFail();
             $progress = UserProblemProgress::firstOrNew(['user_id' => $userId, 'problem_id' => $problemId]);
             if (! $progress->completed) {
                 $progress->fill(['completed' => true, 'score' => 100, 'completed_at' => now()])->save();
             }
+            $this->unlockNextReadingIfReady($userId, $moduleProgress, $item);
 
             return $moduleId;
         });
         $this->forgetProgress($userId, $moduleId);
+    }
+
+    private function assertPreviousReadingsCompleted(int $userId, ModuleItem $item): void
+    {
+        $incomplete = ModuleItem::where('module_id', $item->module_id)
+            ->where(fn ($query) => $query->where('order', '<', $item->order)
+                ->orWhere(fn ($query) => $query->where('order', $item->order)->where('id', '<', $item->id)))
+            ->where(fn ($query) => $query
+                ->whereDoesntHave('progress', fn ($progress) => $progress->where('user_id', $userId)->where('completed', true))
+                ->orWhereHas('activeProblems', fn ($problems) => $problems->whereNotIn('problems.id',
+                    UserProblemProgress::select('problem_id')->where('user_id', $userId)->where('completed', true))))
+            ->exists();
+
+        abort_if($incomplete, 403);
+    }
+
+    private function unlockNextReadingIfReady(int $userId, UserModuleProgress $progress, ModuleItem $item): void
+    {
+        $hasPendingProblems = $item->activeProblems()
+            ->whereNotIn('problems.id', UserProblemProgress::select('problem_id')
+                ->where('user_id', $userId)->where('completed', true))
+            ->exists();
+        if ($hasPendingProblems) {
+            return;
+        }
+
+        $nextItem = ModuleItem::where('module_id', $item->module_id)
+            ->where(fn ($query) => $query->where('order', '>', $item->order)
+                ->orWhere(fn ($query) => $query->where('order', $item->order)->where('id', '>', $item->id)))
+            ->orderBy('order')->orderBy('id')->first(['order']);
+        $nextOrder = $nextItem?->order ?? $item->order + 1;
+        if ($nextOrder > $progress->unlocked_order) {
+            $progress->update(['unlocked_order' => $nextOrder]);
+        }
     }
 
     public function forgetProgress(int $userId, int $moduleId): void

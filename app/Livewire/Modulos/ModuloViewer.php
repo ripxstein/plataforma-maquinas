@@ -77,7 +77,19 @@ class ModuloViewer extends Component
     #[Computed]
     public function visibleItems()
     {
-        return $this->items->where('order', '<=', $this->unlockedOrder);
+        $visible = collect();
+        $previous = null;
+        foreach ($this->items->sortBy([['order', 'asc'], ['id', 'asc']]) as $item) {
+            if ($item->order > $this->unlockedOrder || ($previous &&
+                (! $this->isReadingCompleted($previous->id) ||
+                    $previous->problems->contains(fn ($problem) => ! $this->isProblemCompleted($problem->id))))) {
+                break;
+            }
+            $visible->push($item);
+            $previous = $item;
+        }
+
+        return $visible;
     }
 
     /**
@@ -148,6 +160,7 @@ class ModuloViewer extends Component
         $this->completedItemIds = $progress['item_ids'];
         $this->completedProblemIds = $progress['problem_ids'];
 
+        unset($this->visibleItems);
         $this->calculateProgress();
     }
 
@@ -196,6 +209,8 @@ class ModuloViewer extends Component
             ->where('problem_id', $problem->id)->where('completed', true)->exists(), 403);
         $wasCompleted = in_array($problemId, $this->completedProblemIds, true);
         app(LearningProgressService::class)->forgetProgress(auth()->id(), $this->module->id);
+        $this->unlockedOrder = (int) UserModuleProgress::where('user_id', auth()->id())
+            ->where('module_id', $this->module->id)->value('unlocked_order');
         $this->loadProgress();
 
         if (! $wasCompleted && ! empty($this->sitemap['nodes'])) {
@@ -247,7 +262,7 @@ class ModuloViewer extends Component
     {
         $item = $this->items->firstWhere('id', $moduleItemId);
 
-        return $item && $item->order <= $this->unlockedOrder && $this->isReadingCompleted($item->id)
+        return $item && $this->visibleItems->contains('id', $item->id) && $this->isReadingCompleted($item->id)
             && app(LearningProgressService::class)->isProblemUnlocked($problem, $item->problems, $this->completedProblemIds);
     }
 

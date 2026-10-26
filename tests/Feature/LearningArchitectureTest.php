@@ -11,6 +11,7 @@ use App\Models\ModuleItem;
 use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserItemProgress;
+use App\Models\UserModuleProgress;
 use App\Models\UserProblemProgress;
 use App\Services\AnswerEvaluator;
 use App\Services\ModuleCacheService;
@@ -92,6 +93,83 @@ test('validated dynamic resolution persists before the event and reloads as comp
     Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])->assertSet('isCompleted', true);
     $component->call('checkStep', $this->steps[1]->id)->assertForbidden();
     expect(UserProblemProgress::count())->toBe(1);
+});
+
+test('the next reading waits for every active example and exercise', function () {
+    $this->problem->update(['is_example' => true]);
+    $exercise = Problem::create([
+        'module_item_id' => $this->reading->id, 'title' => 'Ejercicio final', 'slug' => 'ejercicio-final',
+        'component' => 'problemas.problema-dinamico', 'order' => 2, 'percentage' => 70, 'is_active' => true,
+    ]);
+    $exerciseStep = $exercise->steps()->create([
+        'title' => 'Respuesta', 'step_number' => 1, 'answer_type' => 'numeric', 'correct_answer' => '10',
+    ]);
+    $next = ModuleItem::create([
+        'module_id' => $this->module->id, 'title' => 'Lectura siguiente', 'type' => 'lectura', 'order' => 2,
+    ]);
+    $viewer = openArchitectureReading($this)->assertDontSee($next->title);
+
+    $example = Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id]);
+    foreach ($this->steps as $step) {
+        $example->call('nextExampleStep', $step->id)->assertStatus(200);
+    }
+    $viewer->dispatch('problema-completado', problemId: $this->problem->id)
+        ->assertDontSee($next->title);
+
+    Livewire::test(ProblemaDinamico::class, ['problemId' => $exercise->id])
+        ->set('answers.'.$exerciseStep->id, '10')->call('checkStep', $exerciseStep->id)
+        ->assertSet('isCompleted', true);
+    $viewer->dispatch('problema-completado', problemId: $exercise->id)
+        ->assertSee($next->title);
+});
+
+test('previously over-unlocked readings and problems stay inaccessible until prerequisites finish', function () {
+    $next = ModuleItem::create([
+        'module_id' => $this->module->id, 'title' => 'Lectura pendiente', 'type' => 'lectura', 'order' => 2,
+    ]);
+    $nextProblem = Problem::create([
+        'module_item_id' => $next->id, 'title' => 'Problema pendiente', 'slug' => 'problema-pendiente',
+        'component' => 'problemas.problema-dinamico', 'order' => 1, 'is_active' => true,
+    ]);
+    $step = $nextProblem->steps()->create([
+        'title' => 'Respuesta', 'step_number' => 1, 'answer_type' => 'numeric', 'correct_answer' => '10',
+    ]);
+    openArchitectureReading($this);
+    UserModuleProgress::where('user_id', $this->student->id)
+        ->where('module_id', $this->module->id)->update(['unlocked_order' => 2]);
+    UserItemProgress::create([
+        'user_id' => $this->student->id, 'module_item_id' => $next->id,
+        'completed' => true, 'completed_at' => now(),
+    ]);
+
+    Livewire::test(ModuloViewer::class, ['slug' => $this->module->slug])
+        ->assertDontSee($next->title)
+        ->call('completeReading', $next->id)->assertForbidden();
+    Livewire::test(ProblemaDinamico::class, ['problemId' => $nextProblem->id])
+        ->set('answers.'.$step->id, '10')->call('checkStep', $step->id)->assertForbidden();
+    expect(UserProblemProgress::where('problem_id', $nextProblem->id)->count())->toBe(0);
+});
+
+test('reading ties use id order and an order gap does not stop progression', function () {
+    $tied = ModuleItem::create([
+        'module_id' => $this->module->id, 'title' => 'Lectura empatada', 'type' => 'lectura', 'order' => 1,
+    ]);
+    $later = ModuleItem::create([
+        'module_id' => $this->module->id, 'title' => 'Lectura posterior', 'type' => 'lectura', 'order' => 3,
+    ]);
+    $viewer = openArchitectureReading($this)->assertDontSee($tied->title);
+    Livewire::test(ModuloViewer::class, ['slug' => $this->module->slug])
+        ->call('completeReading', $tied->id)->assertForbidden();
+
+    $problem = Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id]);
+    foreach ($this->steps as $step) {
+        $problem->set('answers.'.$step->id, '10')->call('checkStep', $step->id)->assertStatus(200);
+    }
+    $viewer->dispatch('problema-completado', problemId: $this->problem->id)
+        ->assertSee($tied->title)->assertDontSee($later->title);
+    $viewer->call('completeReading', $tied->id)->assertSee($later->title);
+    expect(UserModuleProgress::where('user_id', $this->student->id)
+        ->where('module_id', $this->module->id)->value('unlocked_order'))->toBe(3);
 });
 
 test('a completed exercise can be resolved again without changing its recorded progress', function () {

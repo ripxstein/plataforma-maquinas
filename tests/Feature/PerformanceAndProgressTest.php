@@ -3,6 +3,7 @@
 use App\Livewire\Admin\ComponentesPanel;
 use App\Livewire\Admin\ProgresosPanel;
 use App\Livewire\Modulos\ModuloViewer;
+use App\Livewire\Problemas\ProblemaDinamico;
 use App\Models\Module;
 use App\Models\ModuleItem;
 use App\Models\Problem;
@@ -161,6 +162,7 @@ test('saveComponent rolls back all changes if an exception occurs during the tra
     }
 });
 test('completeReading rolls back all changes if an exception occurs during the transaction', function () {
+    $this->problem1->update(['is_active' => false]);
     try {
         UserModuleProgress::updating(function () {
             throw new Exception('Simulated failure during module progress update');
@@ -169,11 +171,8 @@ test('completeReading rolls back all changes if an exception occurs during the t
         $component = Livewire::actingAs($this->student)
             ->test(ModuloViewer::class, ['slug' => $this->module->slug]);
 
-        try {
-            $component->call('completeReading', $this->item1->id);
-        } catch (Throwable $e) {
-            // Exception expected because update failed
-        }
+        expect(fn () => $component->call('completeReading', $this->item1->id))
+            ->toThrow(Exception::class, 'Simulated failure during module progress update');
 
         // Because of DB::transaction, UserItemProgress should NOT exist in database!
         $this->assertDatabaseMissing('user_item_progress', [
@@ -192,10 +191,11 @@ test('completeReading rolls back all changes if an exception occurs during the t
     }
 });
 
-test('completeReading atomically saves reading item progress and advances unlocked order on success', function () {
+test('completeReading saves the reading but keeps the next one locked while a problem is pending', function () {
     Livewire::actingAs($this->student)
         ->test(ModuloViewer::class, ['slug' => $this->module->slug])
-        ->call('completeReading', $this->item1->id);
+        ->call('completeReading', $this->item1->id)
+        ->assertDontSee('Lectura 2');
 
     $this->assertDatabaseHas('user_item_progress', [
         'user_id' => $this->student->id,
@@ -207,7 +207,37 @@ test('completeReading atomically saves reading item progress and advances unlock
         ->where('module_id', $this->module->id)
         ->first();
 
-    expect($progress->unlocked_order)->toBe(2);
+    expect($progress->unlocked_order)->toBe(1);
+});
+
+test('completing the final problem reveals the next reading immediately and after reload', function () {
+    $step = $this->problem1->steps()->create([
+        'title' => 'Respuesta', 'step_number' => 1, 'answer_type' => 'numeric', 'correct_answer' => '10',
+    ]);
+    $viewer = Livewire::actingAs($this->student)
+        ->test(ModuloViewer::class, ['slug' => $this->module->slug])
+        ->call('completeReading', $this->item1->id)
+        ->assertDontSee('Lectura 2');
+
+    Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem1->id])
+        ->set('answers.'.$step->id, '10')->call('checkStep', $step->id)
+        ->assertSet('isCompleted', true);
+
+    $viewer->dispatch('problema-completado', problemId: $this->problem1->id)
+        ->assertSee('Lectura 2');
+    Livewire::test(ModuloViewer::class, ['slug' => $this->module->slug])->assertSee('Lectura 2');
+    expect(UserModuleProgress::where('user_id', $this->student->id)
+        ->where('module_id', $this->module->id)->value('unlocked_order'))->toBe(2);
+});
+
+test('a reading without active problems unlocks the next reading', function () {
+    $this->problem1->update(['is_active' => false]);
+    Livewire::actingAs($this->student)
+        ->test(ModuloViewer::class, ['slug' => $this->module->slug])
+        ->call('completeReading', $this->item1->id)
+        ->assertSee('Lectura 2');
+    expect(UserModuleProgress::where('user_id', $this->student->id)
+        ->where('module_id', $this->module->id)->value('unlocked_order'))->toBe(2);
 });
 
 test('modules:cache command preloads all modules, items, problems, and sidebar into cache', function () {
