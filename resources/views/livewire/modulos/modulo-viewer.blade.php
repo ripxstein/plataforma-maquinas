@@ -123,18 +123,33 @@
     @endif
 
     @foreach ($visibleItems as $item)
-        <section class="content-section" id="lectura-{{ $item->id }}" style="counter-reset: mod-num {{ $module->order ?? 1 }} read-num {{ $item->order ?? 1 }} formula-idx 0;">
-            <div class="section-header">
-                <h3>
-                    {{ $item->title }}
+        <section
+            class="content-section"
+            id="lectura-{{ $item->id }}"
+            wire:key="lectura-section-{{ $item->id }}"
+            style="counter-reset: mod-num {{ $module->order ?? 1 }} read-num {{ $item->order ?? 1 }} formula-idx 0;"
+            x-data="{ open: true }"
+            @expand-reading.window="if (!$event.detail || $event.detail.itemId === {{ $item->id }}) open = true"
+        >
+            <div class="section-header" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <h3 style="margin: 0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <span>{{ $item->title }}</span>
 
                     @if ($this->isReadingCompleted($item->id))
                         <span class="tag">Lectura completada</span>
                     @endif
                 </h3>
+
+                <button
+                    type="button"
+                    class="badge"
+                    style="cursor:pointer;"
+                    @click="open = !open"
+                    x-text="open ? 'Ocultar lectura' : 'Mostrar lectura'"
+                ></button>
             </div>
 
-            <div class="section-body">
+            <div class="section-body" x-show="open" x-transition.opacity>
                 {!! $item->content !!}
 
                 @if (!$this->isReadingCompleted($item->id))

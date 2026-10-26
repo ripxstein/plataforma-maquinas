@@ -326,6 +326,17 @@ main {
   font-weight: 700;
 }
 
+button.badge {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+button.badge:hover {
+  background: #f0f7ff;
+  border-color: var(--azul-secundario);
+  color: var(--azul-secundario);
+}
+
 section.content-section {
   background: var(--panel);
   border: 1px solid var(--borde);

@@ -811,18 +811,30 @@
                     return;
                 }
 
+                // Si la sección de lectura está colapsada, abrirla
+                const section = targets[0].closest('.content-section');
+                if (section && window.Alpine) {
+                    const data = window.Alpine.$data(section);
+                    if (data && 'open' in data && !data.open) {
+                        data.open = true;
+                    }
+                }
+                window.dispatchEvent(new CustomEvent('expand-reading', { detail: { itemId: n.item_id } }));
+
                 const accordion = targets[0].closest('.accordion-item');
                 if (accordion && !accordion.classList.contains('open')) {
                     accordion.classList.add('open');
                 }
 
-                targets[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                targets.forEach((el) => {
-                    el.classList.remove('edu-concept-flash');
-                    void el.offsetWidth; // reinicia la animación
-                    el.classList.add('edu-concept-flash');
-                });
-                setTimeout(() => targets.forEach((el) => el.classList.remove('edu-concept-flash')), 3600);
+                setTimeout(() => {
+                    targets[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targets.forEach((el) => {
+                        el.classList.remove('edu-concept-flash');
+                        void el.offsetWidth; // reinicia la animación
+                        el.classList.add('edu-concept-flash');
+                    });
+                    setTimeout(() => targets.forEach((el) => el.classList.remove('edu-concept-flash')), 3600);
+                }, 50);
 
                 window.dispatchEvent(new CustomEvent('sitemap-navigated'));
             },
