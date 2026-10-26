@@ -75,7 +75,7 @@ test('client cannot change trusted dynamic state', function (string $property, m
     openArchitectureReading($this);
     Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])->set($property, $value);
 })->with([
-    ['currentStepIndex', 2], ['problemId', 999], ['isCompleted', true], ['definitionHash', 'forged'],
+    ['currentStepIndex', 2], ['problemId', 999], ['isCompleted', true], ['showCompletedAttempt', true], ['definitionHash', 'forged'],
 ])->throws(CannotUpdateLockedPropertyException::class);
 
 test('validated dynamic resolution persists before the event and reloads as completed', function () {
@@ -92,6 +92,57 @@ test('validated dynamic resolution persists before the event and reloads as comp
     Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])->assertSet('isCompleted', true);
     $component->call('checkStep', $this->steps[1]->id)->assertForbidden();
     expect(UserProblemProgress::count())->toBe(1);
+});
+
+test('a completed exercise can be resolved again without changing its recorded progress', function () {
+    openArchitectureReading($this);
+    Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])
+        ->call('restartProblem')->assertForbidden();
+
+    $component = Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id]);
+    foreach ($this->steps as $step) {
+        $component->set('answers.'.$step->id, '10')->call('checkStep', $step->id)->assertStatus(200);
+    }
+    $component->assertSee('Volver a resolver')->assertSee('Paso 1:');
+
+    $progress = UserProblemProgress::where('user_id', $this->student->id)
+        ->where('problem_id', $this->problem->id)->firstOrFail();
+    $progress->update(['score' => 87]);
+    $recordedProgress = $progress->fresh()->getRawOriginal();
+
+    $reloaded = Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])
+        ->assertSet('isCompleted', true)
+        ->assertSet('messages', [])
+        ->assertSee('Volver a resolver')
+        ->assertDontSee('Paso 1:');
+    $reloaded->call('restartProblem')
+        ->assertSet('isCompleted', false)
+        ->assertSet('currentStepIndex', 1)
+        ->assertSet('answers.'.$this->steps[0]->id, '')
+        ->assertSet('messages', [])
+        ->assertSee('Paso 1:');
+    expect($progress->fresh()->getRawOriginal())->toBe($recordedProgress);
+
+    foreach ($this->steps as $step) {
+        $reloaded->set('answers.'.$step->id, '10')->call('checkStep', $step->id)->assertStatus(200);
+    }
+    $reloaded->assertSet('isCompleted', true);
+    expect($progress->fresh()->getRawOriginal())->toBe($recordedProgress);
+    expect(UserProblemProgress::where('user_id', $this->student->id)->where('problem_id', $this->problem->id)->count())->toBe(1);
+});
+
+test('a completed guided example cannot be restarted', function () {
+    $this->problem->update(['is_example' => true]);
+    openArchitectureReading($this);
+    $example = Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id]);
+    foreach ($this->steps as $step) {
+        $example->call('nextExampleStep', $step->id)->assertStatus(200);
+    }
+
+    Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])
+        ->assertSee('Paso 1:')
+        ->assertDontSee('Volver a resolver')
+        ->call('restartProblem')->assertForbidden();
 });
 
 test('examples must be reviewed sequentially before evaluated exercises', function () {

@@ -23,6 +23,9 @@ class ProblemaDinamico extends Component
     public bool $isCompleted = false;
 
     #[Locked]
+    public bool $showCompletedAttempt = false;
+
+    #[Locked]
     public string $definitionHash = '';
 
     public array $answers = [];
@@ -63,10 +66,33 @@ class ProblemaDinamico extends Component
             ->where('problem_id', $this->problemId)->where('completed', true)->exists()) {
             $this->isCompleted = true;
             $this->currentStepIndex = $this->steps->count() + 1;
-            foreach ($this->steps as $step) {
-                $this->messages[$step->id] = ['ok' => true, 'text' => '', 'reminder' => null];
+            if ($this->problem->is_example) {
+                foreach ($this->steps as $step) {
+                    $this->messages[$step->id] = ['ok' => true, 'text' => '', 'reminder' => null];
+                }
             }
         }
+    }
+
+    public function restartProblem(): void
+    {
+        abort_unless(auth()->check() && $this->problem && ! $this->problem->is_example, 403);
+        abort_unless(($this->problem->component ?: 'problemas.problema-dinamico') === 'problemas.problema-dinamico', 403);
+        app(LearningProgressService::class)->assertProblemAvailable(auth()->id(), $this->problem);
+        abort_unless(UserProblemProgress::where('user_id', auth()->id())
+            ->where('problem_id', $this->problemId)->where('completed', true)->exists(), 403);
+
+        $this->definitionHash = $this->currentDefinitionHash();
+        $this->currentStepIndex = 1;
+        $this->isCompleted = false;
+        $this->showCompletedAttempt = false;
+        $this->answers = [];
+        $this->messages = [];
+        $this->showTriggerImages = [];
+        foreach ($this->steps as $step) {
+            $this->answers[$step->id] = '';
+        }
+        $this->dispatch('render-math');
     }
 
     private function currentDefinitionHash(): string
@@ -131,6 +157,9 @@ class ProblemaDinamico extends Component
         if ($this->currentStepIndex === $this->steps->count()) {
             app(LearningProgressService::class)->completeProblem(auth()->id(), $this->problemId, 'problemas.problema-dinamico');
             $this->isCompleted = true;
+            if (! $this->problem->is_example) {
+                $this->showCompletedAttempt = true;
+            }
             $this->dispatch('problema-completado', problemId: $this->problemId);
         }
         $this->currentStepIndex++;

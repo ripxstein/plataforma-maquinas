@@ -21,6 +21,7 @@
         </div>
     @endif
 
+    @if($problem->is_example || !$isCompleted || $showCompletedAttempt)
     @foreach($steps as $index => $step)
         @php
             $stepNum = $index + 1;
@@ -247,6 +248,7 @@
             </div>
         @endif
     @endforeach
+    @endif
 
     {{-- Completion celebration banner --}}
     @if($isCompleted || ($currentStepIndex > $steps->count() && $steps->isNotEmpty()))
@@ -265,6 +267,10 @@
                 <p style="margin: 0; color: #25623b; font-size: 0.98rem;">
                     Has resuelto satisfactoriamente todos los pasos interactivos de este problema. Tu progreso ha sido registrado.
                 </p>
+                <button type="button" class="badge" wire:click="restartProblem"
+                    style="cursor: pointer; margin-top: 16px; background: var(--azul-secundario); color: white; border: none; padding: 10px 18px;">
+                    Volver a resolver
+                </button>
             </div>
         @endif
     @endif
