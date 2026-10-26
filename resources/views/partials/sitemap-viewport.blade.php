@@ -77,6 +77,7 @@
             >
                 <div class="sm-node-body">
                     <span class="sm-node-icon" x-show="n.type === 'marker'" x-text="isOrphan(n) ? '⚠️' : '🔖'"></span>
+                    <span class="sm-node-icon sm-free-vis-icon" x-show="isEdit && n.type === 'free' && n.hide_if_disconnected" title="Se oculta para el alumno si sus conexiones están bloqueadas">🔒</span>
                     <div class="sm-node-text">
                         <div class="sm-node-label" x-text="n.label"></div>
                         <div class="sm-node-sub" x-show="subtitle(n)" x-text="subtitle(n)"></div>

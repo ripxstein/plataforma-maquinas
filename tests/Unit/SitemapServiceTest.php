@@ -37,6 +37,8 @@ test('sanitize cleans invalid nodes and duplicate edges', function () {
     $result = SitemapService::sanitize($nodes, $edges);
 
     expect($result['nodes'])->toHaveCount(2);
+    expect($result['nodes'][0]['hide_if_disconnected'])->toBeFalse();
+    expect($result['nodes'][1]['hide_if_disconnected'])->toBeFalse();
     expect($result['edges'])->toHaveCount(1);
     expect($result['edges'][0]['id'])->toBe('e1');
     expect($result['edges'][0]['from'])->toBe('n1');

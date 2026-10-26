@@ -157,10 +157,26 @@
                 return this.isEdit && n.type === 'marker' && !this.markers.some((m) => m.marker_id === n.marker_id);
             },
 
-            isNodeUnlocked(n) {
+            isNodeUnlocked(n, visited = new Set()) {
                 if (this.isEdit) return true;
                 if (!n) return false;
-                if (n.type === 'free') return true;
+                if (visited.has(n.id)) return false;
+
+                if (n.type === 'free') {
+                    if (n.hide_if_disconnected) {
+                        visited.add(n.id);
+                        return this.edges.some((e) => {
+                            let otherId = null;
+                            if (e.from === n.id) otherId = e.to;
+                            else if (e.to === n.id) otherId = e.from;
+                            if (!otherId || visited.has(otherId)) return false;
+
+                            const other = this.nodeById(otherId);
+                            return other && this.isNodeUnlocked(other, visited);
+                        });
+                    }
+                    return true;
+                }
                 if (n.type !== 'marker') return true;
 
                 if (n.problem_id) {
@@ -599,6 +615,7 @@
                     color: 'teal',
                     item_id: null,
                     marker_id: null,
+                    hide_if_disconnected: false,
                 };
                 this.nodes.push(node);
                 this.selected = { type: 'node', id: node.id };

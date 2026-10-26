@@ -108,6 +108,32 @@
                         <textarea class="admin-input" rows="2" maxlength="200" x-ref="labelInput"
                                   :value="selectedNode?.label ?? ''" @input="if (selectedNode) { selectedNode.label = $event.target.value; touch(); }"></textarea>
 
+                        <template x-if="selectedNode?.type === 'free'">
+                            <div>
+                                <label class="form-label">Visibilidad para el alumno</label>
+                                <div class="sm-vis-group">
+                                    <label class="sm-radio-item" :class="{ 'is-selected': !selectedNode?.hide_if_disconnected }">
+                                        <input type="radio" name="free_visibility" :value="false"
+                                               :checked="!selectedNode?.hide_if_disconnected"
+                                               @change="if (selectedNode) { selectedNode.hide_if_disconnected = false; touch(); }">
+                                        <div class="sm-radio-body">
+                                            <strong>Mostrar siempre</strong>
+                                            <small>Visible aunque sus nodos conectados estén bloqueados o no tenga conexiones.</small>
+                                        </div>
+                                    </label>
+                                    <label class="sm-radio-item" :class="{ 'is-selected': !!selectedNode?.hide_if_disconnected }">
+                                        <input type="radio" name="free_visibility" :value="true"
+                                               :checked="!!selectedNode?.hide_if_disconnected"
+                                               @change="if (selectedNode) { selectedNode.hide_if_disconnected = true; touch(); }">
+                                        <div class="sm-radio-body">
+                                            <strong>Ocultar si sus conexiones están bloqueadas</strong>
+                                            <small>Aparecerá en el mapa solo cuando al menos uno de sus nodos conectados esté desbloqueado.</small>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </template>
+
                         <template x-if="selectedNode?.type === 'marker'">
                             <div class="sm-linked-info">
                                 <div><small>Lectura enlazada</small></div>
