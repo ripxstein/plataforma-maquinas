@@ -131,22 +131,25 @@
             x-data="{ open: true }"
             @expand-reading.window="if (!$event.detail || $event.detail.itemId === {{ $item->id }}) open = true"
         >
-            <div class="section-header" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-                <h3 style="margin: 0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <span>{{ $item->title }}</span>
+            <div class="section-header flex items-center justify-between gap-3">
+                <h3 class="flex min-w-0 flex-1 flex-col items-start gap-2.5" style="margin: 0;">
+                    <span class="w-full">{{ $item->title }}</span>
 
                     @if ($this->isReadingCompleted($item->id))
-                        <span class="tag">Lectura completada</span>
+                        <span class="tag" style="margin-bottom: 0;">Lectura completada</span>
                     @endif
                 </h3>
 
                 <button
                     type="button"
-                    class="badge"
+                    class="badge shrink-0 whitespace-nowrap !px-2 !py-1 !text-xs sm:!px-3.5 sm:!py-2 sm:!text-[.92rem]"
                     style="cursor:pointer;"
                     @click="open = !open"
-                    x-text="open ? 'Ocultar lectura' : 'Mostrar lectura'"
-                ></button>
+                    :aria-label="open ? 'Ocultar lectura' : 'Mostrar lectura'"
+                >
+                    <span class="sm:hidden" x-text="open ? 'Ocultar' : 'Mostrar'"></span>
+                    <span class="hidden sm:inline" x-text="open ? 'Ocultar lectura' : 'Mostrar lectura'"></span>
+                </button>
             </div>
 
             <div class="section-body" x-show="open" x-transition.opacity>
