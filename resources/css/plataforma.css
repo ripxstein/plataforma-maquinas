@@ -1896,6 +1896,16 @@ th {
   color: #94a3b8;
 }
 
+.edu-context-formula-current {
+  padding: 3px 8px 6px;
+  color: #64748b;
+  font-size: 0.76rem;
+}
+
+.edu-context-formula-current strong {
+  color: var(--azul-oscuro);
+}
+
 .edu-context-item {
   width: 100%;
   display: flex;
@@ -1916,6 +1926,16 @@ th {
 .edu-context-item:hover {
   background: #f0f7ff;
   color: #0284c7;
+}
+
+.edu-context-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.edu-context-item:disabled:hover {
+  background: transparent;
+  color: #334155;
 }
 
 .edu-context-item svg {

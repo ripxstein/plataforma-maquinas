@@ -281,6 +281,7 @@
             });
         }
     }
+    window.renumberFormulaNumbers = renumberFormulaNumbers;
 
     function scheduleMathRender(target = document.body) {
         if (mathRenderTimer) clearTimeout(mathRenderTimer);
@@ -445,6 +446,9 @@
                 y: 0,
                 targetEl: null,
                 tagName: '',
+                hasFormula: false,
+                formulaNumberMode: 'auto',
+                formulaCustomNumber: '',
                 hasConceptMarker: false,
                 markerConceptId: null,
                 markerConceptTitle: '',
@@ -1721,16 +1725,25 @@ toggleTagBlock() {
                 if (!target || target === editable) return;
 
                 const conceptMark = target.closest('mark.edu-concept-marker');
+                const formula = target.closest('.formula');
                 const block = target.closest('p, h1, h2, h3, h4, h5, h6, div, section, article, blockquote, ul, ol, table, pre, .edu-block, .card, .formula');
 
-                if (!conceptMark && (!this.showBlocks || !block || block === editable || !editable.contains(block))) return;
+                const hasFormula = formula && editable.contains(formula);
+                if (!conceptMark && !hasFormula && (!this.showBlocks || !block || block === editable || !editable.contains(block))) return;
 
                 e.preventDefault();
                 e.stopPropagation();
                 this.closeMarkerPopover();
 
-                this.blockContextMenu.targetEl = block || conceptMark;
-                this.blockContextMenu.tagName = block && block.tagName ? block.tagName.toLowerCase() : (conceptMark ? 'mark' : 'bloque');
+                this.blockContextMenu.targetEl = hasFormula ? formula : (block || conceptMark);
+                this.blockContextMenu.tagName = hasFormula ? 'formula' : (block && block.tagName ? block.tagName.toLowerCase() : (conceptMark ? 'mark' : 'bloque'));
+                this.blockContextMenu.hasFormula = !!hasFormula;
+                this.blockContextMenu.formulaNumberMode = hasFormula
+                    ? (formula.classList.contains('no-number') ? 'none' : (formula.hasAttribute('data-custom-number') ? 'manual' : 'auto'))
+                    : 'auto';
+                this.blockContextMenu.formulaCustomNumber = hasFormula
+                    ? (formula.getAttribute('data-custom-number') || formula.dataset.formulaNumber || '')
+                    : '';
 
                 if (conceptMark && editable.contains(conceptMark)) {
                     this.blockContextMenu.hasConceptMarker = true;
@@ -1744,6 +1757,7 @@ toggleTagBlock() {
 
                 const menuWidth = 240;
                 let menuHeight = this.showBlocks ? 310 : 120;
+                if (this.blockContextMenu.hasFormula) menuHeight += 150;
                 if (this.blockContextMenu.hasConceptMarker && this.showBlocks) menuHeight += 90;
 
                 let x = e.clientX;
@@ -1765,8 +1779,42 @@ toggleTagBlock() {
                 this.blockContextMenu.visible = false;
                 this.blockContextMenu.targetEl = null;
                 this.blockContextMenu.hasConceptMarker = false;
+                this.blockContextMenu.hasFormula = false;
+                this.blockContextMenu.formulaNumberMode = 'auto';
+                this.blockContextMenu.formulaCustomNumber = '';
                 this.blockContextMenu.markerConceptId = null;
                 this.blockContextMenu.markerConceptTitle = '';
+            },
+
+            setFormulaNumberMode(mode) {
+                const formula = this.blockContextMenu.targetEl;
+                const editable = document.getElementById(this.editorId + '-editable');
+                if (!formula?.isConnected || !editable?.contains(formula)) return;
+
+                if (mode === 'manual') {
+                    const suggestedNumber = formula.getAttribute('data-custom-number') || formula.dataset.formulaNumber || '';
+                    const value = window.prompt('Escribe el número manual de la fórmula:', suggestedNumber);
+                    if (value === null) return;
+                    const number = value.trim().replace(/^\s*\(+/, '').replace(/\)+\s*$/, '').trim();
+                    if (!number) return;
+                    formula.classList.remove('no-number');
+                    formula.removeAttribute('data-formula-number');
+                    formula.dataset.customNumber = number;
+                } else if (mode === 'none') {
+                    formula.classList.add('no-number');
+                    formula.removeAttribute('data-custom-number');
+                    formula.removeAttribute('data-formula-number');
+                } else {
+                    formula.classList.remove('no-number');
+                    formula.removeAttribute('data-custom-number');
+                    formula.removeAttribute('data-formula-number');
+                }
+
+                this.closeBlockContextMenu();
+                this.onContentChange();
+                if (typeof window.renumberFormulaNumbers === 'function') {
+                    window.renumberFormulaNumbers(editable);
+                }
             },
 
             removeMarkerFromContext() {

@@ -741,6 +741,27 @@
             <code class="edu-context-tag" x-text="'<' + blockContextMenu.tagName + '>'"></code>
         </div>
 
+        <template x-if="blockContextMenu.hasFormula">
+            <div>
+                <div class="edu-context-divider"></div>
+                <div class="edu-context-section-title">Numeración de la fórmula</div>
+                <div class="edu-context-formula-current">
+                    Estado:
+                    <strong x-text="blockContextMenu.formulaNumberMode === 'auto' ? 'Automática' : (blockContextMenu.formulaNumberMode === 'manual' ? 'Manual' : 'Sin número')"></strong>
+                    <span x-show="blockContextMenu.formulaNumberMode === 'manual'" x-text="' (' + blockContextMenu.formulaCustomNumber + ')'" ></span>
+                </div>
+                <button type="button" class="edu-context-item" @click="setFormulaNumberMode('auto')" :disabled="blockContextMenu.formulaNumberMode === 'auto'">
+                    <span>🔢</span><span x-text="blockContextMenu.formulaNumberMode === 'none' ? 'Agregar numeración incremental' : 'Usar numeración incremental'"></span>
+                </button>
+                <button type="button" class="edu-context-item" @click="setFormulaNumberMode('manual')">
+                    <span>✍️</span><span>Asignar número manual</span>
+                </button>
+                <button type="button" class="edu-context-item" @click="setFormulaNumberMode('none')" :disabled="blockContextMenu.formulaNumberMode === 'none'">
+                    <span>🚫</span><span>Quitar numeración</span>
+                </button>
+            </div>
+        </template>
+
         <!-- Acciones de Marca de Concepto (si se hizo click en un mark) -->
         <template x-if="blockContextMenu.hasConceptMarker">
             <div>
