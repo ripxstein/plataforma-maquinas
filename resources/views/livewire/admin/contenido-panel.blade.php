@@ -116,7 +116,7 @@
                                                     </span>
                                                     <strong style="font-size: 0.95rem; color: #1f2d3d;">{{ $problem->title }}</strong>
                                                     <span style="font-size: 0.8rem; color: var(--gris); margin-left: 8px;">
-                                                        • Componente: <code>{{ $problem->component }}</code>
+                                                        ({{ $problem->percentage }}% del progreso)
                                                     </span>
                                                 </div>
 
