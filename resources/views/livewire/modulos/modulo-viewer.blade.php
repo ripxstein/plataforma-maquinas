@@ -1,17 +1,28 @@
 <div>
-    <section class="hero">
-        <h2>{{ $module->title }}</h2>
-
-        <p>Avance total: <strong>{{ $totalProgress }}%</strong></p>
-
-        <div class="progress-bar">
+    <section class="hero module-overview" aria-labelledby="module-overview-title">
+        <div class="module-overview-heading">
+            <h2 id="module-overview-title">{{ $module->title }}</h2>
+            <p class="module-overview-percent"><strong>{{ $totalProgress }}%</strong><span>de avance</span></p>
+        </div>
+        <div class="progress-bar" role="progressbar" aria-label="Avance del módulo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $totalProgress }}">
             <div class="progress-fill" style="width: {{ $totalProgress }}%;"></div>
         </div>
-
-        <p>
-            Lecturas: <strong>{{ $readingProgress }}%</strong> |
-            Problemas: <strong>{{ $problemProgress }}%</strong>
-        </p>
+        <div class="module-overview-meta">
+            <span><strong>{{ $activitySummary['readings_completed'] }}/{{ $activitySummary['readings_total'] }}</strong> lecturas visibles completadas</span>
+            @if ($activitySummary['examples_pending'] > 0)
+                <span><strong>{{ $activitySummary['examples_pending'] }}</strong> {{ $activitySummary['examples_pending'] === 1 ? 'ejemplo por revisar' : 'ejemplos por revisar' }}</span>
+            @endif
+            @if ($activitySummary['exercises_pending'] > 0)
+                <span><strong>{{ $activitySummary['exercises_pending'] }}</strong> {{ $activitySummary['exercises_pending'] === 1 ? 'ejercicio pendiente' : 'ejercicios pendientes' }}</span>
+            @endif
+        </div>
+        @if ($activitySummary['next'])
+            <a class="module-overview-next" href="#{{ $activitySummary['next']['type'] === 'lectura' ? 'lectura-'.$activitySummary['next']['item_id'] : 'problema-'.$activitySummary['next']['problem_id'] }}" title="{{ ucfirst($activitySummary['next']['type']) }}: {{ $activitySummary['next']['title'] }}">
+                <span>Continuar con {{ $activitySummary['next']['type'] === 'lectura' ? 'la lectura' : ($activitySummary['next']['type'] === 'ejemplo' ? 'el ejemplo' : 'el ejercicio') }}</span>
+                <strong>{{ $activitySummary['next']['title'] }}</strong>
+                <span class="module-overview-next-arrow" aria-hidden="true">→</span>
+            </a>
+        @endif
     </section>
 
     {{-- MAPA CONCEPTUAL DEL MÓDULO (antes de la primera lectura) --}}
@@ -138,6 +149,8 @@
 
                     @if ($this->isReadingCompleted($item->id))
                         <span class="tag" style="margin-bottom: 0;">Lectura completada</span>
+                    @else
+                        <span class="tag student-status student-status-pending" style="margin-bottom: 0;">Lectura pendiente</span>
                     @endif
                 </h3>
 
@@ -147,13 +160,15 @@
                     style="cursor:pointer;"
                     @click="open = !open"
                     :aria-label="open ? 'Ocultar lectura' : 'Mostrar lectura'"
+                    :aria-expanded="open.toString()"
+                    aria-controls="contenido-lectura-{{ $item->id }}"
                 >
                     <span class="sm:hidden" x-text="open ? 'Ocultar' : 'Mostrar'"></span>
                     <span class="hidden sm:inline" x-text="open ? 'Ocultar lectura' : 'Mostrar lectura'"></span>
                 </button>
             </div>
 
-            <div class="section-body" x-show="open" x-transition.opacity>
+            <div class="section-body" id="contenido-lectura-{{ $item->id }}" x-show="open" x-transition.opacity>
                 {!! $item->content !!}
 
                 @if (!$this->isReadingCompleted($item->id))
@@ -192,30 +207,37 @@
                                         $exampleNumber = $index + 1;
                                     @endphp
 
-                                    <div class="accordion-item {{ !$isUnlocked ? 'disabled-problem' : '' }} {{ $isUnlocked && !$isCompleted ? 'open' : '' }}" style="border-left: 4px solid var(--azul-secundario);">
+                                    <div id="problema-{{ $problem->id }}" class="accordion-item {{ !$isUnlocked ? 'disabled-problem' : '' }} {{ $isUnlocked && !$isCompleted ? 'open' : '' }}" style="border-left: 4px solid var(--azul-secundario);">
                                         <button
                                             class="accordion-btn"
                                             type="button"
                                             @disabled(!$isUnlocked)
+                                            @if ($isUnlocked) aria-controls="contenido-problema-{{ $problem->id }}" @endif
+                                            aria-expanded="{{ $isUnlocked && !$isCompleted ? 'true' : 'false' }}"
                                         >
                                             <span class="accordion-btn-title" style="font-weight: 700; color: var(--azul-oscuro);">
-                                                Ejemplo {{ $exampleNumber }}: {{ $problem->title }}
+                                                <span class="sr-only">Ejemplo. </span>Ejemplo {{ $exampleNumber }}: {{ $problem->title }}
                                             </span>
 
                                             <span class="accordion-btn-meta">
+                                                <span class="tag student-status student-status-example">Ejemplo</span>
                                                 @if ($isCompleted)
-                                                    <span class="tag" style="background: #eaf3fd; color: var(--azul-secundario); border: 1px solid #9fc4ec;">Revisado</span>
+                                                    <span class="tag student-status student-status-completed">Completado</span>
                                                 @elseif (!$isUnlocked)
-                                                    <span class="tag">Bloqueado</span>
+                                                    <span class="tag student-status student-status-locked">Bloqueado</span>
                                                 @else
-                                                    <span class="tag" style="background: #fff8e6; color: #8a5b00; border: 1px solid #f0d182;">Disponible</span>
+                                                    <span class="tag student-status student-status-pending">Pendiente</span>
                                                 @endif
                                                 <span class="accordion-chevron" aria-hidden="true">▾</span>
                                             </span>
                                         </button>
 
+                                        @if (!$isUnlocked)
+                                            <p class="student-lock-reason">{{ $this->problemLockReason($problem, $item->id) }}</p>
+                                        @endif
+
                                         @if ($isUnlocked)
-                                            <div class="accordion-content">
+                                            <div class="accordion-content" id="contenido-problema-{{ $problem->id }}">
                                                 @if ($problem->content)
                                                     <div class="problema-enunciado">
                                                         {!! $problem->content !!}
@@ -269,11 +291,13 @@
                                         $problemNumber = $index + 1;
                                     @endphp
 
-                                    <div class="accordion-item {{ !$isUnlocked ? 'disabled-problem' : '' }} {{ $isUnlocked && !$isCompleted ? 'open' : '' }}">
+                                    <div id="problema-{{ $problem->id }}" class="accordion-item {{ !$isUnlocked ? 'disabled-problem' : '' }} {{ $isUnlocked && !$isCompleted ? 'open' : '' }}">
                                         <button
                                             class="accordion-btn"
                                             type="button"
                                             @disabled(!$isUnlocked)
+                                            @if ($isUnlocked) aria-controls="contenido-problema-{{ $problem->id }}" @endif
+                                            aria-expanded="{{ $isUnlocked && !$isCompleted ? 'true' : 'false' }}"
                                         >
                                             <span class="accordion-btn-title">
                                                 Problema {{ $problemNumber }}: {{ $problem->title }}
@@ -281,18 +305,22 @@
 
                                             <span class="accordion-btn-meta">
                                                 @if ($isCompleted)
-                                                    <span class="tag">Completado</span>
+                                                    <span class="tag student-status student-status-completed">Completado</span>
                                                 @elseif (!$isUnlocked)
-                                                    <span class="tag">Bloqueado</span>
+                                                    <span class="tag student-status student-status-locked">Bloqueado</span>
                                                 @else
-                                                    <span class="tag">Pendiente</span>
+                                                    <span class="tag student-status student-status-pending">Pendiente</span>
                                                 @endif
                                                 <span class="accordion-chevron" aria-hidden="true">▾</span>
                                             </span>
                                         </button>
 
+                                        @if (!$isUnlocked)
+                                            <p class="student-lock-reason">{{ $this->problemLockReason($problem, $item->id) }}</p>
+                                        @endif
+
                                         @if ($isUnlocked)
-                                            <div class="accordion-content">
+                                            <div class="accordion-content" id="contenido-problema-{{ $problem->id }}">
                                                 @if ($problem->content)
                                                     <div class="problema-enunciado">
                                                         {!! $problem->content !!}

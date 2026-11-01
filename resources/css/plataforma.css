@@ -2431,3 +2431,271 @@ th {
 .section-body {
   overflow-anchor: none;
 }
+
+/* Resumen de avance y estados del alumno. */
+.module-overview {
+  padding: 26px 30px;
+}
+
+.module-overview-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.module-overview h2 {
+  min-width: 0;
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  line-height: 1.2;
+}
+
+.module-overview .module-overview-percent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  margin: 0;
+  color: #40536c;
+  font-size: .85rem;
+  line-height: 1.2;
+}
+
+.module-overview-percent strong {
+  color: var(--azul-oscuro);
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.body-app .module-overview .progress-bar {
+  margin: 18px 0 16px;
+}
+
+.module-overview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.module-overview-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid #bfd6ef;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .78);
+  color: #29445f;
+  font-size: .88rem;
+  line-height: 1.25;
+}
+
+.module-overview-meta strong {
+  color: var(--azul-oscuro);
+}
+
+.module-overview-next {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 10px 0 0;
+  border-top: 1px solid #bfd6ef;
+  color: var(--azul-oscuro);
+  text-decoration: none;
+}
+
+.module-overview-next strong {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.module-overview-next-arrow {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.module-overview-next:hover {
+  color: #1554a0;
+  text-decoration: underline;
+}
+
+.student-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 11px 20px;
+  margin-top: 12px;
+  border-radius: 12px;
+  background: #174c94;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.student-primary-action:hover {
+  background: #103b73;
+  color: #fff;
+}
+
+.student-next-activity span {
+  display: block;
+  color: #40536c;
+}
+
+.student-progress-card {
+  padding: 24px 30px;
+  border: 1px solid var(--borde);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: var(--sombra);
+}
+
+.student-progress-card h3 {
+  margin: 0 0 12px;
+  color: var(--azul-oscuro);
+  font-size: 1.5rem;
+}
+
+.student-progress-card p {
+  margin: 10px 0;
+  line-height: 1.55;
+}
+
+.student-status {
+  border: 1px solid transparent;
+}
+
+.student-status-example {
+  background: #eaf3fd;
+  border-color: #92b8e4;
+  color: #103b73;
+}
+
+.student-status-pending {
+  background: #fff5d9;
+  border-color: #d8a632;
+  color: #674500;
+}
+
+.student-status-locked {
+  background: #f1f3f6;
+  border-color: #a5afbb;
+  color: #344154;
+}
+
+.student-status-completed {
+  background: #e6f5e9;
+  border-color: #75b482;
+  color: #14532d;
+}
+
+.student-lock-reason {
+  margin: 0;
+  padding: 0 20px 16px;
+  color: #344154;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.body-app a:focus-visible,
+.body-app button:focus-visible,
+.body-app input:focus-visible,
+.body-app select:focus-visible,
+.body-app textarea:focus-visible {
+  outline: 3px solid #c35b00;
+  outline-offset: 3px;
+}
+
+.body-app .accordion-btn,
+.body-app .section-header button,
+.body-app .content-section button,
+.body-app .student-primary-action {
+  min-height: 44px;
+}
+
+.body-app .section-body,
+.body-app .accordion-content,
+.body-app .problema-enunciado {
+  min-width: 0;
+}
+
+.body-app .formula-inline {
+  max-width: 100%;
+  overflow-x: auto;
+  vertical-align: middle;
+}
+
+@media (max-width: 640px) {
+  .module-overview {
+    padding: 18px 16px;
+  }
+
+  .module-overview-heading {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .module-overview .module-overview-percent {
+    font-size: .72rem;
+  }
+
+  .module-overview-percent strong {
+    font-size: 1.3rem;
+  }
+
+  .module-overview-next {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .module-overview-next > span:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .module-overview-next strong {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .student-progress-card {
+    padding: 18px 16px;
+  }
+
+  .body-app .section-body .katex-display,
+  .body-app .accordion-content .katex-display {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .body-app .section-body p > .katex,
+  .body-app .problema-enunciado p > .katex {
+    display: inline-block;
+    max-width: 100%;
+    overflow-x: auto;
+    vertical-align: middle;
+  }
+
+  .body-app .accordion-btn {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .body-app .accordion-btn-meta {
+    gap: 5px;
+  }
+
+  .body-app .accordion-btn-meta .tag {
+    padding: 4px 6px;
+    font-size: .68rem;
+  }
+}

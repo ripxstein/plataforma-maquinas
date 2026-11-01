@@ -11,6 +11,7 @@ use App\Services\LearningProgressService;
 use App\Services\ModuleCacheService;
 use App\Services\ProgressCalculator;
 use App\Services\SitemapService;
+use App\Services\StudentActivitySummary;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -266,12 +267,26 @@ class ModuloViewer extends Component
             && app(LearningProgressService::class)->isProblemUnlocked($problem, $item->problems, $this->completedProblemIds);
     }
 
+    public function problemLockReason($problem, $moduleItemId): string
+    {
+        $item = $this->items->firstWhere('id', $moduleItemId);
+
+        return app(StudentActivitySummary::class)->problemLockReason(
+            $problem, $item->problems, $this->completedProblemIds
+        );
+    }
+
     public function render()
     {
+        $activitySummary = app(StudentActivitySummary::class)->forModule(
+            $this->visibleItems, $this->completedItemIds, $this->completedProblemIds, $this->unlockedOrder
+        );
+
         return view('livewire.modulos.modulo-viewer', [
             'module' => $this->module,
             'items' => $this->items,
             'visibleItems' => $this->visibleItems,
+            'activitySummary' => $activitySummary,
         ]);
     }
 }

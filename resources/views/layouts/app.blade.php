@@ -380,6 +380,7 @@
         if (!item?.classList.contains('accordion-item') || button.disabled) return;
 
         item.classList.toggle('open');
+        button.setAttribute('aria-expanded', item.classList.contains('open') ? 'true' : 'false');
         if (item.classList.contains('open')) {
             scheduleMathRender(item);
         }
