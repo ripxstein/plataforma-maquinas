@@ -23,8 +23,20 @@ new class extends Component
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}" wire:navigate>
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                    <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-1 no-underline sm:gap-3">
+                        <img
+                            src="{{ asset('images/branding/ipn-escudo.png') }}"
+                            alt="Escudo del Instituto Politécnico Nacional"
+                            class="block h-16 w-16 object-contain"
+                        >
+                        <span class="h-10 border-l border-gray-200" aria-hidden="true"></span>
+                        <span class="flex items-center">
+                            <x-application-logo />
+                        </span>
+                        <span class="flex flex-col leading-tight">
+                            <span class="text-xl font-bold leading-tight text-[#103b73] sm:text-2xl">UPIIZ</span>
+                            <span class="hidden text-sm leading-tight text-slate-500 sm:block">Campus Zacatecas</span>
+                        </span>
                     </a>
                 </div>
 {{-- 
