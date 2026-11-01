@@ -227,6 +227,61 @@
     // UI: acordeones y KaTeX auto-render
     // -----------------------------
     let mathRenderTimer = null;
+
+    function assignFormulaNumbers(container, moduleOrder, readingOrder, startAt = 0) {
+        if (!container) return;
+
+        let index = startAt;
+        container.querySelectorAll('.formula, .formula-display').forEach((formula) => {
+            const customNumber = formula.getAttribute('data-custom-number')?.trim();
+            if (/^\(?0\)?$/.test(customNumber || '')) {
+                formula.removeAttribute('data-custom-number');
+            }
+
+            if (formula.matches('.no-number, [data-custom-number]')) {
+                formula.removeAttribute('data-formula-number');
+                return;
+            }
+
+            index++;
+            formula.dataset.formulaNumber = `${moduleOrder}.${readingOrder}.${index}`;
+        });
+    }
+
+    function renumberFormulaNumbers(target = document) {
+        if (!target?.querySelectorAll) return;
+
+        const roots = [];
+        if (target.matches?.('.content-section, .edu-wysiwyg-preview-pane, .edu-wysiwyg-editable')) roots.push(target);
+        const enclosingRoot = target.closest?.('.content-section, .edu-wysiwyg-preview-pane, .edu-wysiwyg-editable');
+        if (enclosingRoot && !roots.includes(enclosingRoot)) roots.push(enclosingRoot);
+        roots.push(...target.querySelectorAll('.content-section, .edu-wysiwyg-preview-pane, .edu-wysiwyg-editable'));
+
+        roots.forEach((root) => {
+            const moduleOrder = Number.parseInt(root.dataset.moduleOrder, 10) || 1;
+            const readingOrder = Number.parseInt(root.dataset.readingOrder, 10) || 1;
+            assignFormulaNumbers(root, moduleOrder, readingOrder);
+        });
+
+        const looseFormulas = [...target.querySelectorAll('.formula, .formula-display')]
+            .filter((formula) => !formula.closest('.content-section, .edu-wysiwyg-preview-pane, .edu-wysiwyg-editable, .edu-wysiwyg-container'));
+        if (looseFormulas.length) {
+            let index = 0;
+            looseFormulas.forEach((formula) => {
+                const customNumber = formula.getAttribute('data-custom-number')?.trim();
+                if (/^\(?0\)?$/.test(customNumber || '')) {
+                    formula.removeAttribute('data-custom-number');
+                }
+
+                if (formula.matches('.no-number, [data-custom-number]')) {
+                    formula.removeAttribute('data-formula-number');
+                    return;
+                }
+                formula.dataset.formulaNumber = `1.1.${++index}`;
+            });
+        }
+    }
+
     function scheduleMathRender(target = document.body) {
         if (mathRenderTimer) clearTimeout(mathRenderTimer);
         mathRenderTimer = setTimeout(() => {
@@ -256,6 +311,7 @@
                     console.warn('Error al renderizar KaTeX:', err);
                 }
             }
+            renumberFormulaNumbers(target);
         };
 
         if (typeof window.katex !== 'undefined' && typeof window.katex.render === 'function') {
@@ -1032,6 +1088,20 @@
 
             updateFormulaPreview() {
                 const container = document.getElementById(this.editorId + '-formula-preview');
+                const editor = document.getElementById(this.editorId);
+                if (container) {
+                    if (this.formulaNumberMode !== 'auto') {
+                        container.removeAttribute('data-formula-number');
+                    } else {
+                        const source = document.createElement('template');
+                        source.innerHTML = this.value || '';
+                        const existingCount = [...source.content.querySelectorAll('.formula, .formula-display')]
+                            .filter((formula) => !formula.matches('.no-number, [data-custom-number]')).length;
+                        const moduleOrder = Number.parseInt(editor?.dataset.moduleOrder, 10) || 1;
+                        const readingOrder = Number.parseInt(editor?.dataset.readingOrder, 10) || 1;
+                        container.dataset.formulaNumber = `${moduleOrder}.${readingOrder}.${existingCount + 1}`;
+                    }
+                }
                 if (container && typeof katex !== 'undefined') {
                     try {
                         katex.render(this.formulaInput || '\\text{Formula...}', container, {

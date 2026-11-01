@@ -127,7 +127,8 @@
             class="content-section"
             id="lectura-{{ $item->id }}"
             wire:key="lectura-section-{{ $item->id }}"
-            style="counter-reset: mod-num {{ $module->order ?? 1 }} read-num {{ $item->order ?? 1 }} formula-idx 0;"
+            data-module-order="{{ $module->order ?? 1 }}"
+            data-reading-order="{{ $item->order ?? 1 }}"
             x-data="{ open: true }"
             @expand-reading.window="if (!$event.detail || $event.detail.itemId === {{ $item->id }}) open = true"
         >

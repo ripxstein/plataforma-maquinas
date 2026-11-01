@@ -26,7 +26,6 @@ body {
   font-family: "Segoe UI", Arial, sans-serif;
   background: linear-gradient(180deg, #dff1ff 0%, var(--fondo) 220px);
   color: var(--texto);
-  counter-reset: mod-num 1 read-num 1 formula-idx 0;
 }
 
 nav {
@@ -573,7 +572,6 @@ th {
   display: flex;
   align-items: center;
   justify-content: center;
-  counter-increment: formula-idx;
   box-shadow: 0 2px 8px rgba(30, 90, 168, 0.04);
   max-width: 100%;
   min-width: 0;
@@ -631,7 +629,7 @@ th {
 }
 
 .formula::after {
-  content: "(" counter(mod-num) "." counter(read-num) "." counter(formula-idx) ")";
+  content: "(" attr(data-formula-number) ")";
   position: absolute;
   right: 18px;
   top: 50%;
@@ -651,7 +649,6 @@ th {
 
 .formula.no-number,
 .formula-display.no-number {
-  counter-increment: none !important;
   padding-right: 24px;
 }
 
@@ -661,12 +658,13 @@ th {
   display: none !important;
 }
 
-/* Fórmulas con numeración manual o referencia previa (no incrementan el contador) */
-.formula[data-custom-number],
-.formula-display[data-custom-number] {
-  counter-increment: none !important;
+.formula:not([data-formula-number]):not([data-custom-number])::after,
+.formula-display:not([data-formula-number]):not([data-custom-number])::after {
+  content: none;
+  display: none;
 }
 
+/* Fórmulas con numeración manual conservan su referencia y no entran al recálculo automático. */
 .formula[data-custom-number]::after,
 .formula-display[data-custom-number]::after {
   content: "(" attr(data-custom-number) ")" !important;
@@ -1437,7 +1435,6 @@ th {
   margin: 16px 0;
   font-size: clamp(15px, 1.9vw, 20px);
   position: relative;
-  counter-increment: formula-idx;
   box-shadow: 0 2px 8px rgba(30, 90, 168, 0.04);
   max-width: 100%;
   box-sizing: border-box;
@@ -1445,7 +1442,7 @@ th {
 
 
 .formula-display::after {
-  content: "(" counter(mod-num) "." counter(read-num) "." counter(formula-idx) ")";
+  content: "(" attr(data-formula-number) ")";
   position: absolute;
   right: 18px;
   top: 50%;

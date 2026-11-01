@@ -12,7 +12,8 @@
     })"
     x-init="init()"
     class="edu-wysiwyg-container"
-    style="counter-reset: mod-num {{ $moduleOrder ?? 1 }} read-num {{ $readingOrder ?? 1 }} formula-idx 0;"
+    data-module-order="{{ $moduleOrder ?? 1 }}"
+    data-reading-order="{{ $readingOrder ?? 1 }}"
     wire:ignore
 >
     <!-- Header with Tabs -->
@@ -266,6 +267,8 @@
         class="edu-wysiwyg-editable" 
         :class="{ 'show-blocks-mode': showBlocks }"
         id="{{ $id }}-editable"
+        data-module-order="{{ $moduleOrder ?? 1 }}"
+        data-reading-order="{{ $readingOrder ?? 1 }}"
         contenteditable="true"
         @input="onContentChange()"
         @blur="onContentChange()"
@@ -280,6 +283,8 @@
         x-show="activeTab === 'preview'" 
         class="edu-wysiwyg-preview-pane section-body"
         id="{{ $id }}-preview"
+        data-module-order="{{ $moduleOrder ?? 1 }}"
+        data-reading-order="{{ $readingOrder ?? 1 }}"
     >
         <div x-html="value || '<p style=\'color:var(--gris); font-style:italic;\'>No hay contenido para mostrar en la vista previa.</p>'"></div>
     </div>
