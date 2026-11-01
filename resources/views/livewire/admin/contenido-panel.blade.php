@@ -272,6 +272,34 @@
                         @error('problemTitle') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
                     </div>
 
+                    <div class="form-group" style="background: #f8fbff; border: 1.5px solid #cfe0f5; border-radius: 14px; padding: 14px 16px; margin-bottom: 18px;">
+                        <label class="form-label" style="margin-bottom: 8px; color: var(--azul-oscuro); font-size: 0.98rem;">
+                            Modalidad del Componente
+                        </label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px;">
+                            <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: {{ $problemIsExample ? '#eef6ff' : '#ffffff' }}; border: 2px solid {{ $problemIsExample ? 'var(--azul-secundario)' : 'var(--borde)' }}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                                <input type="radio" name="content_problem_type_mode" value="1" wire:model.live="problemIsExample" style="margin-top: 3px;">
+                                <div>
+                                    <strong style="display: block; color: var(--azul-secundario); font-size: 0.95rem;">📘 Ejemplo Resuelto</strong>
+                                    <span style="font-size: 0.82rem; color: var(--gris); line-height: 1.35; display: block; margin-top: 2px;">
+                                        Demostrativo: El alumno avanza con "Siguiente" revisando los pasos sin evaluarse. No otorga porcentaje.
+                                    </span>
+                                </div>
+                            </label>
+
+                            <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: {{ !$problemIsExample ? '#f0fdf4' : '#ffffff' }}; border: 2px solid {{ !$problemIsExample ? '#16a34a' : 'var(--borde)' }}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                                <input type="radio" name="content_problem_type_mode" value="0" wire:model.live="problemIsExample" style="margin-top: 3px;">
+                                <div>
+                                    <strong style="display: block; color: #15803d; font-size: 0.95rem;">✏️ Problema de Práctica</strong>
+                                    <span style="font-size: 0.82rem; color: var(--gris); line-height: 1.35; display: block; margin-top: 2px;">
+                                        Evaluado: El alumno debe calcular e ingresar respuestas para validar cada paso y sumar avance.
+                                    </span>
+                                </div>
+                            </label>
+                        </div>
+                        @error('problemIsExample') <span style="color:#b42318; font-size:0.85rem;">{{ $message }}</span> @enderror
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label">Componente Interactivo Paso a Paso</label>
                         <div class="form-hint">Selecciona el problema interactivo que responderá el estudiante:</div>

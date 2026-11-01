@@ -73,6 +73,8 @@ class ContenidoPanel extends Component
 
     public bool $problemIsActive = true;
 
+    public bool $problemIsExample = false;
+
     // Available interactive problem components list
     public array $availableComponents = [
         'problemas.problema-dinamico' => '🧩 Problema Dinámico (Constructor Visual / Paso a Paso)',
@@ -204,6 +206,7 @@ class ContenidoPanel extends Component
             $this->problemOrder = $problem->order;
             $this->problemPercentage = $problem->percentage;
             $this->problemIsActive = $problem->is_active ?? true;
+            $this->problemIsExample = (bool) ($problem->is_example ?? false);
 
             if (array_key_exists($problem->component, $this->availableComponents)) {
                 $this->problemComponent = $problem->component;
@@ -326,6 +329,7 @@ class ContenidoPanel extends Component
             'customComponent' => 'required_if:problemComponent,custom',
             'problemOrder' => 'required|integer|min:1',
             'problemPercentage' => 'required|integer|min:0|max:100',
+            'problemIsExample' => 'boolean',
         ]);
 
         $finalComponent = ($this->problemComponent === 'custom')
@@ -347,6 +351,7 @@ class ContenidoPanel extends Component
                 'order' => $this->problemOrder,
                 'percentage' => $this->problemPercentage,
                 'is_active' => $this->problemIsActive,
+                'is_example' => $this->problemIsExample,
             ]
         );
 
@@ -439,6 +444,7 @@ class ContenidoPanel extends Component
         $this->problemOrder = 1;
         $this->problemPercentage = 100;
         $this->problemIsActive = true;
+        $this->problemIsExample = false;
     }
 
     public function render()
