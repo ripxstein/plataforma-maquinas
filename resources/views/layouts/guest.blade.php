@@ -17,8 +17,20 @@
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div>
-                <a href="/" wire:navigate>
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+                <a href="/" wire:navigate class="flex items-center gap-1 no-underline sm:gap-3">
+                    <img
+                        src="{{ asset('images/branding/ipn-escudo.png') }}"
+                        alt="Escudo del Instituto Politécnico Nacional"
+                        class="block h-16 w-16 object-contain"
+                    >
+                    <span class="h-10 border-l border-gray-300" aria-hidden="true"></span>
+                    <span class="flex items-center" role="img" aria-label="Emblema de UPIIZ">
+                        <x-application-logo />
+                    </span>
+                    <span class="flex flex-col leading-tight">
+                        <span class="text-xl font-bold leading-tight text-[#103b73] sm:text-2xl">UPIIZ</span>
+                        <span class="hidden text-sm leading-tight text-slate-500 sm:block">Campus Zacatecas</span>
+                    </span>
                 </a>
             </div>
 
