@@ -8,13 +8,22 @@ use App\Models\ProblemStepOption;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ProblemWriter
 {
+    public function __construct(private readonly UniqueSlugService $uniqueSlugService)
+    {
+    }
+
     public function saveDetails(?int $id, array $attributes): Problem
     {
+        $attributes['slug'] = $this->uniqueSlugService->generate(
+            Problem::class,
+            $attributes['slug'] ?? $attributes['title'] ?? '',
+            $id,
+        );
+
         Validator::make($attributes, [
             'module_item_id' => 'required|exists:module_items,id',
             'title' => 'required|string|max:255',
@@ -88,7 +97,7 @@ class ProblemWriter
             $original = Problem::with('steps.options')->findOrFail($id);
             $copy = new Problem($original->only($original->getFillable()));
             $copy->title = 'Copia de '.$original->title;
-            $copy->slug = Str::limit(Str::slug($copy->title), 210, '').'-'.Str::uuid();
+            $copy->slug = $this->uniqueSlugService->generate(Problem::class, $copy->title);
             $copy->order = (Problem::where('module_item_id', $original->module_item_id)->max('order') ?? 0) + 1;
             $copy->component = $original->component ?: 'problemas.problema-dinamico';
             $copy->save();

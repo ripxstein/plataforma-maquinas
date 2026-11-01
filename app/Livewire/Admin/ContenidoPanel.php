@@ -6,6 +6,7 @@ use App\Models\Module;
 use App\Models\ModuleItem;
 use App\Models\Problem;
 use App\Services\ProblemWriter;
+use App\Services\UniqueSlugService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -239,9 +240,11 @@ class ContenidoPanel extends Component
     // Save Handlers
     public function saveModule()
     {
-        if (empty($this->moduleSlug) && ! empty($this->moduleTitle)) {
-            $this->moduleSlug = Str::slug($this->moduleTitle);
-        }
+        $this->moduleSlug = app(UniqueSlugService::class)->generate(
+            Module::class,
+            $this->moduleTitle,
+            $this->moduleId ? (int) $this->moduleId : null,
+        );
 
         $this->validate([
             'moduleTitle' => 'required|string|max:255',
@@ -286,12 +289,18 @@ class ContenidoPanel extends Component
         $formattedContent = $this->sanitizeHtml($this->readingContent);
 
         $moduleId = $this->moduleIdForReading;
+        $this->readingSlug = app(UniqueSlugService::class)->generate(
+            ModuleItem::class,
+            $this->readingTitle,
+            $this->readingId ? (int) $this->readingId : null,
+        );
 
         ModuleItem::updateOrCreate(
             ['id' => $this->readingId],
             [
                 'module_id' => $moduleId,
                 'title' => $this->readingTitle,
+                'slug' => $this->readingSlug,
                 'type' => 'lectura',
                 'component' => null,
                 'content' => $formattedContent,

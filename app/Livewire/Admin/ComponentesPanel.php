@@ -115,9 +115,7 @@ class ComponentesPanel extends Component
     // Auto-generate slug when title changes
     public function updatedTitle($value)
     {
-        if (empty($this->slug) || $this->slug === Str::slug($this->title)) {
-            $this->slug = Str::slug($value);
-        }
+        $this->slug = Str::slug($value);
     }
 
     public function updatedIsExample($value)
@@ -137,7 +135,7 @@ class ComponentesPanel extends Component
         $firstReading = ModuleItem::orderBy('module_id')->orderBy('order')->first();
         $this->moduleItemId = $firstReading ? $firstReading->id : null;
         $this->title = 'Nuevo Problema Interactivo';
-        $this->slug = 'nuevo-problema-'.time();
+        $this->slug = Str::slug($this->title);
         $this->content = '<p>Describe aquí el enunciado general del problema para el estudiante.</p>';
         $this->component = 'problemas.problema-dinamico';
         $this->order = (Problem::where('module_item_id', $this->moduleItemId)->max('order') ?? 0) + 1;
@@ -221,7 +219,7 @@ class ComponentesPanel extends Component
         $this->validate([
             'moduleItemId' => 'required|exists:module_items,id',
             'title' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:problems,slug,'.($this->problemId ?? 'NULL').',id',
+            'slug' => 'required|string|max:255',
             'order' => 'required|integer|min:1',
             'percentage' => 'required|integer|min:0|max:100',
         ]);
@@ -244,6 +242,7 @@ class ComponentesPanel extends Component
             'is_example' => $this->isExample,
         ], $this->stepsData);
         $this->problemId = $saved['problem']->id;
+        $this->slug = $saved['problem']->slug;
         $this->stepsData = $saved['steps'];
         session()->flash('message', '¡Componente interactivo guardado exitosamente!');
         $this->resetPreviewSimulator();
