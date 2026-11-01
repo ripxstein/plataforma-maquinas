@@ -112,7 +112,7 @@
                                             <div class="tree-problem-card">
                                                 <div>
                                                     <span class="tag" style="background: #eef2ff; color: #3730a3; font-size: 0.75rem; margin-right: 6px;">
-                                                        🧮 Problema {{ $problem->order }}
+                                                        {{ $problem->is_example ? '📘 Ejemplo' : '✏️ Ejercicio' }} {{ $problem->order }}
                                                     </span>
                                                     <strong style="font-size: 0.95rem; color: #1f2d3d;">{{ $problem->title }}</strong>
                                                     <span style="font-size: 0.8rem; color: var(--gris); margin-left: 8px;">
