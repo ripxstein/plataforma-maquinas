@@ -540,6 +540,28 @@ th {
   align-items: center;
 }
 
+.accordion-btn-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.accordion-btn-meta {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.accordion-btn-meta .tag {
+  margin: 0;
+}
+
+.accordion-chevron {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
 .accordion-content {
   display: none;
   padding: 0 20px 20px;

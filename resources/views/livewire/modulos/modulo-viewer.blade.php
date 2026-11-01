@@ -198,11 +198,11 @@
                                             type="button"
                                             @disabled(!$isUnlocked)
                                         >
-                                            <span style="font-weight: 700; color: var(--azul-oscuro);">
+                                            <span class="accordion-btn-title" style="font-weight: 700; color: var(--azul-oscuro);">
                                                 Ejemplo {{ $exampleNumber }}: {{ $problem->title }}
                                             </span>
 
-                                            <span>
+                                            <span class="accordion-btn-meta">
                                                 @if ($isCompleted)
                                                     <span class="tag" style="background: #eaf3fd; color: var(--azul-secundario); border: 1px solid #9fc4ec;">Revisado</span>
                                                 @elseif (!$isUnlocked)
@@ -210,7 +210,7 @@
                                                 @else
                                                     <span class="tag" style="background: #fff8e6; color: #8a5b00; border: 1px solid #f0d182;">Disponible</span>
                                                 @endif
-                                                ▾
+                                                <span class="accordion-chevron" aria-hidden="true">▾</span>
                                             </span>
                                         </button>
 
@@ -275,11 +275,11 @@
                                             type="button"
                                             @disabled(!$isUnlocked)
                                         >
-                                            <span>
+                                            <span class="accordion-btn-title">
                                                 Problema {{ $problemNumber }}: {{ $problem->title }}
                                             </span>
 
-                                            <span>
+                                            <span class="accordion-btn-meta">
                                                 @if ($isCompleted)
                                                     <span class="tag">Completado</span>
                                                 @elseif (!$isUnlocked)
@@ -287,7 +287,7 @@
                                                 @else
                                                     <span class="tag">Pendiente</span>
                                                 @endif
-                                                ▾
+                                                <span class="accordion-chevron" aria-hidden="true">▾</span>
                                             </span>
                                         </button>
 
