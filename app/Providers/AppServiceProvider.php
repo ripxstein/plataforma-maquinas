@@ -9,6 +9,7 @@ use App\Models\ModuleSitemap;
 use App\Models\Problem;
 use App\Models\ProblemStep;
 use App\Models\ProblemStepOption;
+use App\Observers\ContentActivityObserver;
 use App\Observers\ContentCacheObserver;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -34,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
         foreach ([Module::class, ModuleItem::class, Problem::class,
             ProblemStep::class, ProblemStepOption::class, ModuleSitemap::class] as $model) {
             $model::observe(ContentCacheObserver::class);
+        }
+
+        foreach ([Module::class, ModuleItem::class, Problem::class] as $model) {
+            $model::observe(ContentActivityObserver::class);
         }
 
         if ($this->app->environment('production') || request()->header('x-forwarded-proto') === 'https') {
