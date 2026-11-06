@@ -846,7 +846,7 @@
                                             <input 
                                                 type="radio" 
                                                 name="active_modal_correct_opt" 
-                                                checked="{{ !empty($opt['is_correct']) }}"
+                                                @checked(!empty($opt['is_correct']))
                                                 wire:click="setOptionAsCorrect({{ $optIdx }})"
                                                 title="Marcar como respuesta correcta"
                                                 style="width: 20px; height: 20px; cursor: pointer;"

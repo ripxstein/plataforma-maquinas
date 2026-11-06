@@ -159,6 +159,52 @@ test('admin can duplicate an interactive component with its steps and options', 
     expect($duplicated->steps->first()->options()->count())->toBe(2);
 });
 
+test('changing the correct multiple choice option remains selected when reopening the step', function () {
+    $problem = Problem::create([
+        'module_item_id' => $this->reading->id,
+        'title' => 'Selección editable',
+        'slug' => 'seleccion-editable-'.uniqid(),
+        'component' => 'problemas.problema-dinamico',
+        'order' => 1,
+        'percentage' => 30,
+        'is_active' => true,
+    ]);
+
+    $step = ProblemStep::create([
+        'problem_id' => $problem->id,
+        'step_number' => 1,
+        'title' => 'Selecciona el tramo',
+        'instruction' => 'Elige una opción.',
+        'answer_type' => 'multiple_choice',
+    ]);
+
+    foreach (['AB', 'CD', 'BC', 'Todo el eje'] as $index => $text) {
+        ProblemStepOption::create([
+            'problem_step_id' => $step->id,
+            'option_text' => $text,
+            'is_correct' => $index === 3,
+            'order' => $index + 1,
+        ]);
+    }
+
+    $editor = Livewire::actingAs($this->admin)
+        ->test(ComponentesPanel::class)
+        ->call('editComponent', $problem->id)
+        ->call('openEditStepModal', 0)
+        ->call('setOptionAsCorrect', 2)
+        ->call('saveStepModal')
+        ->call('saveComponent')
+        ->assertHasNoErrors()
+        ->call('openEditStepModal', 0);
+
+    $options = $step->fresh()->options()->orderBy('order')->get();
+    expect($options->pluck('is_correct')->all())->toBe([false, false, true, false]);
+
+    preg_match_all('/<input\b(?=[^>]*\bname="active_modal_correct_opt")[^>]*>/s', $editor->html(), $matches);
+    expect($matches[0])->toHaveCount(4);
+    expect(array_keys(array_filter($matches[0], fn ($input) => preg_match('/\bchecked(?:\s|=|>)/', $input))))->toBe([2]);
+});
+
 test('problema dinamico validates step responses and emits completion event on final step', function () {
     $problem = Problem::create([
         'module_item_id' => $this->reading->id,
