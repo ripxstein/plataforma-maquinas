@@ -158,6 +158,73 @@
             return fragment;
         };
 
+        // El editor puede repartir una fórmula entre etiquetas inline (<strong>, <em>, etc.).
+        // Unir el texto del mismo bloque y sustituir solo el rango de la fórmula.
+        const renderSplitInlineMath = function (elem, optionsCopy) {
+            const runs = [[]];
+            const ignored = optionsCopy.ignoredClasses;
+            const blocks = 'p, div, section, article, header, footer, ul, ol, li, table, tr, td, th, h1, h2, h3, h4, h5, h6, blockquote, pre, br';
+            const visit = (node) => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    if (node.textContent) runs[runs.length - 1].push({ node, text: node.textContent });
+                    return;
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) return;
+                if (node !== elem && node.matches(blocks)) {
+                    if (runs[runs.length - 1].length) runs.push([]);
+                    return;
+                }
+                if (node.isContentEditable || node.closest('.edu-wysiwyg-editable') ||
+                    optionsCopy.ignoredTags.includes(node.localName) ||
+                    ignored.some((name) => node.classList.contains(name)) || node.hasAttribute('wire:id')) {
+                    if (runs[runs.length - 1].length) runs.push([]);
+                    return;
+                }
+                node.childNodes.forEach(visit);
+            };
+            elem.childNodes.forEach(visit);
+            for (const parts of runs) {
+                if (parts.length < 2) continue;
+                const text = parts.map((part) => part.text).join('');
+                const segments = splitAtDelimiters(text, optionsCopy.delimiters);
+                const formulas = [];
+                let offset = 0;
+                for (const segment of segments) {
+                    const length = segment.type === 'math' ? segment.rawData.length : segment.data.length;
+                    if (segment.type === 'math') formulas.push({ ...segment, start: offset, end: offset + length });
+                    offset += length;
+                }
+
+                const locate = (position) => {
+                    let cursor = 0;
+                    for (const part of parts) {
+                        const end = cursor + part.text.length;
+                        if (position <= end) return { node: part.node, offset: position - cursor };
+                        cursor = end;
+                    }
+                    return null;
+                };
+
+                for (const formula of formulas.reverse()) {
+                    const start = locate(formula.start);
+                    const end = locate(formula.end);
+                    if (!start || !end || start.node === end.node) continue;
+                    const span = document.createElement('span');
+                    try {
+                        window.katex.render(formula.data, span, { ...optionsCopy, displayMode: formula.display });
+                    } catch (error) {
+                        if (!(error instanceof window.katex.ParseError)) console.warn('KaTeX parse exception:', error);
+                        continue;
+                    }
+                    const range = document.createRange();
+                    range.setStart(start.node, start.offset);
+                    range.setEnd(end.node, end.offset);
+                    range.deleteContents();
+                    range.insertNode(span);
+                }
+            }
+        };
+
         const renderElem = function (elem, optionsCopy) {
             // El contenido editable debe conservar sus nodos de texto y la selección del usuario.
             if (elem.nodeType === Node.ELEMENT_NODE &&
@@ -197,6 +264,7 @@
                     }
                 }
             }
+            if (elem.nodeType === Node.ELEMENT_NODE) renderSplitInlineMath(elem, optionsCopy);
         };
 
         window.renderMathInElement = function (elem, options) {
