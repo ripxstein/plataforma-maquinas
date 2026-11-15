@@ -33,9 +33,9 @@ new class extends Component
                         <span class="flex items-center">
                             <x-application-logo />
                         </span>
-                        <span class="flex flex-col leading-tight">
-                            <span class="text-xl font-bold leading-tight text-[#103b73] sm:text-2xl">UPIIZ</span>
-                            <span class="hidden text-sm leading-tight text-slate-500 sm:block">Campus Zacatecas</span>
+                        <span class="hidden max-w-80 flex-col leading-tight sm:flex">
+                            <span class="text-sm font-bold leading-snug text-[#103b73]">Unidad Profesional Interdisciplinaria de Ingeniería</span>
+                            <span class="mt-0.5 text-sm leading-tight text-slate-500">Campus Zacatecas</span>
                         </span>
                     </a>
                 </div>

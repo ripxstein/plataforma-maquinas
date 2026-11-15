@@ -27,10 +27,6 @@
                     <span class="flex items-center" role="img" aria-label="Emblema de UPIIZ">
                         <x-application-logo />
                     </span>
-                    <span class="flex flex-col leading-tight">
-                        <span class="text-xl font-bold leading-tight text-[#103b73] sm:text-2xl">UPIIZ</span>
-                        <span class="hidden text-sm leading-tight text-slate-500 sm:block">Campus Zacatecas</span>
-                    </span>
                 </a>
             </div>
 
