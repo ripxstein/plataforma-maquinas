@@ -330,26 +330,32 @@
             }, 100);
         }
     }
+    window.renderAllMath = renderAllMath;
 
     // Observer automático para contenido dinámico de Livewire y acordeones
     const mathObserver = new MutationObserver((mutations) => {
         let hasMath = false;
         for (const m of mutations) {
             // Ignorar mutaciones dentro de lo que KaTeX ya renderizó o dentro de editores de texto
-            if (m.target && (m.target.closest?.('.katex') || m.target.closest?.('.edu-wysiwyg-editable') || m.target.closest?.('textarea'))) {
+            const targetElement = m.target.nodeType === Node.TEXT_NODE ? m.target.parentElement : m.target;
+            if (targetElement?.closest?.('.katex, .edu-wysiwyg-editable, textarea')) {
                 continue;
+            }
+            if (m.type === 'characterData' && /\$|\\\(|\\\[/.test(m.target.textContent || '')) {
+                hasMath = true;
+                break;
             }
             for (const node of m.addedNodes) {
                 if (node.nodeType === Node.ELEMENT_NODE) {
                     if (node.closest?.('.katex') || node.closest?.('.edu-wysiwyg-editable')) continue;
                     const txt = node.textContent || '';
-                    if (txt.includes('\\(') || txt.includes('\\[') || txt.includes('$$')) {
+                    if (txt.includes('\\(') || txt.includes('\\[') || txt.includes('$')) {
                         hasMath = true;
                         break;
                     }
                 } else if (node.nodeType === Node.TEXT_NODE) {
                     const txt = node.textContent || '';
-                    if (txt.includes('\\(') || txt.includes('\\[') || txt.includes('$$')) {
+                    if (txt.includes('\\(') || txt.includes('\\[') || txt.includes('$')) {
                         hasMath = true;
                         break;
                     }
@@ -390,7 +396,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         setupMathListeners();
         if (document.body) {
-            mathObserver.observe(document.body, { childList: true, subtree: true });
+            mathObserver.observe(document.body, { childList: true, characterData: true, subtree: true });
         }
     });
 
@@ -398,7 +404,7 @@
         setupMathListeners();
         if (document.body) {
             mathObserver.disconnect();
-            mathObserver.observe(document.body, { childList: true, subtree: true });
+            mathObserver.observe(document.body, { childList: true, characterData: true, subtree: true });
         }
     });
 

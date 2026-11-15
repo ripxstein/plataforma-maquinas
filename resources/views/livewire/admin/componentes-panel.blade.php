@@ -484,7 +484,7 @@
 
             <!-- RIGHT COLUMN: REAL-TIME STUDENT PREVIEW SIMULATOR -->
             <div style="position: sticky; top: 20px; min-width: 0; max-width: 100%;">
-                <div class="card preview-simulator" style="background: #ffffff; padding: 20px; border-radius: 18px; border: 2px solid #bcdcff; box-shadow: 0 8px 24px rgba(30,90,168,0.1); min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden;">
+                <div class="card preview-simulator" x-init="$nextTick(() => window.renderAllMath?.($el))" style="background: #ffffff; padding: 20px; border-radius: 18px; border: 2px solid #bcdcff; box-shadow: 0 8px 24px rgba(30,90,168,0.1); min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden;">
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--borde); padding-bottom: 10px;">
                         <div>
