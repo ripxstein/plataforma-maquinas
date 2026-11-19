@@ -222,7 +222,7 @@
             const link = document.getElementById(origin.linkId);
             if (link) {
                 await this.openParents(link, origin.itemId);
-                link.scrollIntoView({behavior: 'smooth', block: 'center'}); link.focus({preventScroll: true});
+                link.scrollIntoView({behavior: 'smooth', block: 'center'});
             } else {
                 const section = document.getElementById(origin.problemId || `lectura-${origin.itemId}`);
                 if (section) await this.openParents(section, origin.itemId);
