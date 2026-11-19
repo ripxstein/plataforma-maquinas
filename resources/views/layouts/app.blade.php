@@ -476,6 +476,145 @@
         }
     });
 
+    // Conserva la acción de validación para poder repetirla si la petición falla.
+    // Livewire no reemplaza el DOM en una respuesta fallida, por lo que el valor
+    // escrito por el alumno permanece en el campo y se envía de nuevo al reintentar.
+    function parseProblemAction(expression) {
+        const match = String(expression || '').trim().match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\((.*)\))?$/);
+        if (!match) return null;
+
+        const allowedMethods = new Set(['checkStep', 'checkNextStep', 'nextExampleStep']);
+        if (!allowedMethods.has(match[1]) && !/^checkStep\d+$/.test(match[1])) return null;
+
+        const rawParameters = (match[2] || '').trim();
+        const parameters = rawParameters === ''
+            ? []
+            : rawParameters.split(',').map((value) => {
+                const parameter = value.trim();
+                if (/^-?\d+(?:\.\d+)?$/.test(parameter)) return Number(parameter);
+                return parameter.replace(/^(['"])(.*)\1$/, '$2');
+            });
+
+        return { method: match[1], parameters };
+    }
+
+    function rememberProblemAction(element, expression) {
+        const action = parseProblemAction(expression);
+        const component = element?.closest('[wire\\:id]');
+        if (!action || !component) return;
+
+        window.__problemRequestPendingAction = {
+            ...action,
+            componentId: component.getAttribute('wire:id'),
+            capturedAt: Date.now(),
+        };
+    }
+
+    if (!window.__problemRequestCaptureInstalled) {
+        window.__problemRequestCaptureInstalled = true;
+
+        document.addEventListener('click', (event) => {
+            const element = event.target instanceof Element
+                ? event.target.closest('[wire\\:click]')
+                : null;
+            if (!element) return;
+            rememberProblemAction(element, element.getAttribute('wire:click'));
+        }, true);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' || !(event.target instanceof Element)) return;
+            const expression = event.target.getAttribute('wire:keydown.enter');
+            if (expression) rememberProblemAction(event.target, expression);
+        }, true);
+    }
+
+    function problemRequestNotice() {
+        return document.getElementById('problem-request-error');
+    }
+
+    function hideProblemRequestError() {
+        const notice = problemRequestNotice();
+        if (!notice) return;
+        notice.hidden = true;
+        notice.removeAttribute('data-status');
+    }
+
+    function showProblemRequestError(status) {
+        const notice = problemRequestNotice();
+        if (!notice) return;
+
+        const message = notice.querySelector('[data-problem-request-message]');
+        const retry = notice.querySelector('[data-problem-request-retry]');
+        const normalizedStatus = Number(status) || 0;
+
+        if (message) {
+            if (normalizedStatus === 403) {
+                message.textContent = 'El servidor rechazó la validación. Tu respuesta se conserva en esta pantalla. Revisa tu conexión y vuelve a intentarlo.';
+            } else if (normalizedStatus === 408 || normalizedStatus === 0) {
+                message.textContent = 'No se pudo conectar con el servidor. Tu respuesta se conserva en esta pantalla.';
+            } else {
+                message.textContent = 'El servidor no pudo validar la respuesta. Tu respuesta se conserva en esta pantalla.';
+            }
+        }
+
+        if (retry) {
+            retry.disabled = false;
+            retry.textContent = 'Reintentar';
+        }
+
+        notice.dataset.status = String(normalizedStatus);
+        notice.hidden = false;
+        retry?.focus({ preventScroll: true });
+    }
+
+    window.retryProblemRequest = async function () {
+        const action = window.__problemRequestFailedAction;
+        const notice = problemRequestNotice();
+        const message = notice?.querySelector('[data-problem-request-message]');
+        const retry = notice?.querySelector('[data-problem-request-retry]');
+
+        if (!action || !window.Livewire) {
+            if (message) message.textContent = 'No fue posible recuperar la validación. Recarga la página e inténtalo de nuevo.';
+            return;
+        }
+
+        if (!navigator.onLine) {
+            if (message) message.textContent = 'Aún no hay conexión. Tu respuesta permanece en esta pantalla.';
+            return;
+        }
+
+        const wire = window.Livewire.find(action.componentId);
+        if (!wire) {
+            if (message) message.textContent = 'La actividad cambió y no se puede reintentar. Recarga la página para continuar.';
+            return;
+        }
+
+        if (retry) {
+            retry.disabled = true;
+            retry.textContent = 'Reintentando…';
+        }
+        if (message) message.textContent = 'Volviendo a enviar tu respuesta…';
+
+        window.__problemRequestFailedAction = null;
+        window.__problemRequestPendingAction = {
+            ...action,
+            capturedAt: Date.now(),
+        };
+
+        try {
+            await wire.$call(action.method, ...action.parameters);
+        } catch (error) {
+            // El hook de la petición muestra el motivo cuando existe respuesta HTTP.
+            if (!window.__problemRequestFailedAction && message) {
+                message.textContent = 'No se pudo completar el reintento. Tu respuesta permanece en esta pantalla.';
+                if (retry) {
+                    retry.disabled = false;
+                    retry.textContent = 'Reintentar';
+                }
+            }
+        }
+    };
+
     document.addEventListener('livewire:init', () => {
         if (window.Livewire && typeof window.Livewire.hook === 'function') {
             window.Livewire.hook('morph.added', ({ el }) => {
@@ -488,6 +627,27 @@
                 succeed(() => {
                     scheduleMathRender();
                     setTimeout(() => renderAllMath(), 120);
+                });
+            });
+            window.Livewire.hook('request', ({ succeed, fail }) => {
+                const pendingAction = window.__problemRequestPendingAction;
+                window.__problemRequestPendingAction = null;
+
+                if (!pendingAction || Date.now() - pendingAction.capturedAt > 10000) return;
+
+                succeed(() => {
+                    window.__problemRequestFailedAction = null;
+                    hideProblemRequestError();
+                });
+
+                fail(({ status, preventDefault }) => {
+                    const normalizedStatus = Number(status) || 0;
+                    const recoverableStatuses = [0, 403, 408, 429, 500, 502, 503, 504];
+                    if (!recoverableStatuses.includes(normalizedStatus)) return;
+
+                    preventDefault();
+                    window.__problemRequestFailedAction = pendingAction;
+                    showProblemRequestError(normalizedStatus);
                 });
             });
         }
@@ -2161,5 +2321,44 @@ toggleTagBlock() {
         </main>
     </div>
         </div>
+
+        @auth
+            @if(auth()->user()->role !== 'admin')
+                <aside
+                    id="problem-request-error"
+                    class="problem-request-error"
+                    role="alert"
+                    aria-live="assertive"
+                    aria-atomic="true"
+                    hidden
+                >
+                    <div class="problem-request-error-icon" aria-hidden="true">!</div>
+                    <div class="problem-request-error-content">
+                        <strong>No pudimos validar tu respuesta</strong>
+                        <p data-problem-request-message>
+                            Comprueba tu conexión y vuelve a intentarlo.
+                        </p>
+                    </div>
+                    <div class="problem-request-error-actions">
+                        <button
+                            type="button"
+                            class="problem-request-retry"
+                            data-problem-request-retry
+                            onclick="window.retryProblemRequest()"
+                        >
+                            Reintentar
+                        </button>
+                        <button
+                            type="button"
+                            class="problem-request-dismiss"
+                            onclick="hideProblemRequestError()"
+                            aria-label="Cerrar aviso"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </aside>
+            @endif
+        @endauth
     </body>
 </html>
