@@ -621,7 +621,7 @@
                                                                 wire:model="previewAnswers.{{ $index }}"
                                                                 @disabled($isStepDone)
                                                             >
-                                                            <span>{{ $opt['option_text'] }}</span>
+                                                            <x-choice-option-content :text="$opt['option_text'] ?? ''" :image-url="$opt['image_url'] ?? ''" :image-alt="$opt['image_alt'] ?? ''" :number="$loop->iteration" />
                                                         </label>
                                                     @endforeach
                                                 </div>
@@ -745,7 +745,13 @@
     <!-- MODAL: STEP EDITOR (CREAR / EDITAR PASO DETALLADO)       -->
     <!-- ======================================================== -->
     @if($showStepModal)
-        <div wire:key="step-editor-modal-{{ $editingStepIndex !== null ? 'edit-'.$editingStepIndex : 'new' }}" class="admin-modal-backdrop">
+        <div wire:key="step-editor-modal-{{ $editingStepIndex !== null ? 'edit-'.$editingStepIndex : 'new' }}" class="admin-modal-backdrop"
+            x-data="{ optionUploads: 0 }"
+            x-on:livewire-upload-start="if ($event.detail.property.startsWith('optionImageUploads.')) optionUploads++"
+            x-on:livewire-upload-finish="if ($event.detail.property.startsWith('optionImageUploads.')) optionUploads = Math.max(0, optionUploads - 1)"
+            x-on:livewire-upload-error="if ($event.detail.property.startsWith('optionImageUploads.')) optionUploads = Math.max(0, optionUploads - 1)"
+            x-on:livewire-upload-cancel="if ($event.detail.property.startsWith('optionImageUploads.')) optionUploads = Math.max(0, optionUploads - 1)"
+        >
             <div class="admin-modal" style="max-width: 780px;">
                 <div class="admin-modal-header">
                     <h3>{{ $editingStepIndex !== null ? '✏️ Configurar Paso ' . ($editingStepIndex + 1) : '➕ Agregar Nuevo Paso' }}</h3>
@@ -789,7 +795,7 @@
                             <label class="form-label">Tipo de Respuesta</label>
                             <select class="admin-select" wire:model.live="stepAnswerType">
                                 <option value="numeric">🔢 Respuesta Numérica (con tolerancia y unidad)</option>
-                                <option value="multiple_choice">🔘 Selección Múltiple (opciones con única respuesta correcta)</option>
+                                <option value="multiple_choice">🔘 Selección de opciones (texto y/o imágenes)</option>
                                 <option value="true_false">⚖️ Verdadero / Falso</option>
                                 <option value="text">📝 Texto Libre (comparación exacta de texto/palabra)</option>
                             </select>
@@ -838,35 +844,57 @@
                                     </button>
                                 </div>
 
-                                <div class="form-hint" style="margin-bottom: 10px;">Marca el botón circular en la opción que sea la correcta:</div>
+                                <label class="form-label" for="step-choice-mode">Respuestas correctas</label>
+                                <select id="step-choice-mode" class="admin-select" wire:model.live.boolean="stepAllowsMultipleCorrect">
+                                    <option value="false">Respuesta única</option>
+                                    <option value="true">Varias respuestas correctas (cualquiera es válida)</option>
+                                </select>
+                                <p class="form-hint mb-3">
+                                    @if($stepAllowsMultipleCorrect)
+                                        Marca todas las opciones que aceptas como correctas. El alumno elige solo una y basta con acertar cualquiera.
+                                    @else
+                                        Marca una sola opción correcta. Al cambiar a este modo se conserva la primera opción marcada.
+                                    @endif
+                                </p>
 
                                 <div style="display: grid; gap: 10px;">
                                     @foreach($stepOptions as $optIdx => $opt)
-                                        <div style="display: flex; align-items: center; gap: 10px;">
-                                            <input 
-                                                type="radio" 
-                                                name="active_modal_correct_opt" 
-                                                @checked(!empty($opt['is_correct']))
-                                                wire:click="setOptionAsCorrect({{ $optIdx }})"
-                                                title="Marcar como respuesta correcta"
-                                                style="width: 20px; height: 20px; cursor: pointer;"
-                                            >
-                                            <input 
-                                                type="text" 
-                                                class="admin-input" 
-                                                style="margin: 0; flex: 1;" 
-                                                wire:model="stepOptions.{{ $optIdx }}.option_text" 
-                                                placeholder="Texto de la opción {{ $optIdx + 1 }}"
-                                            >
-                                            <button 
-                                                type="button" 
-                                                class="btn-secondary btn-sm btn-danger" 
-                                                style="padding: 8px 10px;"
-                                                @disabled(count($stepOptions) <= 2)
-                                                wire:click="removeOptionFromActiveStep({{ $optIdx }})"
-                                            >
-                                                🗑️
-                                            </button>
+                                        <div wire:key="choice-option-{{ $opt['client_key'] }}-{{ $optIdx }}" class="min-w-0 rounded-xl border border-blue-100 bg-white p-3">
+                                            <div class="mb-2 flex items-center justify-between gap-2">
+                                                <label class="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700">
+                                                    <input
+                                                        type="{{ $stepAllowsMultipleCorrect ? 'checkbox' : 'radio' }}"
+                                                        name="active_modal_correct_opt"
+                                                        wire:key="choice-correct-{{ $opt['client_key'] }}-{{ (int) $stepAllowsMultipleCorrect }}"
+                                                        @checked(!empty($opt['is_correct']))
+                                                        wire:click="setOptionAsCorrect({{ $optIdx }})"
+                                                        class="h-5 w-5"
+                                                    >
+                                                    Opción {{ $optIdx + 1 }} · Correcta
+                                                </label>
+                                                <button type="button" class="btn-secondary btn-sm btn-danger" :disabled="optionUploads > 0 || {{ count($stepOptions) <= 2 ? 'true' : 'false' }}" @disabled(count($stepOptions) <= 2) wire:click="removeOptionFromActiveStep({{ $optIdx }})" aria-label="Eliminar opción {{ $optIdx + 1 }}">🗑️</button>
+                                            </div>
+                                            <label class="sr-only" for="choice-text-{{ $opt['client_key'] }}">Texto de la opción {{ $optIdx + 1 }}</label>
+                                            <input id="choice-text-{{ $opt['client_key'] }}" type="text" class="admin-input" wire:model="stepOptions.{{ $optIdx }}.option_text" placeholder="Texto opcional si agregas una imagen">
+                                            @error('stepOptions.'.$optIdx.'.option_text') <p class="text-sm text-red-700">{{ $message }}</p> @enderror
+                                            <details @if(filled($opt['image_url'] ?? '')) open @endif class="mt-2">
+                                                <summary class="cursor-pointer py-2 text-sm font-semibold text-blue-800 focus-visible:ring-2">🖼️ Imagen de la opción (opcional)</summary>
+                                                <label class="mt-2 block text-sm text-slate-700" for="choice-file-{{ $opt['client_key'] }}">Subir desde tu computadora</label>
+                                                <input id="choice-file-{{ $opt['client_key'] }}" type="file" accept="image/jpeg,image/png,image/gif,image/webp" wire:model="optionImageUploads.{{ $opt['client_key'] }}" class="mt-1 block w-full min-w-0 text-sm">
+                                                <p class="my-1 text-xs text-slate-600">JPG, PNG, GIF o WebP. Máximo 10 MB.</p>
+                                                <p wire:loading wire:target="optionImageUploads.{{ $opt['client_key'] }}" role="status" class="text-sm text-blue-800">Subiendo imagen…</p>
+                                                @error('optionImageUploads.'.$opt['client_key']) <p class="text-sm text-red-700">{{ $message }}</p> @enderror
+                                                <label class="mt-3 block text-sm text-slate-700" for="choice-url-{{ $opt['client_key'] }}">O pegar la URL de una imagen</label>
+                                                <input id="choice-url-{{ $opt['client_key'] }}" type="text" class="admin-input" wire:model.blur="stepOptions.{{ $optIdx }}.image_url" placeholder="https://…">
+                                                @error('stepOptions.'.$optIdx.'.image_url') <p class="text-sm text-red-700">{{ $message }}</p> @enderror
+                                                @if(filled($opt['image_url'] ?? ''))
+                                                    <img src="{{ $opt['image_url'] }}" alt="{{ $opt['image_alt'] ?? 'Vista previa de la opción' }}" class="my-2 block h-auto max-h-48 max-w-full rounded-lg object-contain">
+                                                    <label class="block text-sm text-slate-700" for="choice-alt-{{ $opt['client_key'] }}">Descripción de la imagen (accesibilidad)</label>
+                                                    <input id="choice-alt-{{ $opt['client_key'] }}" type="text" class="admin-input" maxlength="255" wire:model="stepOptions.{{ $optIdx }}.image_alt" placeholder="Describe lo que muestra la imagen">
+                                                    @error('stepOptions.'.$optIdx.'.image_alt') <p class="text-sm text-red-700">{{ $message }}</p> @enderror
+                                                    <button type="button" class="btn-secondary btn-sm" :disabled="optionUploads > 0" wire:click="removeOptionImage('{{ $opt['client_key'] }}')">Quitar imagen</button>
+                                                @endif
+                                            </details>
                                         </div>
                                     @endforeach
                                 </div>
@@ -1111,9 +1139,10 @@
 
                 <div class="admin-modal-footer">
                     <button type="button" class="btn-secondary" wire:click="closeStepModal">Cancelar</button>
-                    <button type="button" class="btn-primary" wire:click="saveStepModal">
+                    <button type="button" class="btn-primary" wire:click="saveStepModal" :disabled="optionUploads > 0" wire:loading.attr="disabled" wire:target="saveStepModal">
                         {{ $editingStepIndex !== null ? 'Actualizar Paso' : 'Agregar Paso' }}
                     </button>
+                    <span x-show="optionUploads > 0" x-cloak role="status" class="text-sm text-slate-600">Espera a que termine de subir la imagen.</span>
                 </div>
             </div>
         </div>

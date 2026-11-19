@@ -9,6 +9,8 @@ class ProblemStepOption extends Model
     protected $fillable = [
         'problem_step_id',
         'option_text',
+        'image_url',
+        'image_alt',
         'is_correct',
         'order',
     ];

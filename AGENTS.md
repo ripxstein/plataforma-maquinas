@@ -155,7 +155,7 @@ Module (1) ──► (N) ModuleItem (1) ──► (N) Problem (1) ──► (N) 
 - **ModuleItem**: lectura de un módulo. El valor que crean el panel y el seeder es `type: lectura`; contiene HTML en `content`, `order` y `percentage`. No introducir `reading` o `component` sin una migración de datos y revisión del código que los consume.
 - **Problem**: problema asociado a una lectura. `component` puede referir a `problemas.problema1`, `problemas.problema2` o `problemas.problema-dinamico`. `is_active` controla visibilidad; `is_example` distingue ejemplos guiados de ejercicios evaluados. Solo estos últimos aportan su `percentage` al progreso del módulo.
 - **ProblemStep**: paso de un problema dinámico. Los tipos usados son `numeric`, `multiple_choice`, `true_false`, `text` e `informational`. Incluye respuesta esperada, tolerancia absoluta o porcentual, mensajes e imagen opcional.
-- **ProblemStepOption**: opciones para pasos `multiple_choice`, con `is_correct` y `order`.
+- **ProblemStepOption**: opciones para pasos `multiple_choice`, con `is_correct`, `order`, `image_url` e `image_alt`. Cada opción necesita texto, imagen o ambos. `ProblemStep::allows_multiple_correct` distingue una única opción correcta de varias opciones aceptadas: **el alumno siempre elige una sola**, y cualquiera marcada como correcta es válida. No confundir esta modalidad con exigir marcar varias casillas al alumno. `ChoiceOptionValidator` valida el formulario y `ProblemWriter` antes de guardar; la vista previa y el alumno comparten `choice-option-content` y `AnswerEvaluator`.
 - **ModuleSitemap**: nodos, conexiones y visibilidad (`is_active`) del mapa conceptual de un módulo.
 - **AccessCode**: código con `group_name` y estado `active` para controlar el registro.
 

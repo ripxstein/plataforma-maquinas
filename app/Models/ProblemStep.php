@@ -12,6 +12,7 @@ class ProblemStep extends Model
         'title',
         'instruction',
         'answer_type',
+        'allows_multiple_correct',
         'correct_answer',
         'tolerance',
         'tolerance_type',
@@ -31,6 +32,7 @@ class ProblemStep extends Model
     protected $casts = [
         'tolerance' => 'float',
         'step_number' => 'integer',
+        'allows_multiple_correct' => 'boolean',
     ];
 
     public function problem()

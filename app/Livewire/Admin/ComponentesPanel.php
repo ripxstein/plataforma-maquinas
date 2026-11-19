@@ -6,8 +6,11 @@ use App\Models\Module;
 use App\Models\ModuleItem;
 use App\Models\Problem;
 use App\Services\AnswerEvaluator;
+use App\Services\ChoiceOptionValidator;
 use App\Services\ProblemWriter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -60,6 +63,10 @@ class ComponentesPanel extends Component
     public string $stepInstruction = '';
 
     public string $stepAnswerType = 'numeric'; // numeric, multiple_choice, true_false, text
+
+    public bool $stepAllowsMultipleCorrect = false;
+
+    public array $optionImageUploads = [];
 
     public string $stepCorrectAnswer = '';
 
@@ -179,6 +186,9 @@ class ComponentesPanel extends Component
                     'id' => $opt->id,
                     'option_text' => $opt->option_text,
                     'is_correct' => (bool) $opt->is_correct,
+                    'image_url' => $opt->image_url ?? '',
+                    'image_alt' => $opt->image_alt ?? '',
+                    'client_key' => (string) Str::uuid(),
                 ];
             }
 
@@ -188,6 +198,7 @@ class ComponentesPanel extends Component
                 'title' => $step->title,
                 'instruction' => $step->instruction,
                 'answer_type' => $step->answer_type,
+                'allows_multiple_correct' => $step->allows_multiple_correct || $step->options->where('is_correct', true)->count() > 1,
                 'correct_answer' => (string) $step->correct_answer,
                 'tolerance' => $step->tolerance ?? 0.01,
                 'tolerance_type' => $step->tolerance_type ?? 'absolute',
@@ -278,6 +289,9 @@ class ComponentesPanel extends Component
 
     public function openAddStepModal()
     {
+        $this->resetValidation();
+        $this->optionImageUploads = [];
+        $this->stepAllowsMultipleCorrect = false;
         $this->editingStepIndex = null;
         $nextNum = count($this->stepsData) + 1;
 
@@ -305,6 +319,7 @@ class ComponentesPanel extends Component
             ['option_text' => '', 'is_correct' => false],
         ];
 
+        $this->prepareOptionKeys();
         $this->showStepModal = true;
     }
 
@@ -315,11 +330,14 @@ class ComponentesPanel extends Component
         }
 
         $this->editingStepIndex = $index;
+        $this->resetValidation();
+        $this->optionImageUploads = [];
         $s = $this->stepsData[$index];
 
         $this->stepTitle = $s['title'] ?? '';
         $this->stepInstruction = $s['instruction'] ?? '';
         $this->stepAnswerType = $s['answer_type'] ?? 'numeric';
+        $this->stepAllowsMultipleCorrect = (bool) ($s['allows_multiple_correct'] ?? false);
         $this->stepCorrectAnswer = $s['correct_answer'] ?? '';
         $this->stepTolerance = $s['tolerance'] ?? 0.01;
         $this->stepToleranceType = $s['tolerance_type'] ?? 'absolute';
@@ -341,6 +359,7 @@ class ComponentesPanel extends Component
             ['option_text' => '', 'is_correct' => false],
         ];
 
+        $this->prepareOptionKeys();
         $this->showStepModal = true;
     }
 
@@ -400,12 +419,7 @@ class ComponentesPanel extends Component
                 'stepCorrectAnswer' => 'required|numeric',
             ]);
         } elseif ($this->stepAnswerType === 'multiple_choice') {
-            $hasCorrect = collect($this->stepOptions)->contains(fn ($o) => ! empty($o['is_correct']));
-            if (! $hasCorrect) {
-                $this->addError('stepOptions', 'Debes marcar al menos una opción como correcta.');
-
-                return;
-            }
+            app(ChoiceOptionValidator::class)->validate($this->stepOptions, $this->stepAllowsMultipleCorrect);
         } elseif ($this->stepAnswerType === 'true_false') {
             if ($this->stepCorrectAnswer === '') {
                 $this->stepCorrectAnswer = '1';
@@ -426,6 +440,7 @@ class ComponentesPanel extends Component
             'title' => $this->stepTitle,
             'instruction' => $this->stepInstruction,
             'answer_type' => $this->stepAnswerType,
+            'allows_multiple_correct' => $this->stepAnswerType === 'multiple_choice' && $this->stepAllowsMultipleCorrect,
             'correct_answer' => (string) $this->stepCorrectAnswer,
             'tolerance' => is_numeric($this->stepTolerance) ? (float) $this->stepTolerance : 0.01,
             'tolerance_type' => $this->stepToleranceType,
@@ -456,6 +471,7 @@ class ComponentesPanel extends Component
     public function closeStepModal()
     {
         $this->showStepModal = false;
+        $this->optionImageUploads = [];
     }
 
     public function duplicateStep(int $index)
@@ -526,12 +542,16 @@ class ComponentesPanel extends Component
             'id' => null,
             'option_text' => '',
             'is_correct' => false,
+            'image_url' => '',
+            'image_alt' => '',
+            'client_key' => (string) Str::uuid(),
         ];
     }
 
     public function removeOptionFromActiveStep(int $index)
     {
-        if (isset($this->stepOptions[$index])) {
+        if (count($this->stepOptions) > 2 && isset($this->stepOptions[$index])) {
+            unset($this->optionImageUploads[$this->stepOptions[$index]['client_key'] ?? '']);
             unset($this->stepOptions[$index]);
             $this->stepOptions = array_values($this->stepOptions);
         }
@@ -539,8 +559,74 @@ class ComponentesPanel extends Component
 
     public function setOptionAsCorrect(int $index)
     {
+        if (! isset($this->stepOptions[$index])) {
+            return;
+        }
+        if ($this->stepAllowsMultipleCorrect) {
+            $this->stepOptions[$index]['is_correct'] = ! $this->stepOptions[$index]['is_correct'];
+
+            return;
+        }
         foreach ($this->stepOptions as $i => $opt) {
             $this->stepOptions[$i]['is_correct'] = ($i === $index);
+        }
+    }
+
+    public function updatedStepAllowsMultipleCorrect(): void
+    {
+        if (! $this->stepAllowsMultipleCorrect) {
+            $first = collect($this->stepOptions)->search(fn ($option) => ! empty($option['is_correct']));
+            foreach ($this->stepOptions as $index => $option) {
+                $this->stepOptions[$index]['is_correct'] = $first !== false && $index === $first;
+            }
+        }
+    }
+
+    private function prepareOptionKeys(): void
+    {
+        foreach ($this->stepOptions as &$option) {
+            // Renovar la clave al abrir el modal evita asignar una subida tardía a otro paso.
+            $option['client_key'] = (string) Str::uuid();
+            $option['image_url'] ??= '';
+            $option['image_alt'] ??= '';
+        }
+        unset($option);
+    }
+
+    public function updatedOptionImageUploads($upload, string $key): void
+    {
+        abort_unless(auth()->user()?->role === 'admin', 403);
+        $index = collect($this->stepOptions)->search(fn ($option) => ($option['client_key'] ?? '') === $key);
+        if (! $this->showStepModal || $index === false) {
+            return;
+        }
+        $this->validate([
+            'optionImageUploads.'.$key => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:10240',
+        ], [
+            'optionImageUploads.*.image' => 'Selecciona un archivo de imagen válido.',
+            'optionImageUploads.*.mimes' => 'La imagen debe ser JPG, PNG, GIF o WebP.',
+            'optionImageUploads.*.max' => 'La imagen no debe superar los 10 MB.',
+        ]);
+        $filename = Str::uuid().'.'.$upload->extension();
+        try {
+            Storage::build(['driver' => 'local', 'root' => public_path('images/uploads'), 'throw' => true])
+                ->putFileAs('', $upload, $filename);
+        } catch (\Throwable $exception) {
+            report($exception);
+            throw ValidationException::withMessages(['optionImageUploads.'.$key => 'No pudimos guardar la imagen. Vuelve a intentarlo.']);
+        }
+        $this->stepOptions[$index]['image_url'] = '/images/uploads/'.$filename;
+        unset($this->optionImageUploads[$key]);
+    }
+
+    public function removeOptionImage(string $key): void
+    {
+        $index = collect($this->stepOptions)->search(fn ($option) => ($option['client_key'] ?? '') === $key);
+        if ($index !== false) {
+            $this->stepOptions[$index]['image_url'] = '';
+            $this->stepOptions[$index]['image_alt'] = '';
+            unset($this->optionImageUploads[$key]);
+            $this->resetValidation('optionImageUploads.'.$key);
         }
     }
 

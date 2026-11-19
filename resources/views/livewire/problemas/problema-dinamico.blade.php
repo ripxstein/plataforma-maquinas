@@ -136,7 +136,7 @@
                                                 wire:loading.attr="disabled"
                                                 wire:target="checkStep({{ $step->id }})"
                                             >
-                                            <span style="font-size: 0.95rem;">{{ $opt->option_text }}</span>
+                                            <x-choice-option-content :text="$opt->option_text" :image-url="$opt->image_url" :image-alt="$opt->image_alt" :number="$loop->iteration" />
                                         </label>
                                     @endforeach
                                 </div>

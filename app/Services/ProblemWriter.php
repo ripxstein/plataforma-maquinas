@@ -12,9 +12,7 @@ use Illuminate\Validation\Rule;
 
 class ProblemWriter
 {
-    public function __construct(private readonly UniqueSlugService $uniqueSlugService)
-    {
-    }
+    public function __construct(private readonly UniqueSlugService $uniqueSlugService) {}
 
     public function saveDetails(?int $id, array $attributes): Problem
     {
@@ -47,6 +45,7 @@ class ProblemWriter
             'stepsData.*.id' => 'nullable|integer|distinct',
             'stepsData.*.title' => 'required|string|max:255',
             'stepsData.*.answer_type' => 'required|in:numeric,multiple_choice,true_false,text,informational',
+            'stepsData.*.allows_multiple_correct' => 'sometimes|boolean',
             'stepsData.*.tolerance' => 'nullable|numeric|min:0',
             'stepsData.*.tolerance_type' => 'nullable|in:absolute,percentage',
             'stepsData.*.options' => 'sometimes|array',
@@ -54,6 +53,18 @@ class ProblemWriter
             'stepsData.*.options.*.option_text' => 'nullable|string',
             'stepsData.*.options.*.is_correct' => 'sometimes|boolean',
         ])->validate();
+
+        foreach ($steps as $index => &$data) {
+            if ($data['answer_type'] === 'multiple_choice') {
+                $data['allows_multiple_correct'] ??= collect($data['options'] ?? [])->where('is_correct', true)->count() > 1;
+                app(ChoiceOptionValidator::class)->validate(
+                    $data['options'] ?? [], (bool) $data['allows_multiple_correct'], "stepsData.{$index}.options"
+                );
+            } else {
+                $data['allows_multiple_correct'] = false;
+            }
+        }
+        unset($data);
 
         return DB::transaction(function () use ($id, $attributes, $steps) {
             $problem = $this->saveDetails($id, $attributes);
@@ -68,13 +79,12 @@ class ProblemWriter
                 $optionIds = [];
                 if ($step->answer_type === 'multiple_choice') {
                     foreach ($data['options'] ?? [] as $key => $optionData) {
-                        if (trim($optionData['option_text'] ?? '') === '') {
-                            continue;
-                        }
                         $option = ! empty($optionData['id']) ? $step->options()->findOrFail($optionData['id']) : new ProblemStepOption;
                         $option->fill([
                             'problem_step_id' => $step->id,
-                            'option_text' => $optionData['option_text'],
+                            'option_text' => trim($optionData['option_text'] ?? ''),
+                            'image_url' => filled($optionData['image_url'] ?? null) ? $optionData['image_url'] : null,
+                            'image_alt' => $optionData['image_alt'] ?? null,
                             'is_correct' => (bool) ($optionData['is_correct'] ?? false),
                             'order' => $key + 1,
                         ])->save();
