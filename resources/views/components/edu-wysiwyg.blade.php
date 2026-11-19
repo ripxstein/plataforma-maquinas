@@ -143,6 +143,29 @@
             <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="openMarkerModal()" title="Crear o editar una marca de concepto (para el mapa conceptual del módulo). Selecciona un texto primero." style="background:#e8f6fd; color:#075985; border-color:#a5d8f3;">
                 🔖 Marca
             </button>
+            <div class="relative" @keydown.escape.stop="linkPickerOpen = false">
+                <button type="button" class="edu-toolbar-btn" @mousedown.prevent @click="openLinkPicker($event)" :aria-expanded="linkPickerOpen" title="Selecciona texto y enlázalo a una marca">🔗 Enlazar a marca</button>
+                <template x-teleport="body">
+                <div x-show="linkPickerOpen" x-cloak @click.outside="linkPickerOpen = false" @keydown.escape.window="linkPickerOpen = false" role="dialog" aria-label="Seleccionar marca de destino" :style="`left:${linkPickerX}px;top:${linkPickerY}px`" class="fixed z-[10060] w-80 max-w-[85vw] max-h-[90vh] overflow-y-auto rounded-xl border border-blue-200 bg-white p-3 text-slate-800 shadow-xl">
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <strong>Enlazar a marca</strong>
+                        <button type="button" @click="linkPickerOpen = false" aria-label="Cerrar selector" class="min-h-11 min-w-11 rounded-lg focus-visible:ring-2">×</button>
+                    </div>
+                    <input type="search" x-ref="linkSearch" x-model="linkSearch" aria-label="Buscar marca, módulo o sección" placeholder="Buscar marca, módulo o sección…" class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-700">
+                    <p x-show="linkLoading" role="status" class="py-2 text-sm">Cargando marcas…</p>
+                    <p x-show="linkError" x-text="linkError" role="alert" class="py-2 text-sm text-red-700"></p>
+                    <div x-show="!linkLoading && !linkError" class="mt-2 max-h-64 overflow-y-auto">
+                        <template x-for="marker in filteredLinkMarkers()" :key="marker.source + '-' + marker.source_id + '-' + marker.marker_id">
+                            <button type="button" @click="insertMarkerLink(marker)" class="block min-h-11 w-full rounded-lg p-2 text-left hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-700">
+                                <span class="block text-sm font-semibold" x-text="marker.title"></span>
+                                <small class="block text-slate-600" x-text="marker.module_title + ' · ' + marker.section_title"></small>
+                            </button>
+                        </template>
+                        <p x-show="filteredLinkMarkers().length === 0" class="py-2 text-sm">No hay marcas guardadas que coincidan.</p>
+                    </div>
+                </div>
+                </template>
+            </div>
         </div>
 
         <!-- Text Alignment -->
@@ -654,6 +677,12 @@
             </div>
         </div>
     </div>
+
+    <template x-teleport="body">
+    <div x-show="activeMarkerLink" x-cloak @click.outside="activeMarkerLink = null" @keydown.escape.window="activeMarkerLink = null" class="fixed z-[10060] rounded-xl border border-blue-200 bg-white p-2 shadow-lg" :style="`top:${linkPopoverY}px;left:${linkPopoverX}px`">
+        <button type="button" @mousedown.prevent @click="removeMarkerLink()" class="min-h-11 rounded-lg px-3 text-sm font-semibold text-red-700 focus-visible:ring-2 focus-visible:ring-blue-700">Quitar hipervínculo</button>
+    </div>
+    </template>
 
     <!-- Floating Popover for Concept Marker (aparece al hacer click sobre una marca) -->
     <div

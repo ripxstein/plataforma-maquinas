@@ -1502,6 +1502,18 @@ th {
   margin-bottom: 16px;
 }
 
+/* Los enlaces del contenido rico deben distinguirse también sin depender del color. */
+a.edu-marker-link {
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+a.edu-marker-link:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 3px;
+}
+
 .edu-wysiwyg-tabs {
   display: flex;
   justify-content: space-between;

@@ -180,7 +180,7 @@
             </div>
 
             <div class="section-body" id="contenido-lectura-{{ $item->id }}" x-show="open" x-transition.opacity>
-                {!! $item->content !!}
+                <div data-marker-source="reading" data-marker-source-id="{{ $item->id }}">{!! $item->content !!}</div>
 
                 @if (!$this->isReadingCompleted($item->id))
                     <div style="margin-top:18px;">
@@ -250,7 +250,7 @@
                                         @if ($isUnlocked)
                                             <div class="accordion-content" id="contenido-problema-{{ $problem->id }}">
                                                 @if ($problem->content)
-                                                    <div class="problema-enunciado">
+                                                    <div class="problema-enunciado" data-marker-source="problem" data-marker-source-id="{{ $problem->id }}">
                                                         {!! $problem->content !!}
                                                     </div>
                                                 @endif
@@ -333,7 +333,7 @@
                                         @if ($isUnlocked)
                                             <div class="accordion-content" id="contenido-problema-{{ $problem->id }}">
                                                 @if ($problem->content)
-                                                    <div class="problema-enunciado">
+                                                    <div class="problema-enunciado" data-marker-source="problem" data-marker-source-id="{{ $problem->id }}">
                                                         {!! $problem->content !!}
                                                     </div>
                                                 @endif

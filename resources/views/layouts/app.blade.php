@@ -43,6 +43,7 @@
         <script src="{{ asset('js/sitemap-diagram.js') }}?v={{ @filemtime(public_path('js/sitemap-diagram.js')) }}" data-navigate-once></script>
 
         <!-- Scripts -->
+        <script src="{{ asset('js/marker-links.js') }}?v={{ @filemtime(public_path('js/marker-links.js')) }}" data-navigate-once></script>
         
 <script data-navigate-once>
     // --------------------------------------------------------------------------
@@ -755,6 +756,7 @@
             savedSelection: null,
             htmlCode: config.value || '',
             copiedHtml: false,
+            ...window.eduMarkerEditorMethods(),
 
             // Context Menu State for Blocks
             blockContextMenu: {
@@ -1946,6 +1948,12 @@ toggleTagBlock() {
             // Concept Marker Popover (acciones directas al hacer click sobre una marca)
             handleEditableClick(e) {
                 const target = e.target && e.target.nodeType === 1 ? e.target : e.target?.parentElement;
+                const link = target?.closest('a[data-marker-target]');
+                if (link) {
+                    this.showMarkerLinkActions(e, link);
+                    return;
+                }
+                this.activeMarkerLink = null;
                 const mark = target ? target.closest('mark.edu-concept-marker') : null;
                 if (mark) {
                     e.stopPropagation();
@@ -2405,6 +2413,7 @@ toggleTagBlock() {
         </div>
 
         @auth
+            <livewire:marker-navigation />
             @if(auth()->user()->role !== 'admin')
                 <aside
                     id="problem-request-error"

@@ -7,6 +7,8 @@ use App\Models\ProblemStep;
 use App\Models\UserProblemProgress;
 use App\Services\AnswerEvaluator;
 use App\Services\LearningProgressService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -38,6 +40,46 @@ class ProblemaDinamico extends Component
     {
         $this->problemId = $problemId;
         $this->loadProblem();
+        $this->restoreMarkerOrigin();
+    }
+
+    /** Conserva solo el intento de esta navegación; no escribe progreso ni puntajes. */
+    public function rememberMarkerOrigin(): string
+    {
+        abort_unless(auth()->check() && $this->problem, 403);
+        app(LearningProgressService::class)->assertProblemAvailable(auth()->id(), $this->problem);
+        abort_unless(hash_equals($this->definitionHash, $this->currentDefinitionHash()), 409);
+        $token = (string) Str::uuid();
+        Cache::put('marker_origin_'.auth()->id().'_'.$token, [
+            'problemId' => $this->problemId,
+            'definitionHash' => $this->definitionHash,
+            'currentStepIndex' => $this->currentStepIndex,
+            'isCompleted' => $this->isCompleted,
+            'showCompletedAttempt' => $this->showCompletedAttempt,
+            'answers' => $this->answers,
+            'messages' => $this->messages,
+            'showTriggerImages' => $this->showTriggerImages,
+        ], now()->addMinutes(30));
+
+        return $token;
+    }
+
+    private function restoreMarkerOrigin(): void
+    {
+        $token = request()->query('marker_return');
+        if (! auth()->check() || ! is_string($token) || ! Str::isUuid($token) || ! $this->problem) {
+            return;
+        }
+        $state = Cache::get('marker_origin_'.auth()->id().'_'.$token);
+        if (! is_array($state) || (int) $state['problemId'] !== (int) $this->problemId
+            || ! hash_equals($this->definitionHash, $state['definitionHash'])
+            || ($this->problem->is_example && $this->isCompleted && ! $state['isCompleted'])) {
+            return;
+        }
+        app(LearningProgressService::class)->assertProblemAvailable(auth()->id(), $this->problem);
+        foreach (['currentStepIndex', 'isCompleted', 'showCompletedAttempt', 'answers', 'messages', 'showTriggerImages'] as $field) {
+            $this->{$field} = $state[$field];
+        }
     }
 
     #[Computed]

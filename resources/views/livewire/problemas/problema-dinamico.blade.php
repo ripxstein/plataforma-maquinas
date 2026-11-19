@@ -45,7 +45,7 @@
                 </div>
 
                 @if($step->instruction)
-                    <div style="margin: 10px 0; font-size: 1rem; line-height: 1.6; color: var(--texto);">
+                    <div data-marker-source="step" data-marker-source-id="{{ $step->id }}" style="margin: 10px 0; font-size: 1rem; line-height: 1.6; color: var(--texto);">
                         {!! $step->instruction !!}
                     </div>
                 @endif
