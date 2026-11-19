@@ -115,6 +115,8 @@ test('the module header counts only readings currently visible to the student', 
     Livewire::actingAs($student)->test(ModuloViewer::class, ['slug' => $module->slug])
         ->assertSee('2/2')
         ->assertSee('lecturas visibles completadas')
+        ->assertSeeHtml('data-reading-id="'.$second->id.'"')
+        ->assertSeeHtml('data-target-id="problema-'.$problem->id.'"')
         ->assertDontSee('3/3')
         ->assertDontSee('Lectura oculta');
 });

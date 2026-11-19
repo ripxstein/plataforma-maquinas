@@ -461,11 +461,92 @@
     };
     document.addEventListener('click', window.__eduAccordionClickHandler);
 
+    // Abre la lectura y el acordeón interno antes de desplazarse a una actividad.
+    // Se usa tanto desde el resumen del módulo como al entrar con #problema-*.
+    window.revealModuleActivity = (readingId, targetId, updateHistory = true) => {
+        const normalizedReadingId = Number(readingId);
+        if (!Number.isInteger(normalizedReadingId) || !targetId) return;
+
+        window.dispatchEvent(new CustomEvent('expand-reading', {
+            detail: { itemId: normalizedReadingId }
+        }));
+
+        let attempts = 0;
+        const revealAndScroll = () => {
+            const target = document.getElementById(targetId);
+
+            if (!target) {
+                if (attempts++ < 10) setTimeout(revealAndScroll, 50);
+                return;
+            }
+
+            const accordionItem = target.classList.contains('accordion-item')
+                ? target
+                : target.closest('.accordion-item');
+
+            if (accordionItem && !accordionItem.classList.contains('disabled-problem')) {
+                accordionItem.classList.add('open');
+                const accordionButton = accordionItem.querySelector('.accordion-btn');
+                if (accordionButton && !accordionButton.disabled) {
+                    accordionButton.setAttribute('aria-expanded', 'true');
+                }
+            }
+
+            // x-show y su transición necesitan terminar de revelar el contenido.
+            if (target.offsetParent === null && attempts++ < 10) {
+                setTimeout(revealAndScroll, 50);
+                return;
+            }
+
+            if (updateHistory && window.location.hash !== `#${targetId}`) {
+                window.history.pushState(null, '', `#${targetId}`);
+            }
+
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            scheduleMathRender(target);
+        };
+
+        requestAnimationFrame(() => requestAnimationFrame(revealAndScroll));
+    };
+
+    function revealCurrentModuleHash() {
+        const targetId = decodeURIComponent(window.location.hash.replace(/^#/, ''));
+        if (!/^(lectura|problema)-\d+$/.test(targetId)) return;
+
+        const target = document.getElementById(targetId);
+        const reading = target?.closest('section[id^="lectura-"]');
+        if (!reading) return;
+
+        const readingId = Number(reading.id.replace('lectura-', ''));
+        window.revealModuleActivity(readingId, targetId, false);
+    }
+
+    if (!window.__moduleActivityNavigationInstalled) {
+        window.__moduleActivityNavigationInstalled = true;
+
+        document.addEventListener('click', (event) => {
+            const link = event.target instanceof Element
+                ? event.target.closest('.module-overview-next[data-reading-id][data-target-id]')
+                : null;
+            if (!link) return;
+
+            event.preventDefault();
+            window.revealModuleActivity(
+                link.dataset.readingId,
+                link.dataset.targetId,
+                true
+            );
+        });
+
+        window.addEventListener('hashchange', revealCurrentModuleHash);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         setupMathListeners();
         if (document.body) {
             mathObserver.observe(document.body, { childList: true, characterData: true, subtree: true });
         }
+        setTimeout(revealCurrentModuleHash, 0);
     });
 
     document.addEventListener('livewire:navigated', () => {
@@ -474,6 +555,7 @@
             mathObserver.disconnect();
             mathObserver.observe(document.body, { childList: true, characterData: true, subtree: true });
         }
+        setTimeout(revealCurrentModuleHash, 0);
     });
 
     // Conserva la acción de validación para poder repetirla si la petición falla.

@@ -17,7 +17,18 @@
             @endif
         </div>
         @if ($activitySummary['next'])
-            <a class="module-overview-next" href="#{{ $activitySummary['next']['type'] === 'lectura' ? 'lectura-'.$activitySummary['next']['item_id'] : 'problema-'.$activitySummary['next']['problem_id'] }}" title="{{ ucfirst($activitySummary['next']['type']) }}: {{ $activitySummary['next']['title'] }}">
+            @php
+                $nextTargetId = $activitySummary['next']['type'] === 'lectura'
+                    ? 'lectura-'.$activitySummary['next']['item_id']
+                    : 'problema-'.$activitySummary['next']['problem_id'];
+            @endphp
+            <a
+                class="module-overview-next"
+                href="#{{ $nextTargetId }}"
+                data-reading-id="{{ $activitySummary['next']['item_id'] }}"
+                data-target-id="{{ $nextTargetId }}"
+                title="{{ ucfirst($activitySummary['next']['type']) }}: {{ $activitySummary['next']['title'] }}"
+            >
                 <span>Continuar con {{ $activitySummary['next']['type'] === 'lectura' ? 'la lectura' : ($activitySummary['next']['type'] === 'ejemplo' ? 'el ejemplo' : 'el ejercicio') }}</span>
                 <strong>{{ $activitySummary['next']['title'] }}</strong>
                 <span class="module-overview-next-arrow" aria-hidden="true">→</span>
