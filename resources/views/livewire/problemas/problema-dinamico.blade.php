@@ -101,6 +101,8 @@
                                         style="padding: 8px 12px; border: 1px solid var(--borde); border-radius: 10px; font-size: 1rem; width: 160px;"
                                         @disabled($isStepDone)
                                         wire:keydown.enter="checkStep({{ $step->id }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="checkStep({{ $step->id }})"
                                     >
                                     @if($step->unit)
                                         <span class="badge" style="background: #f0f6ff; color: var(--azul-oscuro); font-size: 0.85rem;">
@@ -110,14 +112,10 @@
                                 </div>
 
                                 @if(!$isStepDone)
-                                    <button 
-                                        type="button" 
-                                        class="badge" 
-                                        wire:click="checkStep({{ $step->id }})"
+                                    <x-problem-check-button
+                                        :action="'checkStep('.$step->id.')'"
                                         style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
-                                    >
-                                        Revisar
-                                    </button>
+                                    />
                                 @endif
                             </div>
 
@@ -135,6 +133,8 @@
                                                 value="{{ $opt->id }}"
                                                 wire:model="answers.{{ $step->id }}"
                                                 @disabled($isStepDone)
+                                                wire:loading.attr="disabled"
+                                                wire:target="checkStep({{ $step->id }})"
                                             >
                                             <span style="font-size: 0.95rem;">{{ $opt->option_text }}</span>
                                         </label>
@@ -143,14 +143,10 @@
 
                                 @if(!$isStepDone)
                                     <div style="margin-top: 10px;">
-                                        <button 
-                                            type="button" 
-                                            class="badge" 
-                                            wire:click="checkStep({{ $step->id }})"
+                                        <x-problem-check-button
+                                            :action="'checkStep('.$step->id.')'"
                                             style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
-                                        >
-                                            Revisar
-                                        </button>
+                                        />
                                     </div>
                                 @endif
                             </div>
@@ -168,6 +164,8 @@
                                             value="1"
                                             wire:model="answers.{{ $step->id }}"
                                             @disabled($isStepDone)
+                                            wire:loading.attr="disabled"
+                                            wire:target="checkStep({{ $step->id }})"
                                         >
                                         <span>Verdadero</span>
                                     </label>
@@ -178,6 +176,8 @@
                                             value="0"
                                             wire:model="answers.{{ $step->id }}"
                                             @disabled($isStepDone)
+                                            wire:loading.attr="disabled"
+                                            wire:target="checkStep({{ $step->id }})"
                                         >
                                         <span>Falso</span>
                                     </label>
@@ -185,14 +185,10 @@
 
                                 @if(!$isStepDone)
                                     <div style="margin-top: 10px;">
-                                        <button 
-                                            type="button" 
-                                            class="badge" 
-                                            wire:click="checkStep({{ $step->id }})"
+                                        <x-problem-check-button
+                                            :action="'checkStep('.$step->id.')'"
                                             style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
-                                        >
-                                            Revisar
-                                        </button>
+                                        />
                                     </div>
                                 @endif
                             </div>
@@ -209,17 +205,15 @@
                                     style="padding: 8px 12px; border: 1px solid var(--borde); border-radius: 10px; font-size: 0.95rem; min-width: 240px;"
                                     @disabled($isStepDone)
                                     wire:keydown.enter="checkStep({{ $step->id }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="checkStep({{ $step->id }})"
                                 >
 
                                 @if(!$isStepDone)
-                                    <button 
-                                        type="button" 
-                                        class="badge" 
-                                        wire:click="checkStep({{ $step->id }})"
+                                    <x-problem-check-button
+                                        :action="'checkStep('.$step->id.')'"
                                         style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 9px 18px;"
-                                    >
-                                        Revisar
-                                    </button>
+                                    />
                                 @endif
                             </div>
                         @endif

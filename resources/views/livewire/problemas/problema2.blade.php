@@ -14,7 +14,7 @@
             </label>
 
             @if ($currentStep == 1 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep1">Revisar</button>
+                <x-problem-check-button action="checkStep1" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 1])
@@ -34,7 +34,7 @@
             </label>
 
             @if ($currentStep == 2 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep2">Revisar</button>
+                <x-problem-check-button action="checkStep2" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 2])
@@ -54,7 +54,7 @@
             </label>
 
             @if ($currentStep == 3 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep3">Revisar</button>
+                <x-problem-check-button action="checkStep3" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 3])
@@ -73,7 +73,7 @@
             </label>
 
             @if ($currentStep == 4 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep4">Revisar</button>
+                <x-problem-check-button action="checkStep4" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 4])
@@ -103,7 +103,7 @@
             </label>
 
             @if ($currentStep == 5 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep5">Revisar</button>
+                <x-problem-check-button action="checkStep5" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 5])
@@ -123,7 +123,7 @@
             </label>
 
             @if ($currentStep == 6 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep6">Revisar</button>
+                <x-problem-check-button action="checkStep6" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 6])
@@ -142,7 +142,7 @@
             </label>
 
             @if ($currentStep == 7 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep7">Revisar</button>
+                <x-problem-check-button action="checkStep7" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 7])
@@ -166,7 +166,7 @@
             </label>
 
             @if ($currentStep == 8 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep8">Revisar</button>
+                <x-problem-check-button action="checkStep8" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 8])
@@ -185,7 +185,7 @@
             </label>
 
             @if ($currentStep == 9 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep9">Revisar</button>
+                <x-problem-check-button action="checkStep9" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 9])
@@ -215,7 +215,7 @@
             </label>
 
             @if ($currentStep == 10 && !$askNextStep)
-                <button type="button" class="badge" wire:click="checkStep10">Revisar</button>
+                <x-problem-check-button action="checkStep10" />
             @endif
 
             @include('livewire.partials.step-message', ['step' => 10])
@@ -260,7 +260,7 @@
                 </select>
 
                 @if ($currentStep == 11)
-                    <button type="button" class="badge" wire:click="checkStep11">Revisar</button>
+                    <x-problem-check-button action="checkStep11" />
                 @endif
             </div>
 
@@ -292,9 +292,7 @@
                     <option value="comparacion">Comparar opciones</option>
                 </select>
 
-                <button type="button" class="badge" wire:click="checkNextStep">
-                    Responder
-                </button>
+                <x-problem-check-button action="checkNextStep" label="Responder" />
             </div>
 
             @include('livewire.partials.step-message', ['step' => 'next'])
