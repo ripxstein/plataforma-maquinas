@@ -593,6 +593,40 @@
         };
     }
 
+    function availableProblemActionElement(action) {
+        const component = Array.from(document.querySelectorAll('[wire\\:id]'))
+            .find((element) => element.getAttribute('wire:id') === action.componentId);
+        if (!component) return null;
+
+        return Array.from(component.querySelectorAll('[wire\\:click], [wire\\:keydown\\.enter]'))
+            .find((element) => {
+                const expression = element.getAttribute('wire:click')
+                    || element.getAttribute('wire:keydown.enter');
+                const candidate = parseProblemAction(expression);
+
+                return candidate
+                    && candidate.method === action.method
+                    && JSON.stringify(candidate.parameters) === JSON.stringify(action.parameters);
+            }) || null;
+    }
+
+    function focusCurrentProblemAction(componentId) {
+        const component = Array.from(document.querySelectorAll('[wire\\:id]'))
+            .find((element) => element.getAttribute('wire:id') === componentId);
+        if (!component) return;
+
+        const current = Array.from(component.querySelectorAll('[wire\\:click], [wire\\:keydown\\.enter]'))
+            .find((element) => {
+                const expression = element.getAttribute('wire:click')
+                    || element.getAttribute('wire:keydown.enter');
+                return parseProblemAction(expression) && !element.disabled;
+            });
+        if (!current) return;
+
+        current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        current.focus({ preventScroll: true });
+    }
+
     if (!window.__problemRequestCaptureInstalled) {
         window.__problemRequestCaptureInstalled = true;
 
@@ -669,6 +703,24 @@
         const wire = window.Livewire.find(action.componentId);
         if (!wire) {
             if (message) message.textContent = 'La actividad cambió y no se puede reintentar. Recarga la página para continuar.';
+            return;
+        }
+
+        // Si otra petición ya avanzó el paso, no se debe volver a enviar la acción
+        // antigua. Cerramos el aviso y llevamos al alumno al control vigente.
+        if (!availableProblemActionElement(action)) {
+            window.__problemRequestFailedAction = null;
+            window.__problemRequestPendingAction = null;
+            if (message) message.textContent = 'Ese paso ya quedó registrado. Puedes continuar con la actividad.';
+            if (retry) {
+                retry.disabled = true;
+                retry.textContent = 'Continuando…';
+            }
+            setTimeout(() => {
+                hideProblemRequestError();
+                focusCurrentProblemAction(action.componentId);
+            }, 700);
+
             return;
         }
 

@@ -142,29 +142,54 @@ class ProblemaDinamico extends Component
         return hash('sha256', json_encode([$this->problem->getAttributes(), $this->steps->toArray()]));
     }
 
-    private function expectedStep(int $stepId, bool $example): ProblemStep
+    /**
+     * @return array{0: ProblemStep, 1: bool} Paso solicitado y si ya había sido procesado.
+     */
+    private function expectedStep(int $stepId, bool $example): array
     {
         abort_unless(auth()->check() && $this->problem, 403);
         abort_unless(($this->problem->component ?: 'problemas.problema-dinamico') === 'problemas.problema-dinamico', 403);
         app(LearningProgressService::class)->assertProblemAvailable(auth()->id(), $this->problem);
         abort_unless(hash_equals($this->definitionHash, $this->currentDefinitionHash()), 409, 'El problema cambió. Recarga la página para continuar.');
-        $step = $this->steps->get($this->currentStepIndex - 1);
-        abort_unless(! $this->isCompleted && $this->problem->is_example === $example && $step && $step->id === $stepId, 403);
+        abort_unless($this->problem->is_example === $example, 403);
 
-        return $step;
+        $requestedIndex = $this->steps->search(
+            fn (ProblemStep $step): bool => (int) $step->id === $stepId
+        );
+        abort_unless($requestedIndex !== false, 403);
+
+        $step = $this->steps->get($requestedIndex);
+        $requestedStepIndex = $requestedIndex + 1;
+
+        // En ejemplos guiados una petición puede llegar tarde después de que Livewire
+        // ya avanzó. Confirmarla como atendida evita un 403 sin volver a avanzar ni
+        // registrar progreso. Los pasos futuros continúan estrictamente prohibidos.
+        if ($example && $requestedStepIndex < $this->currentStepIndex) {
+            return [$step, true];
+        }
+
+        abort_unless(! $this->isCompleted && $requestedStepIndex === $this->currentStepIndex, 403);
+
+        return [$step, false];
     }
 
-    public function nextExampleStep(int $stepId)
+    public function nextExampleStep(int $stepId): void
     {
-        $this->expectedStep($stepId, true);
+        [, $alreadyProcessed] = $this->expectedStep($stepId, true);
+        if ($alreadyProcessed) {
+            $this->dispatch('render-math');
+
+            return;
+        }
+
         $this->advance();
         $this->messages[$stepId] = ['ok' => true, 'text' => 'Paso revisado.', 'reminder' => null];
         $this->dispatch('render-math');
     }
 
-    public function checkStep(int $stepId)
+    public function checkStep(int $stepId): void
     {
-        $step = $this->expectedStep($stepId, false);
+        [$step] = $this->expectedStep($stepId, false);
         $isOk = app(AnswerEvaluator::class)->evaluate(
             $step->getAttributes(), $this->answers[$stepId] ?? null, $step->options->keyBy('id')->toArray()
         );

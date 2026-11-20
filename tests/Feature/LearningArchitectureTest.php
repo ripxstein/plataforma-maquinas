@@ -72,6 +72,54 @@ test('dynamic actions require the reading and the expected step', function () {
     expect(UserProblemProgress::count())->toBe(0);
 });
 
+test('repeated guided example requests are idempotent without allowing skipped steps', function () {
+    $this->problem->update(['is_example' => true]);
+    openArchitectureReading($this);
+
+    Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])
+        ->call('nextExampleStep', $this->steps[1]->id)->assertForbidden();
+
+    $example = Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id]);
+    $example->call('nextExampleStep', $this->steps[0]->id)
+        ->assertSet('currentStepIndex', 2)
+        ->assertSet('isCompleted', false);
+    $firstStepMessages = $example->get('messages');
+
+    $example->call('nextExampleStep', $this->steps[0]->id)
+        ->assertStatus(200)
+        ->assertSet('currentStepIndex', 2)
+        ->assertSet('messages', $firstStepMessages);
+    expect(UserProblemProgress::count())->toBe(0);
+
+    $example->call('nextExampleStep', $this->steps[1]->id)
+        ->assertSet('currentStepIndex', 3)
+        ->assertSet('isCompleted', true);
+    $recordedProgress = UserProblemProgress::where('user_id', $this->student->id)
+        ->where('problem_id', $this->problem->id)->firstOrFail()->getRawOriginal();
+
+    $example->call('nextExampleStep', $this->steps[1]->id)
+        ->assertStatus(200)
+        ->assertSet('currentStepIndex', 3)
+        ->assertSet('isCompleted', true);
+
+    expect(UserProblemProgress::where('user_id', $this->student->id)
+        ->where('problem_id', $this->problem->id)->count())->toBe(1)
+        ->and(UserProblemProgress::where('user_id', $this->student->id)
+            ->where('problem_id', $this->problem->id)->firstOrFail()->getRawOriginal())
+        ->toBe($recordedProgress);
+});
+
+test('guided example actions expose a stable key and loading state', function () {
+    $this->problem->update(['is_example' => true]);
+    openArchitectureReading($this);
+
+    Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])
+        ->assertSeeHtml('wire:key="problem-'.$this->problem->id.'-step-'.$this->steps[0]->id.'"')
+        ->assertSeeHtml('wire:key="problem-'.$this->problem->id.'-example-action-'.$this->steps[0]->id.'"')
+        ->assertSeeHtml('wire:loading.attr="disabled"')
+        ->assertSee('Cargando…');
+});
+
 test('client cannot change trusted dynamic state', function (string $property, mixed $value) {
     openArchitectureReading($this);
     Livewire::test(ProblemaDinamico::class, ['problemId' => $this->problem->id])->set($property, $value);

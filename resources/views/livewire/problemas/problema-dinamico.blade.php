@@ -32,7 +32,7 @@
         @endphp
 
         @if($isUnlocked)
-            <div class="pstep" style="margin-top: {{ $index > 0 ? '16px' : '6px' }}; background: {{ $isStepDone ? ($problem->is_example ? '#f7faff' : '#fafffa') : '#ffffff' }}; border: 1px solid {{ $isStepDone ? ($problem->is_example ? '#bcd6f5' : '#b2e2bd') : '#c7d9ee' }}; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+            <div wire:key="problem-{{ $problemId }}-step-{{ $step->id }}" class="pstep" style="margin-top: {{ $index > 0 ? '16px' : '6px' }}; background: {{ $isStepDone ? ($problem->is_example ? '#f7faff' : '#fafffa') : '#ffffff' }}; border: 1px solid {{ $isStepDone ? ($problem->is_example ? '#bcd6f5' : '#b2e2bd') : '#c7d9ee' }}; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <div class="tag" style="background: {{ $isStepDone ? ($problem->is_example ? '#dcecff' : '#e7f7ea') : '#dcecff' }}; color: {{ $isStepDone ? ($problem->is_example ? '#103b73' : '#1e7e34') : '#103b73' }}; margin: 0; font-weight: 700;">
                         {{ $isStepDone ? '✔ ' : '' }}Paso {{ $step->step_number ?? $stepNum }}: {{ $step->title }}
@@ -77,10 +77,22 @@
                                 type="button" 
                                 class="badge" 
                                 wire:click="nextExampleStep({{ $step->id }})"
+                                wire:target="nextExampleStep({{ $step->id }})"
+                                wire:loading.attr="disabled"
+                                wire:key="problem-{{ $problemId }}-example-action-{{ $step->id }}"
                                 style="cursor: pointer; background: var(--azul-secundario); color: white; border: none; padding: 10px 22px; font-size: 0.98rem; font-weight: 600; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(30, 90, 168, 0.2);"
                             >
-                                <span>{{ $stepNum < $steps->count() ? 'Siguiente paso' : 'Finalizar ejemplo' }}</span>
-                                <span>{{ $stepNum < $steps->count() ? '→' : '✔' }}</span>
+                                <span wire:loading.remove wire:target="nextExampleStep({{ $step->id }})" style="display: inline-flex; align-items: center; gap: 8px;">
+                                    <span>{{ $stepNum < $steps->count() ? 'Siguiente paso' : 'Finalizar ejemplo' }}</span>
+                                    <span>{{ $stepNum < $steps->count() ? '→' : '✔' }}</span>
+                                </span>
+                                <span wire:loading.inline-flex wire:target="nextExampleStep({{ $step->id }})" role="status" aria-live="polite" style="display: none; align-items: center; gap: 8px;">
+                                    <svg class="h-4 w-4 animate-spin motion-reduce:animate-none" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.3" />
+                                        <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                                    </svg>
+                                    Cargando…
+                                </span>
                             </button>
                         </div>
                     @endif
